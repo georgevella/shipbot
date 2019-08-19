@@ -284,6 +284,9 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 // keep note of the updated tag
                 imageToTagInManifest[image] = targetImageTag.Tag;
                 updates.Add(targetImageTag);
+
+                // add delay instruction due to the deployment update notification delivered too fast
+                Task.Delay(500);
                 
                 _applicationService.UpdateDeploymentUpdateState(application, targetImageTag,
                     DeploymentUpdateStatus.Synchronized);
