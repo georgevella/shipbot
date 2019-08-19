@@ -65,12 +65,12 @@ namespace Shipbot.Controller.Core.Slack
 
             try
             {
-                _actualClient.GetGroupsList(
+                _actualClient.GetChannelList(
                     response =>
                     {
                         if (response.ok)
                         {
-                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.groups));
+                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.channels));
                         }
                         else
                         {
