@@ -159,11 +159,20 @@ namespace Shipbot.Controller.Core.Apps
             DeploymentUpdateStatus status)
         {
             var ctx = _applications[application.Name];
+            
             var handle = ctx.MessageHandles[deploymentUpdate];
             deploymentUpdate.Status = status;
-            var newHandle = await _slackClient.UpdateDeploymentUpdateNotification(handle, deploymentUpdate);
 
-            ctx.MessageHandles.TryUpdate(deploymentUpdate, newHandle, handle);
+            try
+            {
+                _log.LogInformation("Submitting {@DeploymentUpdate} notification change to slack {@MessageHandle}. ", deploymentUpdate, handle);
+                var newHandle = await _slackClient.UpdateDeploymentUpdateNotification(handle, deploymentUpdate);
+                ctx.MessageHandles.TryUpdate(deploymentUpdate, newHandle, handle);
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Failed to submit deployment update notification ", deploymentUpdate, handle);
+            }
         }
 
         public void SetCurrentImageTag(Application application, Image image, string tag)
