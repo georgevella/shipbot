@@ -172,7 +172,7 @@ namespace Shipbot.Controller.Core.Apps
             ctx.CurrentTags.AddOrUpdate(image,
                 (x, y) =>
                 {
-                    _log.LogInformation("Adding '{image}' to application {application} with tag {tag}",
+                    _log.LogInformation("Adding '{Repository}' to application {Application} with tag {Tag}",
                         x.Repository, y.application.Name, y.tag);
                     return y.tag;
                 },  
@@ -182,7 +182,7 @@ namespace Shipbot.Controller.Core.Apps
                         return current;
                     
                     _log.LogInformation(
-                        "Updating '{image}' with tag {tag} for application {application} with new tag {newTag}",
+                        "Updating '{Repository}' with tag {Tag} for application {Application} with new tag {NewTag}",
                         x.Repository, current, y.application.Name, y.tag);
                     return y.tag;
 
@@ -200,7 +200,7 @@ namespace Shipbot.Controller.Core.Apps
             if (ctx.DeploymentUpdates.Contains(deploymentUpdate))
             {
                 _log.LogInformation(
-                    "Image tag update operation already in queue for '{image}' with {tag} for application {application} with new tag {newTag}",
+                    "Image tag update operation already in queue for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
                     image.Repository, 
                     ctx.CurrentTags[image],
                     application.Name,
@@ -213,7 +213,7 @@ namespace Shipbot.Controller.Core.Apps
             if (channel != null)
             {
                 _log.LogInformation(
-                    "Sending notification about image tag update operation for '{image}' with {tag} for application {application} with new tag {newTag}",
+                    "Sending notification about image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
                     image.Repository, 
                     ctx.CurrentTags[image],
                     application.Name,
@@ -231,7 +231,7 @@ namespace Shipbot.Controller.Core.Apps
             }
 
             _log.LogInformation(
-                "Adding image tag update operation for '{image}' with {tag} for application {application} with new tag {newTag}",
+                "Adding image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
                 image.Repository, 
                 ctx.CurrentTags[image],
                 application.Name,

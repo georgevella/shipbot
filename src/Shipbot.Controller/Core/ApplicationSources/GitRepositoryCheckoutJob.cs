@@ -39,7 +39,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 Directory.Delete(context.GitRepositoryPath, true);
             }
 
-            _log.LogInformation("Cloning {repository} into {path}",
+            _log.LogInformation("Cloning {Repository} into {Path}",
                 repository.Uri,
                 context.GitRepositoryPath);
 
@@ -58,7 +58,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
                     });
             });
 
-            _log.LogInformation("Starting sync-job for {repository} in {path}",
+            _log.LogInformation("Starting sync-job for {Repository} in {Path}",
                 repository.Uri,
                 context.GitRepositoryPath
             );

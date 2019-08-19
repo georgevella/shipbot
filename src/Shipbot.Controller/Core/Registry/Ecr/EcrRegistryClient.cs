@@ -73,7 +73,7 @@ namespace Shipbot.Controller.Core.Registry.Ecr
                     );
                 }
                 
-                _log.LogInformation("Found {imageCount} images for {repository}", imageList.Count, repository);
+                _log.LogInformation("Found {ImageCount} images for {Repository}", imageList.Count, repository);
 
                 return imageList;
             }

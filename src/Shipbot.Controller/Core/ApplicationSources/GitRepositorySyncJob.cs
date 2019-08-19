@@ -229,11 +229,11 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 if (!imageToFilenameMap.TryGetValue(targetImageTag.Image, out string file))
                 {
                     // TODO: warn that we have an image tag update but no corresponding file
-                    _log.LogWarning("Update to {image} cannot be applied since there isn't matching file.");
+                    _log.LogWarning("Update to {Repository} cannot be applied since there isn't matching file.");
                     continue;
                 }
 
-                _log.LogInformation("Upgrading {image} to {newTag} from {currentTag}",
+                _log.LogInformation("Upgrading {Repository} to {NewTag} from {Tag}",
                     targetImageTag.Image.Repository,
                     targetImageTag.Tag,
                     imageToTagInManifest.TryGetAndReturn(targetImageTag.Image) ?? "n/a"
@@ -255,11 +255,11 @@ namespace Shipbot.Controller.Core.ApplicationSources
 
                     if (tagInManifest == targetImageTag.Tag)
                     {
-                        _log.LogInformation("Tag for {image} matches new tag {newTag}", image.Repository, targetImageTag.Tag);
+                        _log.LogInformation("Tag for {Repository} matches new tag {NewTag}", image.Repository, targetImageTag.Tag);
                         continue;
                     }
 
-                    _log.LogInformation("Setting current-tag for {image} to {tag}", image.Repository,
+                    _log.LogInformation("Setting current-tag for {Repository} to {Tag}", image.Repository,
                         targetImageTag.Tag);
                     yamlUtilities.SetValueInDoc(image.TagProperty.Path, doc, targetImageTag.Tag);
 
@@ -271,7 +271,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 
                 yamlUtilities.WriteYamlStream(yaml, filePath);
 
-                _log.LogInformation("Adding {filePath} to repository staging", filePath);
+                _log.LogInformation("Adding {Path} to repository staging", filePath);
                 var gitFilePath = Path.Combine(relativePath, file);
                 Commands.Stage(gitRepository, gitFilePath);
 
@@ -296,61 +296,6 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 updates,
                 imageToTagInManifest.Select(x => (x.Key, x.Value)).ToList()
             );
-
-            /////
-
-//            foreach (var file in helmApplicationSource.ValuesFiles)
-//            {
-//                var fileUpdated = false;
-//                
-//                var yaml = new YamlStream();
-//                var filePath = Path.Combine(applicationSourcePath, file);
-//                yamlUtilities.ReadYamlStream(yaml, filePath);
-//
-//                foreach (var doc in yaml.Documents)
-//                {
-//                    foreach (var image in context.Application.Images)
-//                    {
-//                        var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
-//
-//                        if (tagInManifest == null) continue;
-//
-//                        if (!targetImageTags.TryGetValue(image, out var tagInContext))
-//                        {
-//                            _log.LogInformation("Detected a new image, {image} with tag {tag}, in manifests.", image.Repository, tagInManifest);
-//                            _applicationService.SetCurrentImageTag(application, image, tagInManifest);
-//                            continue;
-//                        }
-//                        
-//                        if (tagInContext == tagInManifest)
-//                        {
-//                            _log.LogInformation("Current tag in manifest for {image} did not change ({tag})", image.Repository, tagInManifest);
-//                                
-//                        }
-//                        else
-//                        {
-//                            _log.LogInformation("Setting current-tag for {image} to {tag}", image.Repository, tagInContext);
-//                            yamlUtilities.SetValueInDoc(image.TagProperty.Path, doc, tagInContext);
-//                            
-//                            // TODO: improve this so that current image tags are set after file is saved and committed
-//                            _applicationService.SetCurrentImageTag(application, image, tagInManifest);
-//                            fileUpdated = true;
-//                        }
-//                    }
-//                }
-//
-//                if (!fileUpdated) 
-//                    continue;
-//                
-//                yamlUtilities.WriteYamlStream(yaml, filePath);
-//
-//                var gitFilePath = Path.Combine(relativePath, file);
-//                _log.LogInformation("Adding {filePath} to repository staging", gitFilePath);
-//                    
-//                Commands.Stage(gitRepository, gitFilePath);
-//
-//                doCommit = true;
-//            }
 
             _log.LogInformation("Completing parsing value files defined in application source ...");
 
