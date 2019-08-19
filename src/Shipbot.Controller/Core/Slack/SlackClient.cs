@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Models;
 using SlackAPI;
@@ -16,7 +17,7 @@ namespace Shipbot.Controller.Core.Slack
     {
         private readonly ILogger<SlackClient> _log;
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
-        private SlackSocketClient _actualClient;
+        private SlackTaskClient _actualClient;
         private int _timeout;
 
         public SlackClient(
@@ -28,87 +29,158 @@ namespace Shipbot.Controller.Core.Slack
             _slackConfiguration = slackConfiguration;
         }
 
-        public void Connect()
+        public async Task Connect()
         {
             _timeout = _slackConfiguration.Value.Timeout;
             
-            _actualClient = new SlackSocketClient(_slackConfiguration.Value.Token);
-            _actualClient.Connect(
-                response =>
-                {
-                    _log.LogInformation("Connection to slack established.");
-                },
-                () =>
-                {
-                    _log.LogInformation("Connection to slack via web-socket established.");
-                }
-                );
+            _actualClient = new SlackTaskClient(_slackConfiguration.Value.Token);
+            var loginResponse = await _actualClient.ConnectAsync();
 
-            _actualClient.OnHello += () => { _log.LogInformation("Slack -- hello"); };
+            if (loginResponse.ok)
+            {
+                _log.LogInformation("Connection to slack established.");
+            }
+            else
+            {
+                throw new InvalidOperationException(loginResponse.error);
+            }
             
-            _actualClient.OnMessageReceived += message =>
-            {
-                _log.LogDebug("Slack message received: {slackMessage}", message);
-            };
-
-            _actualClient.OnReactionAdded += added =>
-            {
-                _log.LogDebug("Slack message received: {slackReaction}", added);
-            };
-
-            _actualClient.OnPongReceived += pong => { _log.LogDebug("Slack pong received: {pong}", pong); };
+//            _actualClient.OnHello += () => { _log.LogInformation("Slack -- hello"); };
+//            
+//            _actualClient.OnMessageReceived += message =>
+//            {
+//                _log.LogDebug("Slack message received: {slackMessage}", message);
+//            };
+//
+//            _actualClient.OnReactionAdded += added =>
+//            {
+//                _log.LogDebug("Slack message received: {slackReaction}", added);
+//            };
+//
+//            _actualClient.OnPongReceived += pong => { _log.LogDebug("Slack pong received: {pong}", pong); };
         }
 
-        private Task<IEnumerable<Channel>> GetChannels()
+//        private Task<IEnumerable<Channel>> GetPublicChannels()
+//        {
+//            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
+//
+//            try
+//            {
+//                _actualClient.GetChannelList(
+//                    response =>
+//                    {
+//                        if (response.ok)
+//                        {
+//                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.channels));
+//                        }
+//                        else
+//                        {
+//                            tsc.SetException(new InvalidOperationException($"SLACKCLIENT ERROR: {response.error}"));
+//                        }
+//                    }
+//                );
+//            }
+//            catch (Exception e)
+//            {
+//                tsc.SetException(e);
+//            }
+//
+//            return tsc.Task;
+//        }
+//        
+//        private Task<IEnumerable<Channel>> GetPrivateChannels()
+//        {
+//            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
+//
+//            try
+//            {
+//                _actualClient.GetGroupsListAsync()
+//                _actualClient.GetGroupsListAsync(
+//                    response =>
+//                    {
+//                        if (response.ok)
+//                        {
+//                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.groups));
+//                        }
+//                        else
+//                        {
+//                            tsc.SetException(new InvalidOperationException($"SLACKCLIENT ERROR: {response.error}"));
+//                        }
+//                    }
+//                );
+//            }
+//            catch (Exception e)
+//            {
+//                tsc.SetException(e);
+//            }
+//
+//            return tsc.Task;
+//        }
+
+//        private async Task<IEnumerable<Channel>> GetChannels()
+//        {
+//            var publicChannels = await GetPublicChannels();
+//            var privateChannels = await GetPrivateChannels();
+//
+//            return privateChannels.Concat(publicChannels).ToArray();
+//        }
+
+        private async Task<SingleMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
         {
-            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
-
-            try
-            {
-                _actualClient.GetChannelList(
-                    response =>
-                    {
-                        if (response.ok)
-                        {
-                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.channels));
-                        }
-                        else
-                        {
-                            tsc.SetException(new InvalidOperationException($"SLACKCLIENT ERROR: {response.error}"));
-                        }
-                    }
-                );
-            }
-            catch (Exception e)
-            {
-                tsc.SetException(e);
-            }
-
-            return tsc.Task;
-        }
-
-        private Task<SingleMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
-        {
-            var tsc = new TaskCompletionSource<SingleMessageHandle>();
-            
-            var ct = new CancellationTokenSource(_timeout);
-            ct.Token.Register(() => tsc.TrySetCanceled(), useSynchronizationContext: false);
-            
-            _actualClient.PostMessage(
-                messageResponse =>
-                {
-                    _log.LogInformation($"RESPONSE >> Received message deliver for [{messageResponse.ts}/${messageResponse.channel}]");
-                    tsc.SetResult(new SingleMessageHandle(messageResponse));
-                }, 
-                channelId, 
+            var messageResponse = await _actualClient.PostMessageAsync(
+                channelId,
                 message.Message,
                 blocks: message.Blocks
-                );
+            );
+                
+            _log.LogInformation(
+                $"RESPONSE >> Received message deliver for [{messageResponse.ts}/${messageResponse.channel}]");
 
-            return tsc.Task;
+            return new SingleMessageHandle(messageResponse);
         }
 
-        private Task<SingleMessageHandle> UpdateMessageAsync(SingleMessageHandle handle, SlackMessage message)
+        private Task<UpdateResponse> UpdateWithBlocksAsync(
+            string ts,
+            string channelId,
+            string text,
+            string botName = null,
+            string parse = null,
+            bool linkNames = false,
+            IBlock[] blocks = null,
+            Attachment[] attachments = null,
+            // ReSharper disable once InconsistentNaming
+            bool as_user = false)
+        {
+            var tupleList = new List<Tuple<string, string>>
+            {
+                new Tuple<string, string>(nameof(ts), ts),
+                new Tuple<string, string>("channel", channelId),
+                new Tuple<string, string>(nameof(text), text)
+            };
+            
+            if (!string.IsNullOrEmpty(botName))
+                tupleList.Add(new Tuple<string, string>("username", botName));
+            
+            if (!string.IsNullOrEmpty(parse))
+                tupleList.Add(new Tuple<string, string>(nameof (parse), parse));
+            
+            if (linkNames)
+                tupleList.Add(new Tuple<string, string>("link_names", "1"));
+            
+            if (blocks != null && blocks.Length != 0)
+                tupleList.Add(new Tuple<string, string>(nameof (blocks), JsonConvert.SerializeObject(blocks, new JsonSerializerSettings()
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                })));
+            
+            if (attachments != null && attachments.Length != 0)
+                tupleList.Add(new Tuple<string, string>(nameof (attachments), JsonConvert.SerializeObject(attachments)));
+            
+            tupleList.Add(new Tuple<string, string>(nameof (as_user), as_user.ToString()));
+            return _actualClient.APIRequestWithTokenAsync<UpdateResponse>(tupleList.ToArray());
+        }
+        
+        private async Task<SingleMessageHandle> UpdateMessageAsync(SingleMessageHandle handle, SlackMessage message)
         {
             var tsc = new TaskCompletionSource<SingleMessageHandle>();
             
@@ -116,19 +188,15 @@ namespace Shipbot.Controller.Core.Slack
             ct.Token.Register(() => tsc.TrySetCanceled(), useSynchronizationContext: false);
             
             _log.LogInformation($"Sending message update for [{handle.Timestamp}/${handle.ChannelId}]");
-            _actualClient.Update(
-                response =>
-                {
-                    _log.LogInformation($"RESPONSE >> Sending message update for [{response.ts}/${response.channel}]");
-                    tsc.SetResult(new SingleMessageHandle(response));
-                }, 
+            var response = await UpdateWithBlocksAsync(
                 handle.Timestamp,
                 handle.ChannelId,
                 message.Message,
                 blocks: message.Blocks 
                 );
 
-            return tsc.Task;
+            _log.LogInformation($"RESPONSE >> Sending message update for [{response.ts}/${response.channel}]");
+            return new SingleMessageHandle(response);
         }
 
         public async Task<IMessageHandle> SendMessage(string channel, string message)
@@ -183,19 +251,22 @@ namespace Shipbot.Controller.Core.Slack
             if (channel == null) throw new ArgumentNullException(nameof(channel));
             if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
 
-            var channels = await GetChannels();
-            
-            var channelMetadata = channels.FirstOrDefault(c =>
-                c.name.Equals(channel, StringComparison.OrdinalIgnoreCase)
-            );
-            
-            if (channelMetadata == null)
-            {
-                throw new Exception($"Could not find channel with name {channel}");
-            }
+//            var channelsResponse = await _actualClient.APIRequestWithTokenAsync<ConversationsListResponse>(
+//                new Tuple<string, string>("exclude_archived", "true"),
+//                new Tuple<string, string>("types", "public_channel,private_channel")
+//            );
+//            
+//            var channelMetadata = channelsResponse.channels.FirstOrDefault(c =>
+//                c.name.Equals(channel, StringComparison.OrdinalIgnoreCase)
+//            );
+//            
+//            if (channelMetadata == null)
+//            {
+//                throw new Exception($"Could not find channel with name {channel}");
+//            }
 
             return await PostMessageAsync(
-                channelMetadata.id,
+                channel,
                 BuildDeploymentUpdateMessage(deploymentUpdate)
             );
         }
@@ -229,10 +300,14 @@ namespace Shipbot.Controller.Core.Slack
 
         public void Dispose()
         {
-            if (_actualClient.IsConnected)
-            {
-                _actualClient.CloseSocket();
-            }
+
         }
+    }
+    
+    [RequestPath("conversations.list", true)]
+    public class ConversationsListResponse : Response
+    {
+        // ReSharper disable once InconsistentNaming
+        public Channel[] channels;
     }
 }

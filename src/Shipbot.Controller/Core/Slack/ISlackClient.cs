@@ -6,7 +6,7 @@ namespace Shipbot.Controller.Core.Slack
 {
     public interface ISlackClient : IDisposable
     {
-        void Connect();
+        Task Connect();
         Task<IMessageHandle> SendMessage(string channel, string message);
 
         Task<IMessageHandle> SendDeploymentUpdateNotification(
