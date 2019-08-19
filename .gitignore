@@ -330,4 +330,5 @@ ASALocalRun/
 .mfractor/
 
 appsettings.Development.json
+appsettings.Production.json
 values-linting.yaml
