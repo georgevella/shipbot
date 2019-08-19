@@ -152,7 +152,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
 
                 if (context.Application.Source is HelmApplicationSource helmApplicationSource)
                 {
-                    if (SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
+                    if (await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
                         context.Application.AutoDeploy)
                     {
                         _log.LogInformation("Pushing repository changes for {application}", context.Application);
@@ -170,7 +170,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             }
         }
 
-        private bool SynchronizeHelmApplicationSource(
+        private async Task<bool> SynchronizeHelmApplicationSource(
             Repository gitRepository,
             ApplicationSourceTrackingContext context,
             HelmApplicationSource helmApplicationSource)
@@ -220,7 +220,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             var queue = _applicationService.BeginApplicationSync(application);
             foreach (var targetImageTag in queue)
             {
-                _applicationService.UpdateDeploymentUpdateState(
+                await _applicationService.UpdateDeploymentUpdateState(
                     application, 
                     targetImageTag,
                     DeploymentUpdateStatus.UpdatingManifests
@@ -286,9 +286,9 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 updates.Add(targetImageTag);
 
                 // add delay instruction due to the deployment update notification delivered too fast
-                Task.Delay(500);
+                await Task.Delay(500);
                 
-                _applicationService.UpdateDeploymentUpdateState(application, targetImageTag,
+                await _applicationService.UpdateDeploymentUpdateState(application, targetImageTag,
                     DeploymentUpdateStatus.Synchronized);
 
                 doPush = true;
