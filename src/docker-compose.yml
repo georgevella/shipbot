@@ -1,0 +1,32 @@
+version: "3.7"
+
+volumes:
+  gitea:
+    driver: local
+
+services:
+  gitea:
+    image: gitea/gitea:1.9.0
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    volumes:
+      - gitea:/data
+    ports:
+      - "3000:3000"
+      - "222:22"
+
+  redis:
+    image: redis:5.0.5-alpine
+    ports:
+      - 6370:6379
+
+#  shipbot:
+#    image: georgevella/shipbot:dev
+#    build:
+#      context: ./
+#      dockerfile: Shipbot.Controller/Dockerfile
+#    ports:
+#      - 9090:80
+#    volumes:
+#      - ${PWD}/Shipbot.Controller/appsettings.Development.json:/app/appsettings.Production.json
