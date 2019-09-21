@@ -11,12 +11,14 @@ namespace Shipbot.Controller.Core.Slack
 
         Task<IMessageHandle> SendDeploymentUpdateNotification(
             string channel, 
-            DeploymentUpdate deploymentUpdate
+            DeploymentUpdate deploymentUpdate,
+            DeploymentUpdateStatus status
         );
 
         Task<IMessageHandle> UpdateDeploymentUpdateNotification(
             IMessageHandle handle, 
-            DeploymentUpdate deploymentUpdate
+            DeploymentUpdate deploymentUpdate,
+            DeploymentUpdateStatus status
         );
     }
 }

@@ -14,6 +14,7 @@ using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Configuration;
+using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Jobs;
 using Shipbot.Controller.Core.Registry;
 using Shipbot.Controller.Core.Registry.Watcher;
@@ -58,9 +59,10 @@ namespace Shipbot.Controller
 
             services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
             services.AddTransient<RegistryWatcherJob>();
-            
+
+            services.AddSingleton<IDeploymentService, DeploymentService>();
+
             services.AddTransient<IHostedService, OperatorStartup>();
-            
             
             services.AddTransient<IHostedService, SlackStartup>();
             services.AddSingleton<ISlackClient, SlackClient>();

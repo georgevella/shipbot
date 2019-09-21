@@ -6,7 +6,9 @@ namespace Shipbot.Controller.Core.Models
     {
         protected bool Equals(DeploymentUpdate other)
         {
-            return Image.Equals(other.Image) && string.Equals(Tag, other.Tag, StringComparison.OrdinalIgnoreCase);
+            return Application.Equals(other.Application) && 
+                   Image.Equals(other.Image) && 
+                   string.Equals(TargetTag, other.TargetTag, StringComparison.OrdinalIgnoreCase);
         }
 
         public override bool Equals(object obj)
@@ -21,29 +23,41 @@ namespace Shipbot.Controller.Core.Models
         {
             unchecked
             {
-                return (Image.GetHashCode() * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(Tag);
+                return (Application.GetHashCode() * 984) ^ 
+                       (Image.GetHashCode() * 397) ^ 
+                       StringComparer.OrdinalIgnoreCase.GetHashCode(TargetTag) ^
+                       StringComparer.OrdinalIgnoreCase.GetHashCode(CurrentTag);
             }
         }
 
+        public Application Application { get; }
         public Image Image { get; }
-        
-        public string Tag { get; }
-        
-        public DeploymentUpdateStatus Status { get; set; }
+        public string CurrentTag { get; }
 
-        public DeploymentUpdate(Image image, string tag)
+        public string TargetTag { get; }
+
+        public DeploymentUpdate(
+            Application application, 
+            Image image, 
+            string currentTag,
+            string targetTag
+            )
         {
+            Application = application;
             Image = image;
-            Tag = tag;
-            Status = DeploymentUpdateStatus.Pending;
+            CurrentTag = currentTag;
+            TargetTag = targetTag;
         }
     }
 
     public enum DeploymentUpdateStatus
     {
         Pending,
+        Starting,
         UpdatingManifests,
         Synchronizing,
-        Synchronized
+        Synchronized,
+        Complete,
+        Failed
     }
 }

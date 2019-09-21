@@ -14,22 +14,5 @@ namespace Shipbot.Controller.Core.Apps
 
         void SetCurrentImageTag(Application application, Image image, string tag);
         IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application);
-        
-        Task AddDeploymentUpdate(Application application, Image image, string newTag);
-        
-        
-        IEnumerable<DeploymentUpdate> BeginApplicationSync(Application application);
-
-        Task UpdateDeploymentUpdateState(
-            Application application, 
-            DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status
-        );
-        
-        void EndApplicationSync(
-            Application application, 
-            IEnumerable<DeploymentUpdate> deploymentUpdates,
-            IEnumerable<(Image Image, string Tag)> imageTags
-        );
     }
 }

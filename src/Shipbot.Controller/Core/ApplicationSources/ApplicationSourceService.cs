@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -12,7 +13,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
     {
         private readonly ConcurrentDictionary<string, ApplicationSourceTrackingContext> _trackingContexts =
             new ConcurrentDictionary<string, ApplicationSourceTrackingContext>();
-        
+
         private readonly ILogger<ApplicationSourceService> _log;
         private readonly IScheduler _scheduler;
 
@@ -34,8 +35,10 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 {"Context", context}
             });
             
+            var jobKey = new JobKey($"gitclone-{application.Name}", "gitrepowatcher");
+            
             var job = JobBuilder.Create<GitRepositoryCheckoutJob>()
-                .WithIdentity($"gitclone-{application.Name}", "gitrepowatcher")
+                .WithIdentity(jobKey)
                 .UsingJobData(jobData)
                 .Build();
 
@@ -48,29 +51,22 @@ namespace Shipbot.Controller.Core.ApplicationSources
             await _scheduler.ScheduleJob(job, trigger);
         }
 
-//        public IReadOnlyDictionary<Image, string> GetCurrentTags(Application application)
-//        {
-//            if (!_trackingContexts.TryGetValue(application.Name, out var context))
-//            {
-//                throw new InvalidOperationException("Application tracking context not found");
-//            }
-//
-//            return new Dictionary<Image, string>(context.CurrentTags);
-//        }
-//
-//        public async Task UpdateImageTag(Application application, Image image, string newTag)
-//        {
-//            if (!_trackingContexts.TryGetValue(application.Name, out var context))
-//            {
-//                throw new InvalidOperationException("Application tracking context not found");
-//            }
-//
-//            context.CurrentTags[image] = newTag;
-//        }
+        public async Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate)
+        {
+            var jobkey = new JobKey($"gitwatch-{deploymentUpdate.Application.Name}", "gitrepowatcher");
+
+            var data = new JobDataMap
+            {
+                ["DeploymentUpdate"] = deploymentUpdate
+            };
+
+            await _scheduler.TriggerJob(jobkey, data, CancellationToken.None);
+        }
     }
 
     public interface IApplicationSourceService
     {
         Task AddApplicationSource(Application application);
+        Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate);
     }
 }

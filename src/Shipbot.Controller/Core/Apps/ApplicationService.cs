@@ -37,18 +37,14 @@ namespace Shipbot.Controller.Core.Apps
             
             public Application Application { get; set; }
             
-            public ApplicationState State { get; set; }
+            public ApplicationSyncState State { get; set; }
             
             public ConcurrentDictionary<Image, string> CurrentTags { get; } = new ConcurrentDictionary<Image, string>();
             
-            public ConcurrentDictionary<DeploymentUpdate, IMessageHandle> MessageHandles { get; } = new ConcurrentDictionary<DeploymentUpdate, IMessageHandle>();
-            
-            public ConcurrentQueue<DeploymentUpdate> DeploymentUpdates { get; } = new ConcurrentQueue<DeploymentUpdate>();
-
             public ApplicationContextData(Application application)
             {
                 Application = application;
-                State = ApplicationState.Unknown;
+                State = ApplicationSyncState.Unknown;
             }
         }
 
@@ -127,55 +123,6 @@ namespace Shipbot.Controller.Core.Apps
             return _applications[application.Name].CurrentTags;
         }
 
-        public IReadOnlyDictionary<Image, string> GetPendingUpdates(Application application)
-        {
-            return _applications[application.Name].DeploymentUpdates.ToDictionary(x => x.Image, x => x.Tag);
-        }
-
-        public IEnumerable<DeploymentUpdate> BeginApplicationSync(Application application)
-        {
-            var ctx = _applications[application.Name];
-
-            ctx.State = ApplicationState.Synchronizing;
-            return ctx.DeploymentUpdates.Where( x=>x.Status == DeploymentUpdateStatus.Pending).ToList();
-        }
-
-        public void EndApplicationSync(
-            Application application, 
-            IEnumerable<DeploymentUpdate> deploymentUpdates,
-            IEnumerable<(Image Image, string Tag)> imageTags
-            )
-        {
-            var ctx = _applications[application.Name];
-            ctx.State = ApplicationState.Synchronized;
-            
-            foreach (var updatedImageTag in imageTags)
-            {
-                SetCurrentImageTag(application, updatedImageTag.Image, updatedImageTag.Tag);
-            }
-        }
-
-        public async Task UpdateDeploymentUpdateState(Application application, DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status)
-        {
-            var ctx = _applications[application.Name];
-            deploymentUpdate.Status = status;
-
-            if (ctx.MessageHandles.TryGetValue(deploymentUpdate, out var handle))
-            {
-                try
-                {
-                    _log.LogInformation("Submitting {@DeploymentUpdate} notification change to slack {@MessageHandle}. ", deploymentUpdate, handle);
-                    var newHandle = await _slackClient.UpdateDeploymentUpdateNotification(handle, deploymentUpdate);
-                    ctx.MessageHandles.TryUpdate(deploymentUpdate, newHandle, handle);
-                }
-                catch (Exception e)
-                {
-                    _log.LogError(e, "Failed to submit {@DeploymentUpdate} notification {@MessageHandle}", deploymentUpdate, handle);
-                }    
-            }
-        }
-
         public void SetCurrentImageTag(Application application, Image image, string tag)
         {
             var ctx = _applications[application.Name];
@@ -199,55 +146,6 @@ namespace Shipbot.Controller.Core.Apps
                 },
                 (application, tag)
             );
-        }
-        
-        public async Task AddDeploymentUpdate(Application application, Image image, string newTag)
-        {
-            var ctx = _applications[application.Name];
-
-            var deploymentUpdate = new DeploymentUpdate(image, newTag);
-            
-            if (ctx.DeploymentUpdates.Contains(deploymentUpdate))
-            {
-                _log.LogInformation(
-                    "Image tag update operation already in queue for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
-                    image.Repository, 
-                    ctx.CurrentTags[image],
-                    application.Name,
-                    newTag
-                );
-                return;
-            }
-
-            var channel = application.Notifications.Channels.FirstOrDefault();
-            if (channel != null)
-            {
-                _log.LogInformation(
-                    "Sending notification about image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
-                    image.Repository, 
-                    ctx.CurrentTags[image],
-                    application.Name,
-                    newTag
-                );
-                try
-                {
-                    var handle = await _slackClient.SendDeploymentUpdateNotification(channel, deploymentUpdate);
-                    ctx.MessageHandles.TryAdd(deploymentUpdate, handle);
-                }
-                catch (Exception e)
-                {
-                    _log.LogError(e, "Failed to send deployment update notification to slack");
-                }
-            }
-
-            _log.LogInformation(
-                "Adding image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
-                image.Repository, 
-                ctx.CurrentTags[image],
-                application.Name,
-                newTag
-            );
-            ctx.DeploymentUpdates.Enqueue( deploymentUpdate );
         }
     }
 }

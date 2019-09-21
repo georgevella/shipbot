@@ -1,6 +1,6 @@
 namespace Shipbot.Controller.Core.Models
 {
-    public enum ApplicationState
+    public enum ApplicationSyncState
     {
         Unknown,
         OutOfSync,

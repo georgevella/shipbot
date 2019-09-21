@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Apps;
+using Shipbot.Controller.Core.Deployments;
 
 namespace Shipbot.Controller.Core.Registry.Watcher
 {
@@ -15,16 +16,19 @@ namespace Shipbot.Controller.Core.Registry.Watcher
         private readonly ILogger<RegistryWatcherJob> _log;
         private readonly RegistryClientPool _registryClientPool;
         private readonly IApplicationService _applicationService;
+        private readonly IDeploymentService _deploymentService;
 
         public RegistryWatcherJob(
             ILogger<RegistryWatcherJob> log,
             RegistryClientPool registryClientPool, 
-            IApplicationService applicationService
+            IApplicationService applicationService,
+            IDeploymentService deploymentService
         )
         {
             _log = log;
             _registryClientPool = registryClientPool;
             _applicationService = applicationService;
+            _deploymentService = deploymentService;
         }
             
         public async Task Execute(IJobExecutionContext context)
@@ -76,7 +80,7 @@ namespace Shipbot.Controller.Core.Registry.Watcher
                         _log.LogInformation(
                             "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
                             latestTag.tag, image.Repository, application.Name, currentTag);
-                        _applicationService.AddDeploymentUpdate(application, image, latestTag.tag);
+                        await _deploymentService.AddDeploymentUpdate(application, image, latestTag.tag);
                     }
                 }
             }

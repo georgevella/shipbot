@@ -207,10 +207,10 @@ namespace Shipbot.Controller.Core.Slack
             return await PostMessageAsync(channel, new SlackMessage(message));
         }
 
-        private SlackMessage BuildDeploymentUpdateMessage(DeploymentUpdate deploymentUpdate)
+        private SlackMessage BuildDeploymentUpdateMessage(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
         {
             return new SlackMessage(
-                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.Tag}*).",
+                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*).",
                 new IBlock[]
                 {
                     new SectionBlock()
@@ -219,7 +219,7 @@ namespace Shipbot.Controller.Core.Slack
                         {
                             type = "mrkdwn",
                             text =
-                                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.Tag}*)."
+                                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*)."
                         }
                     },
                     new DividerBlock(),
@@ -229,12 +229,28 @@ namespace Shipbot.Controller.Core.Slack
                         {
                             new Text()
                             {
-                                text = $"*Tag*\n{deploymentUpdate.Tag}",
+                                text = $"*From*\n{deploymentUpdate.CurrentTag}",
                                 type = "mrkdwn"
                             },
                             new Text()
                             {
-                                text = $"*Status*\n{deploymentUpdate.Status}",
+                                text = $"*To*\n{deploymentUpdate.TargetTag}",
+                                type = "mrkdwn"
+                            },
+                        }
+                    },
+                    new SectionBlock()
+                    {
+                        fields = new Text[]
+                        {
+                            new Text()
+                            {
+                                text = $"*Tag*\n{deploymentUpdate.Application}",
+                                type = "mrkdwn"
+                            },
+                            new Text()
+                            {
+                                text = $"*Status*\n{status}",
                                 type = "mrkdwn"
                             },
                         }
@@ -245,7 +261,8 @@ namespace Shipbot.Controller.Core.Slack
 
         public async Task<IMessageHandle> SendDeploymentUpdateNotification(
             string channel, 
-            DeploymentUpdate deploymentUpdate
+            DeploymentUpdate deploymentUpdate,
+            DeploymentUpdateStatus status
             )
         {
             if (channel == null) throw new ArgumentNullException(nameof(channel));
@@ -267,13 +284,14 @@ namespace Shipbot.Controller.Core.Slack
 
             return await PostMessageAsync(
                 channel,
-                BuildDeploymentUpdateMessage(deploymentUpdate)
+                BuildDeploymentUpdateMessage(deploymentUpdate, status)
             );
         }
 
         public async Task<IMessageHandle> UpdateDeploymentUpdateNotification(
             IMessageHandle handle, 
-            DeploymentUpdate deploymentUpdate
+            DeploymentUpdate deploymentUpdate,
+            DeploymentUpdateStatus status
         )
         {
             if (handle == null) throw new ArgumentNullException(nameof(handle));
@@ -281,7 +299,7 @@ namespace Shipbot.Controller.Core.Slack
 
             return await UpdateMessageAsync(
                 handle as SingleMessageHandle, 
-                BuildDeploymentUpdateMessage(deploymentUpdate)
+                BuildDeploymentUpdateMessage(deploymentUpdate, status)
             );
         }
 
