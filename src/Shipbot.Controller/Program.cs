@@ -19,8 +19,11 @@ namespace Shipbot.Controller
             CommandLine.Parser.Default.ParseArguments<CommandLineOptions>(args)
                 .WithParsed<CommandLineOptions>(opts =>
                 {
-                    builder.UseConfiguration(new ConfigurationBuilder()
-                        .AddJsonFile(opts.ConfigFilePath, false, true).Build());
+                    if (opts.ConfigFilePath != null)
+                    {
+                        builder.UseConfiguration(new ConfigurationBuilder()
+                            .AddJsonFile(opts.ConfigFilePath, false, true).Build());
+                    }
                 });
             
             builder.Build().Run();
