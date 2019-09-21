@@ -1,9 +1,12 @@
 ﻿using System;
+using CommandLine;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Serilog;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.SystemConsole.Themes;
+using Shipbot.Controller.Cmd;
 
 namespace Shipbot.Controller
 {
@@ -11,7 +14,16 @@ namespace Shipbot.Controller
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            var builder = CreateWebHostBuilder(args);
+            
+            CommandLine.Parser.Default.ParseArguments<CommandLineOptions>(args)
+                .WithParsed<CommandLineOptions>(opts =>
+                {
+                    builder.UseConfiguration(new ConfigurationBuilder()
+                        .AddJsonFile(opts.ConfigFilePath, false, true).Build());
+                });
+            
+            builder.Build().Run();
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
