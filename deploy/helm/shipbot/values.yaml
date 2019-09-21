@@ -36,39 +36,39 @@ ingress:
 #   authToken: 
 
 shipbot:
-  registries:
-  - type:
-    ecr:
-      accessKey:
-      secretKey:
-      region: 
+  registries: []
+  # - type:
+  #   ecr:
+  #     accessKey:
+  #     secretKey:
+  #     region: 
 
-  gitCredentials:
-  - name:
-    username:
-    password: 
+  gitCredentials: []
+  # - name:
+  #   username:
+  #   password: 
   
-  apps:
-  - name:
-    source:
-      type: 
-      repository: 
-        uri:
-        ref:
-        credentials:
-      path:
-      helm:
-        valueFiles:
-        - values.yaml
-        secrets:
-        - secrets-white.yaml
-    images:
-    - repository:
-      pattern:
-      policy:
-      tagProperty:
-        path:
-        valueFormat:
+  apps: []
+  # - name:
+  #   source:
+  #     type: 
+  #     repository: 
+  #       uri:
+  #       ref:
+  #       credentials:
+  #     path:
+  #     helm:
+  #       valueFiles:
+  #       - values.yaml
+  #       secrets:
+  #       - secrets-white.yaml
+  #   images:
+  #   - repository:
+  #     pattern:
+  #     policy:
+  #     tagProperty:
+  #       path:
+  #       valueFormat:
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
