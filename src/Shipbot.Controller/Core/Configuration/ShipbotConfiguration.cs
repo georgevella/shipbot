@@ -10,10 +10,10 @@ namespace Shipbot.Controller.Core.Configuration
     {
         //public List<KubernetesConnectionDetails> Kubernetes { get; set; }
         
-        public List<ContainerRegistrySettings> Registries { get; set; }
+        public List<ContainerRegistrySettings> Registries { get; set; } = new List<ContainerRegistrySettings>();
         
-        public List<ApplicationDefinition> Applications { get; set; }
+        public List<ApplicationDefinition> Applications { get; set; } = new List<ApplicationDefinition>();
         
-        public List<GitCredentialSettings> GitCredentials { get; set; }
+        public List<GitCredentialSettings> GitCredentials { get; set; } = new List<GitCredentialSettings>();
     }
 }
