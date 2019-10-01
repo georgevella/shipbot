@@ -210,7 +210,7 @@ namespace Shipbot.Controller.Core.Slack
         private SlackMessage BuildDeploymentUpdateMessage(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
         {
             return new SlackMessage(
-                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*).",
+                $"A new image of *{deploymentUpdate.Image.Repository}* was detected with tag *{deploymentUpdate.TargetTag}*.",
                 new IBlock[]
                 {
                     new SectionBlock()
@@ -218,11 +218,9 @@ namespace Shipbot.Controller.Core.Slack
                         text = new Text()
                         {
                             type = "mrkdwn",
-                            text =
-                                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*)."
+                            text = $"A new image of *{deploymentUpdate.Image.Repository}* was detected with tag *{deploymentUpdate.TargetTag}*.  Scheduling for deployment to '{deploymentUpdate.Application.Name}' on environment '{deploymentUpdate.Environment.Name}'."
                         }
                     },
-                    new DividerBlock(),
                     new SectionBlock()
                     {
                         fields = new Text[]
@@ -237,15 +235,14 @@ namespace Shipbot.Controller.Core.Slack
                                 text = $"*To*\n{deploymentUpdate.TargetTag}",
                                 type = "mrkdwn"
                             },
-                        }
-                    },
-                    new SectionBlock()
-                    {
-                        fields = new Text[]
-                        {
                             new Text()
                             {
-                                text = $"*Tag*\n{deploymentUpdate.Application}",
+                                text = $"*Application*\n{deploymentUpdate.Application.Name}",
+                                type = "mrkdwn"
+                            },
+                            new Text()
+                            {
+                                text = $"*Environment*\n{deploymentUpdate.Environment.Name}",
                                 type = "mrkdwn"
                             },
                             new Text()
@@ -258,7 +255,6 @@ namespace Shipbot.Controller.Core.Slack
                     new DividerBlock(), 
                     new ActionsBlock()
                     {
-                        block_id = "abcdef",
                         elements = new IElement[]
                         {
                             new ButtonElement()
@@ -270,6 +266,17 @@ namespace Shipbot.Controller.Core.Slack
                                     text = "Promote to Staging"
                                 }, 
                                 value = "staging", 
+                            },
+                            new ButtonElement()
+                            {
+                                action_id = "revert",
+                                text = new Text()
+                                {
+                                    type= "plain_text",
+                                    text = "Revert this deployment."
+                                }, 
+                                style = "danger",
+                                value = "revert", 
                             }
                         }
                     }
