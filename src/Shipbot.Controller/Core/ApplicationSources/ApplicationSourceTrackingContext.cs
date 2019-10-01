@@ -10,17 +10,22 @@ namespace Shipbot.Controller.Core.ApplicationSources
         
         //public ConcurrentDictionary<Image, string> CurrentTags { get; }
 
-        public string GitRepositoryPath { get; }
+        public DirectoryInfo GitRepositoryPath { get; }
 
         public string GitSyncJobId { get; } 
 
-        public ApplicationSourceTrackingContext(Application application)
+        public ApplicationSourceTrackingContext(Application application, ApplicationEnvironment applicationEnvironment)
         {
-            GitRepositoryPath = Path.Combine(Path.GetTempPath(), $"{application.Name}__{application.Source.Repository.Ref}");
+            GitRepositoryPath = new DirectoryInfo(
+                Path.Combine(Path.GetTempPath(), $"{application.Name}_{applicationEnvironment.Name}__{applicationEnvironment.Source.Repository.Ref}")
+                ); 
             Application = application;
-            GitSyncJobId = $"{Application.Name}-gitsync-job";
+            Environment = applicationEnvironment;
+            GitSyncJobId = $"{Application.Name}-{applicationEnvironment.Name}-gitsync-job";
             
             //CurrentTags = new ConcurrentDictionary<Image, string>();
         }
+
+        public ApplicationEnvironment Environment { get; }
     }
 }

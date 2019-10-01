@@ -22,7 +22,7 @@ namespace Shipbot.Controller.Core.Slack
         
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _slackClient.Connect();
+            await _slackClient.Connect();
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

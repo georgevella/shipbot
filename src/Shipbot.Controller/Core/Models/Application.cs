@@ -9,7 +9,9 @@ namespace Shipbot.Controller.Core.Models
     {
         protected bool Equals(Application other)
         {
-            return Name == other.Name && Images.Equals(other.Images) && Source.Equals(other.Source) && AutoDeploy == other.AutoDeploy && Notifications.Equals(other.Notifications);
+            return Name == other.Name &&
+                   Notifications.Equals(other.Notifications) &&
+                   Environments.GetHashCode() == other.Environments.GetHashCode();
         }
 
         public override bool Equals(object obj)
@@ -25,21 +27,16 @@ namespace Shipbot.Controller.Core.Models
             unchecked
             {
                 var hashCode = Name.GetHashCode();
-                hashCode = (hashCode * 397) ^ Images.GetHashCode();
-                hashCode = (hashCode * 397) ^ Source.GetHashCode();
-                hashCode = (hashCode * 397) ^ AutoDeploy.GetHashCode();
+                hashCode = (hashCode * 397) ^ Environments.GetHashCode();
                 hashCode = (hashCode * 397) ^ Notifications.GetHashCode();
                 return hashCode;
             }
         }
 
         public string Name { get; }
-        public ImmutableList<Image> Images { get; }
+        
+        public Dictionary<string, ApplicationEnvironment> Environments { get; }
 
-        public ApplicationSource Source { get; }
-        
-        public bool AutoDeploy { get; }
-        
         public NotificationSettings Notifications { get; }
 
         public Application(
@@ -51,10 +48,26 @@ namespace Shipbot.Controller.Core.Models
             )
         {
             Name = name;
-            Images = images;
-            Source = source;
-            AutoDeploy = autoDeploy;
+            Environments = new Dictionary<string, ApplicationEnvironment>()
+            {
+                {
+                    "Default",
+                    new ApplicationEnvironment(
+                        "Default",
+                        images,
+                        source,
+                        autoDeploy,
+                        new List<string>())
+                }
+            };
             Notifications = notifications;
+        }
+
+        public Application(string name, IEnumerable<ApplicationEnvironment> applicationEnvironments, NotificationSettings notifications)
+        {
+            Name = name;
+            Notifications = notifications;
+            Environments = applicationEnvironments.ToDictionary(x => x.Name);
         }
 
         public override string ToString()

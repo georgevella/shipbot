@@ -12,7 +12,8 @@ namespace Shipbot.Controller.Core.Registry.Watcher
     {
         private readonly ILogger<RegistryWatcher> _log;
         private readonly IScheduler _scheduler;
-        private readonly ConcurrentDictionary<RegistryWatcherKey, RegistryWatcherJobContext> _jobs = new ConcurrentDictionary<RegistryWatcherKey,RegistryWatcherJobContext>();
+        private readonly ConcurrentDictionary<string, RegistryWatcherJobContext> _jobs 
+            = new ConcurrentDictionary<string,RegistryWatcherJobContext>();
 
         public RegistryWatcher(ILogger<RegistryWatcher> log, IScheduler scheduler)
         {
@@ -23,50 +24,20 @@ namespace Shipbot.Controller.Core.Registry.Watcher
         public async Task StartWatchingImageRepository(Application application)
         {
             _log.LogInformation("Adding application {name}, beginning watch of repositories", application.Name);
-            for (var i=0; i<application.Images.Count; i++)
+            foreach (var env in application.Environments)
             {
-                var image = application.Images[i];
+                if (!env.Value.AutoDeploy)
+                    continue;
 
-                var key = new RegistryWatcherKey(application, image);
-                var jobContext = new RegistryWatcherJobContext(application, image, i);
-
-                if (_jobs.TryAdd(key, jobContext))
+                foreach (var image in env.Value.Images)
                 {
-                    await _scheduler.ScheduleJob(jobContext.Job, jobContext.Trigger);    
+                    var jobContext = new RegistryWatcherJobContext(image.Repository);
+
+                    if (_jobs.TryAdd(image.Repository, jobContext))
+                    {
+                        await _scheduler.ScheduleJob(jobContext.Job, jobContext.Trigger);
+                    }
                 }
-            }
-        }
-
-        private class RegistryWatcherKey
-        {
-            protected bool Equals(RegistryWatcherKey other)
-            {
-                return _application.Equals(other._application) && _image.Equals(other._image);
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return Equals((RegistryWatcherKey) obj);
-            }
-
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    return (_application.GetHashCode() * 397) ^ _image.GetHashCode();
-                }
-            }
-
-            private readonly Application _application;
-            private readonly Image _image;
-
-            public RegistryWatcherKey(Application application, Image image)
-            {
-                _application = application;
-                _image = image;
             }
         }
 
@@ -75,17 +46,15 @@ namespace Shipbot.Controller.Core.Registry.Watcher
             public IJobDetail Job { get; }
             public ITrigger Trigger { get; }
 
-            public RegistryWatcherJobContext(Application application, Image image, int imageIndex)
+            public RegistryWatcherJobContext(string repository)
             {
                 Job = JobBuilder.Create<RegistryWatcherJob>()
-                    .WithIdentity($"rwatcher-{application.Name}-{image.Repository}-{imageIndex}", "containerrepowatcher")
-                    .UsingJobData("ImageRepository", image.Repository)
-                    .UsingJobData("Application", application.Name)
-                    .UsingJobData("ImageIndex", imageIndex)
+                    .WithIdentity($"rwatcher-{repository}", "containerrepowatcher")
+                    .UsingJobData("ImageRepository", repository)
                     .Build();
 
                 Trigger = TriggerBuilder.Create()
-                    .WithIdentity($"rwatcher-trig-{application.Name}-{image.Repository}-{imageIndex}", "containerrepowatcher")
+                    .WithIdentity($"rwatcher-trig-{repository}", "containerrepowatcher")
                     .StartNow()
                     .WithSimpleSchedule(x => x
                         .WithIntervalInSeconds(10)

@@ -1,86 +1,96 @@
-using System.IO;
 using System.Threading.Tasks;
-using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shipbot.Controller.Core.Apps;
+using Shipbot.Controller.Core.Jobs;
+using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Registry.Watcher;
 
-namespace Shipbot.Controller.Core.ApplicationSources
+namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
-    public class GitRepositoryCheckoutJob : IJob
+    public class GitRepositoryCheckoutJob : BaseScheduledJob<ApplicationSourceTrackingContext>
     {
         private readonly ILogger<GitRepositoryCheckoutJob> _log;
+        private readonly IApplicationSourceService _applicationSourceService;
+        private readonly IApplicationSourceSyncService _applicationSourceSyncService;
+        private readonly IApplicationService _applicationService;
+        private readonly IRegistryWatcher _registryWatcher;
         private readonly IScheduler _scheduler;
 
         public GitRepositoryCheckoutJob(
             ILogger<GitRepositoryCheckoutJob> log,
+            IApplicationSourceService applicationSourceService,
+            IApplicationSourceSyncService applicationSourceSyncService,
+            IApplicationService applicationService,
+            IRegistryWatcher registryWatcher,
             IScheduler scheduler)
         {
             _log = log;
+            _applicationSourceService = applicationSourceService;
+            _applicationSourceSyncService = applicationSourceSyncService;
+            _applicationService = applicationService;
+            _registryWatcher = registryWatcher;
             _scheduler = scheduler;
         }
         
-        public async Task Execute(IJobExecutionContext jobExecutionContext)
+        protected override async Task Execute(ApplicationSourceTrackingContext context)
         {
-            var data = jobExecutionContext.JobDetail.JobDataMap;
-            var context = (ApplicationSourceTrackingContext) data["Context"];
-
-            var repository = context.Application.Source.Repository;
+            var repository = context.Environment.Source.Repository;
 
             // TODO: improve this to not have passwords in memory / use SecureStrings
             var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
 
-            if (Directory.Exists(context.GitRepositoryPath))
-            {
-//                if (!Directory.Exists(Path.Combine(context.GitRepositoryPath, ".git/")))
-//                {
-//                    
-//                }
-                Directory.Delete(context.GitRepositoryPath, true);
-            }
-
-            _log.LogInformation("Cloning {Repository} into {Path}",
-                repository.Uri,
+            await _applicationSourceService.CheckoutApplicationSource(
+                context.Environment.Source.Repository,
                 context.GitRepositoryPath);
 
-            await Task.Run(() =>
+            var applicationSourceDetails = await _applicationSourceSyncService.BuildApplicationSourceDetails(context,
+                context.Environment.Source as HelmApplicationSource);
+            
+            foreach (var keyValuePair in applicationSourceDetails.Tags)
             {
-                LibGit2Sharp.Repository.Clone(
-                    repository.Uri.ToString(),
-                    context.GitRepositoryPath,
-                    new CloneOptions()
-                    {
-                        CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
-                        {
-                            Username = credentials.Username,
-                            Password = credentials.Password
-                        }
-                    });
-            });
+                _applicationService.SetCurrentImageTag(
+                    context.Application,
+                    context.Environment, 
+                    keyValuePair.Key, 
+                    keyValuePair.Value
+                    );   
+            }
 
-            _log.LogInformation("Starting sync-job for {Repository} in {Path}",
-                repository.Uri,
-                context.GitRepositoryPath
+            _log.LogInformation("Starting sync and repository watching jobs for {Application}",
+                context.Application
             );
             
+            await _scheduler.StartRecurringJob<GitRepositorySyncJob, ApplicationSourceTrackingContext>(
+                new JobKey($"gitwatch-{context.Application.Name}-{context.Environment.Name}", "gitrepowatcher"),
+                context, 10);
+            
+            await _registryWatcher.StartWatchingImageRepository(context.Application);
+
+
+
+
             // start sync job
-            var jobData = jobExecutionContext.MergedJobDataMap;
-            var job = JobBuilder.Create<GitRepositorySyncJob>()
-                .WithIdentity($"gitwatch-{context.Application.Name}", "gitrepowatcher")
-                .UsingJobData(jobData)
-                .Build();
+//            var jobData = jobExecutionContext.MergedJobDataMap;
+//            var job = JobBuilder.Create<GitRepositorySyncJob>()
+//                .WithIdentity($"gitwatch-{context.Application.Name}", "gitrepowatcher")
+//                .UsingJobData(jobData)
+//                .Build();
+//
+//            var trigger = TriggerBuilder.Create()
+//                .WithIdentity($"gitwatch-trig-{context.Application.Name}", "gitrepowatcher")
+//                .StartNow()
+//                .WithSimpleSchedule(x => x
+//                    .WithIntervalInSeconds(10)
+//                    .RepeatForever()
+//                )
+//                .ForJob(job)
+//                .Build();
 
-            var trigger = TriggerBuilder.Create()
-                .WithIdentity($"gitwatch-trig-{context.Application.Name}", "gitrepowatcher")
-                .StartNow()
-                .WithSimpleSchedule(x => x
-                    .WithIntervalInSeconds(10)
-                    .RepeatForever()
-                )
-                .ForJob(job)
-                .Build();
 
-            await _scheduler.ScheduleJob(job, trigger);
+
+//            await _scheduler.ScheduleJob(job, trigger);
         }
     }
 }

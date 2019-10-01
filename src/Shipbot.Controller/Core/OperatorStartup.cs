@@ -8,13 +8,17 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Quartz;
+using Quartz.Impl.Matchers;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Registry;
+using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Registry;
 using Shipbot.Controller.Core.Registry.Ecr;
+using Shipbot.Controller.Core.Registry.Watcher;
 //using ArgoAutoDeploy.Core.K8s;
 //using k8s;
 using ApplicationSourceRepository = Shipbot.Controller.Core.Models.ApplicationSourceRepository;
@@ -28,6 +32,11 @@ namespace Shipbot.Controller.Core
         private readonly RegistryClientPool _registryClientPool;
         private readonly IApplicationService _applicationService;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IApplicationSourceService _applicationSourceService;
+        private readonly IRegistryWatcher _registryWatcher;
+        private readonly IDeploymentService _deploymentService;
+        private readonly IScheduler _scheduler;
+        private readonly NewImagesJobListener _newImagesJobListener;
         private readonly ConcurrentBag<Task> _watcherJobs = new ConcurrentBag<Task>();
         private readonly CancellationTokenSource _cancelSource;
 
@@ -36,7 +45,12 @@ namespace Shipbot.Controller.Core
             IOptions<ShipbotConfiguration> configuration,
             RegistryClientPool registryClientPool,
             IApplicationService applicationService,
-            IServiceProvider serviceProvider
+            IServiceProvider serviceProvider,
+            IApplicationSourceService applicationSourceService,
+            IRegistryWatcher registryWatcher,
+            IDeploymentService deploymentService,
+            IScheduler scheduler,
+            NewImagesJobListener newImagesJobListener
             )
         {
             _log = log;
@@ -44,6 +58,11 @@ namespace Shipbot.Controller.Core
             _registryClientPool = registryClientPool;
             _applicationService = applicationService;
             _serviceProvider = serviceProvider;
+            _applicationSourceService = applicationSourceService;
+            _registryWatcher = registryWatcher;
+            _deploymentService = deploymentService;
+            _scheduler = scheduler;
+            _newImagesJobListener = newImagesJobListener;
 
             _cancelSource = new CancellationTokenSource();
         }
@@ -73,9 +92,11 @@ namespace Shipbot.Controller.Core
 
             foreach (var trackedApplication in trackedApplications)
             {
-                await _applicationService.StartTrackingApplication(trackedApplication);
+                await _applicationSourceService.AddApplicationSource(trackedApplication);
+//                await _registryWatcher.StartWatchingImageRepository(trackedApplication);
             }
-
+            
+            _scheduler.ListenerManager.AddJobListener(_newImagesJobListener, GroupMatcher<JobKey>.GroupEquals("containerrepowatcher"));
 
 //            // start watching argo applications
 //            foreach (var connectionDetails in conf.Kubernetes)

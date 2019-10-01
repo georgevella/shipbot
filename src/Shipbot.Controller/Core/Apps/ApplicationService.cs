@@ -23,6 +23,8 @@ namespace Shipbot.Controller.Core.Apps
 {
     public class ApplicationService : IApplicationService
     {
+        private readonly ConcurrentDictionary<ImageTagKey, string> _currentTags = new ConcurrentDictionary<ImageTagKey, string>();
+        
         private readonly ConcurrentDictionary<string, ApplicationContextData> _applications = new ConcurrentDictionary<string, ApplicationContextData>();
 
         private readonly ILogger<ApplicationService> _log;
@@ -31,6 +33,43 @@ namespace Shipbot.Controller.Core.Apps
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly ISlackClient _slackClient;
 
+        class ImageTagKey
+        {
+            protected bool Equals(ImageTagKey other)
+            {
+                return Equals(Application, other.Application) && Equals(Image, other.Image) && Equals(Environment, other.Environment);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((ImageTagKey) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = (Application != null ? Application.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (Image != null ? Image.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (Environment != null ? Environment.GetHashCode() : 0);
+                    return hashCode;
+                }
+            }
+
+            public Application Application { get; }
+            public Image Image { get; }
+            public ApplicationEnvironment Environment { get; }
+
+            public ImageTagKey(Application application, Image image, ApplicationEnvironment environment)
+            {
+                Application = application;
+                Image = image;
+                Environment = environment;
+            }
+        }
         class ApplicationContextData
         {
             public object Lock = new object();
@@ -38,9 +77,7 @@ namespace Shipbot.Controller.Core.Apps
             public Application Application { get; set; }
             
             public ApplicationSyncState State { get; set; }
-            
-            public ConcurrentDictionary<Image, string> CurrentTags { get; } = new ConcurrentDictionary<Image, string>();
-            
+
             public ApplicationContextData(Application application)
             {
                 Application = application;
@@ -69,31 +106,45 @@ namespace Shipbot.Controller.Core.Apps
             
             // TODO: check for unique name
 
-            var applicationSource = applicationDefinition.Source.Type switch {
-                ApplicationSourceType.Helm => (ApplicationSource) new HelmApplicationSource()
+            var environments = applicationDefinition.Environments.Select(pair =>
+            {
+                var envDefinition = pair.Value;
+                var source = envDefinition.Source.Type switch
                 {
-                    Repository = new ApplicationSourceRepository()
+                    ApplicationSourceType.Helm => (ApplicationSource) new HelmApplicationSource()
                     {
-                        // TODO: handle config changes
-                        Credentials = conf.GitCredentials.FirstOrDefault(
-                            x =>
-                                x.Name.Equals(applicationDefinition.Source.Repository.Credentials)
-                        ).ConvertToGitCredentials(),
-                        Ref = applicationDefinition.Source.Repository.Ref,
-                        Uri = new Uri(applicationDefinition.Source.Repository.Uri)
+                        Repository = new ApplicationSourceRepository()
+                        {
+                            // TODO: handle config changes
+                            Credentials = conf.GitCredentials.FirstOrDefault(
+                                x =>
+                                    x.Name.Equals(envDefinition.Source.Repository.Credentials)
+                            ).ConvertToGitCredentials(),
+                            Ref = envDefinition.Source.Repository.Ref,
+                            Uri = new Uri(envDefinition.Source.Repository.Uri)
+                        },
+                        Path = envDefinition.Source.Path,
+                        ValuesFiles = envDefinition.Source.Helm.ValueFiles,
+                        Secrets = envDefinition.Source.Helm.Secrets,
                     },
-                    Path = applicationDefinition.Source.Path,
-                    ValuesFiles = applicationDefinition.Source.Helm.ValueFiles,
-                    Secrets = applicationDefinition.Source.Helm.Secrets,
-                },
-                _ => throw new InvalidOperationException() 
-            };
+                    _ => throw new InvalidOperationException()
+                };
+
+                var images = envDefinition.Images.Select(imageSettings => (Image) imageSettings).ToImmutableList();
+
+                return new ApplicationEnvironment(
+                    pair.Key,
+                    images, 
+                    source,
+                    envDefinition.AutoDeploy,
+                    envDefinition.PromoteTargets
+                    );
+            }).ToList();
+            
 
             var application = new Application(
                 applicationDefinition.Name,
-                applicationDefinition.Images.Select(imageSettings => (Image) imageSettings).ToImmutableList(),
-                applicationSource,
-                applicationDefinition.AutoDeploy,
+                environments,
                 new NotificationSettings(applicationDefinition.SlackChannel)
             );
 
@@ -112,25 +163,32 @@ namespace Shipbot.Controller.Core.Apps
             return _applications[id].Application;
         }
 
-        public async Task StartTrackingApplication(Application application)
+        public IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application, ApplicationEnvironment environment)
         {
-            await _applicationSourceService.AddApplicationSource(application);
-            await _registryWatcher.StartWatchingImageRepository(application);
+            
+            var result = new Dictionary<Image, string>();
+            
+            foreach (var key in environment.Images.Select( image => new ImageTagKey(application, image, environment) ))
+            {
+                result.Add(key.Image, _currentTags[key]);
+            }
+
+            return result;
         }
 
-        public IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application)
+        public void SetCurrentImageTag(
+            Application application, 
+            ApplicationEnvironment environment, 
+            Image image, 
+            string tag
+            )
         {
-            return _applications[application.Name].CurrentTags;
-        }
-
-        public void SetCurrentImageTag(Application application, Image image, string tag)
-        {
-            var ctx = _applications[application.Name];
-            ctx.CurrentTags.AddOrUpdate(image,
+            var key = new ImageTagKey(application, image, environment);
+            _currentTags.AddOrUpdate(key,
                 (x, y) =>
                 {
                     _log.LogInformation("Adding '{Repository}' to application {Application} with tag {Tag}",
-                        x.Repository, y.application.Name, y.tag);
+                        x.Image.Repository, y.application.Name, y.tag);
                     return y.tag;
                 },  
                 (x, current, y) =>
@@ -140,7 +198,7 @@ namespace Shipbot.Controller.Core.Apps
                     
                     _log.LogInformation(
                         "Updating '{Repository}' with tag {Tag} for application {Application} with new tag {NewTag}",
-                        x.Repository, current, y.application.Name, y.tag);
+                        x.Image.Repository, current, y.application.Name, y.tag);
                     return y.tag;
 
                 },

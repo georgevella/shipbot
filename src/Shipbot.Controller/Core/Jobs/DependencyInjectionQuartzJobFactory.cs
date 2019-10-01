@@ -43,41 +43,42 @@ namespace Shipbot.Controller.Core.Jobs
                 scopedJob.Scope.Dispose();
             }
         }
+        
+    }
+    
+    class JobWrapper<T> : IJob, IScopedJob
+        where T: IJob
+    {
+        private readonly ILogger<T> _logger;
+        private readonly T _job;
+        private readonly IJobDetail _jobDetail;
+        private readonly IServiceScope _scope;
+            
+        IServiceScope IScopedJob.Scope => _scope;
 
-        private class JobWrapper<T> : IJob, IScopedJob
-            where T: IJob
+        public JobWrapper(ILogger<T> logger, IServiceScope scope, T job, IJobDetail jobDetail)
         {
-            private readonly ILogger<T> _logger;
-            private readonly T _job;
-            private readonly IJobDetail _jobDetail;
-            private readonly IServiceScope _scope;
+            _logger = logger;
+            _scope = scope;
+            _job = job;
+            _jobDetail = jobDetail;
+        }
             
-            IServiceScope IScopedJob.Scope => _scope;
-
-            public JobWrapper(ILogger<T> logger, IServiceScope scope, T job, IJobDetail jobDetail)
+        public async Task Execute(IJobExecutionContext context)
+        {
+            using (_logger.BeginScope(new Dictionary<string, object>()
             {
-                _logger = logger;
-                _scope = scope;
-                _job = job;
-                _jobDetail = jobDetail;
-            }
-            
-            public async Task Execute(IJobExecutionContext context)
+                {"Job", _jobDetail.Key.Name},
+                {"JobGroup", _jobDetail.Key.Group}
+            }))
             {
-                using (_logger.BeginScope(new Dictionary<string, object>()
+                try
                 {
-                    {"Job", _jobDetail.Key.Name},
-                    {"JobGroup", _jobDetail.Key.Group}
-                }))
+                    await _job.Execute(context);
+                }
+                catch (Exception e)
                 {
-                    try
-                    {
-                        await _job.Execute(context);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError($"Unhandled job exception ({e.GetType()}) [{e.Message}]", e);
-                    }
+                    _logger.LogError($"Unhandled job exception ({e.GetType()}) [{e.Message}]", e);
                 }
             }
         }

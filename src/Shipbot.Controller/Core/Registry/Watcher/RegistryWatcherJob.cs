@@ -15,74 +15,84 @@ namespace Shipbot.Controller.Core.Registry.Watcher
     {
         private readonly ILogger<RegistryWatcherJob> _log;
         private readonly RegistryClientPool _registryClientPool;
-        private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
+        private readonly IRegistryWatcherStorage _storage;
 
         public RegistryWatcherJob(
             ILogger<RegistryWatcherJob> log,
-            RegistryClientPool registryClientPool, 
-            IApplicationService applicationService,
-            IDeploymentService deploymentService
+            RegistryClientPool registryClientPool,
+            IDeploymentService deploymentService,
+            IRegistryWatcherStorage storage
         )
         {
             _log = log;
             _registryClientPool = registryClientPool;
-            _applicationService = applicationService;
             _deploymentService = deploymentService;
+            _storage = storage;
         }
             
         public async Task Execute(IJobExecutionContext context)
         {
-            var dataMap = context.JobDetail.JobDataMap;
+            var dataMap = context.MergedJobDataMap;
 
             var imageRepository = (string) dataMap["ImageRepository"];
-            var applicationId = (string) dataMap["Application"];
-            var imageIndex = (int) dataMap["ImageIndex"];
+//            var applicationId = (string) dataMap["Application"];
+//            var imageIndex = (int) dataMap["ImageIndex"];
 
-            var application = _applicationService.GetApplication(applicationId);
-            var image = application.Images[imageIndex];
+            //var application = _applicationService.GetApplication(applicationId);
+            //var image = application.Images[imageIndex];
 
             using (_log.BeginScope(new Dictionary<string, object>()
             {
-                {"Application", application.Name},
-                {"Repository", image.Repository}
+                {"Repository", imageRepository}
             }))
             {
-                var currentTags = _applicationService.GetCurrentImageTags(application);
+                //var currentTags = _applicationService.GetCurrentImageTags(application);
 
-                if (!currentTags.ContainsKey(image))
-                {
-                    _log.LogInformation(
-                        "Current Tag not available, application source watcher may have not yet run or detected the current image tag");
-                }
-                else
-                {
-                    var currentTag = currentTags[image];
+//                if (!currentTags.ContainsKey(image))
+//                {
+//                    _log.LogInformation(
+//                        "Current Tag not available, application source watcher may have not yet run or detected the current image tag");
+//                }
+//                else
+//                {
+//                    
+//                }
 
-                    _log.LogInformation("Fetching tags for {imagerepository}", imageRepository);
-                    var client = await _registryClientPool.GetRegistryClientForRepository(imageRepository);
+                ///var currentTag = currentTags[image];
 
-                    var tags = await client.GetRepositoryTags(imageRepository);
+                _log.LogInformation("Fetching tags for {imagerepository}", imageRepository);
+                var client = await _registryClientPool.GetRegistryClientForRepository(imageRepository);
 
-                    var matchingTags = tags.Where(tagDetails => image.Policy.IsMatch(tagDetails.tag))
-                        .ToDictionary(x => x.tag);
+                var tags = await client.GetRepositoryTags(imageRepository);
 
-                    var latestTag = matchingTags.Values
-                        .OrderBy(tuple => tuple.createdAt, Comparer<DateTime>.Default)
-                        .Last();
+                var newTags = _storage.AddOrUpdateImageTags(imageRepository,
+                    tags.Select((tuple, i) => new ImageTag(tuple.tag, tuple.createdAt))
+                    );
 
-                    if (latestTag.tag == currentTag)
-                    {
-                        _log.LogInformation("Latest image tag is applied to the deployment specs");
-                    }
-                    else
-                    {
-                        _log.LogInformation(
-                            "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
-                            latestTag.tag, image.Repository, application.Name, currentTag);
-                        await _deploymentService.AddDeploymentUpdate(application, image, latestTag.tag);
-                    }
-                }
+
+                context.Result = newTags;
+
+
+
+//                var matchingTags = tags.Where(tagDetails => image.Policy.IsMatch(tagDetails.tag))
+//                    .ToDictionary(x => x.tag);
+//
+//                var latestTag = matchingTags.Values
+//                    .OrderBy(tuple => tuple.createdAt, Comparer<DateTime>.Default)
+//                    .Last();
+//
+//                if (latestTag.tag == currentTag)
+//                {
+//                    _log.LogInformation("Latest image tag is applied to the deployment specs");
+//                }
+//                else
+//                {
+//                    _log.LogInformation(
+//                        "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
+//                        latestTag.tag, image.Repository, application.Name, currentTag);
+//                    await _deploymentService.AddDeploymentUpdate(application, image, latestTag.tag);
+//                }
             }
 
         }

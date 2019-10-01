@@ -1,21 +1,57 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Registry.Watcher;
 using Shipbot.Controller.Core.Slack;
 
 namespace Shipbot.Controller.Core.Deployments
 {
     public class DeploymentService : IDeploymentService
     {
+        class PendingDeploymentKey
+        {
+            protected bool Equals(PendingDeploymentKey other)
+            {
+                return Equals(Application, other.Application) && Equals(ApplicationEnvironment, other.ApplicationEnvironment);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((PendingDeploymentKey) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return ((Application != null ? Application.GetHashCode() : 0) * 397) ^ (ApplicationEnvironment != null ? ApplicationEnvironment.GetHashCode() : 0);
+                }
+            }
+
+            public Application Application { get; }
+            public ApplicationEnvironment ApplicationEnvironment { get; }
+
+            public PendingDeploymentKey(Application application, ApplicationEnvironment applicationEnvironment)
+            {
+                Application = application;
+                ApplicationEnvironment = applicationEnvironment;
+            }
+        }
+        
         private readonly ConcurrentDictionary<DeploymentUpdate, DeploymentUpdateStatus> _deploymentUpdates = new ConcurrentDictionary<DeploymentUpdate, DeploymentUpdateStatus>();
         
-        private readonly ConcurrentDictionary<Application, ConcurrentQueue<DeploymentUpdate>> _pendingDeploymentUpdates = new ConcurrentDictionary<Application, ConcurrentQueue<DeploymentUpdate>>();
+        private readonly ConcurrentDictionary<PendingDeploymentKey, ConcurrentQueue<DeploymentUpdate>> _pendingDeploymentUpdates = new ConcurrentDictionary<PendingDeploymentKey, ConcurrentQueue<DeploymentUpdate>>();
         
         private readonly ConcurrentDictionary<DeploymentUpdate, IMessageHandle> _notificationHandles = new ConcurrentDictionary<DeploymentUpdate, IMessageHandle>();
         
@@ -35,17 +71,67 @@ namespace Shipbot.Controller.Core.Deployments
             _applicationService = applicationService;
             _slackClient = slackClient;
         }
-        
-        public async Task AddDeploymentUpdate(Application application, Image image, string newTag)
+
+        public async Task AddDeploymentUpdate(string containerRepository, IEnumerable<ImageTag> tags)
         {
-            var currentTags = _applicationService.GetCurrentImageTags(application);
+            if (containerRepository == null) throw new ArgumentNullException(nameof(containerRepository));
+            if (tags == null) throw new ArgumentNullException(nameof(tags));
+
+            var tagCollection = tags.ToList();
+            
+            
+            foreach (var application in _applicationService.GetApplications())
+            {
+                foreach (var env in application.Environments)
+                {
+                    if (!env.Value.AutoDeploy) 
+                        continue;
+
+                    foreach (var image in env.Value.Images)
+                    {
+                        if (image.Repository!=containerRepository)
+                            continue;
+
+                        var currentImageTags = _applicationService.GetCurrentImageTags(application, env.Value);
+                        
+                        var matchingTags = tagCollection.Where(tagDetails => image.Policy.IsMatch(tagDetails.Tag))
+                            .ToDictionary(x => x.Tag);
+                        
+                        var latestTag = matchingTags.Values
+                            .OrderBy(tuple => tuple.CreatedAt, Comparer<DateTime>.Default)
+                            .Last();
+
+                        var currentTag = currentImageTags[image];
+                        
+                        if (latestTag.Tag == currentTag)
+                        {
+                            _log.LogInformation("Latest image tag is applied to the deployment specs");
+                        }
+                        else
+                        {
+                            _log.LogInformation(
+                                "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
+                                latestTag.Tag, image.Repository, application.Name, currentTag);
+                            await AddDeploymentUpdate(application, env.Value, image, latestTag.Tag);
+                        }
+                    }
+                }
+            }
+        }
+
+        public async Task AddDeploymentUpdate(Application application, ApplicationEnvironment environment, Image image, string newTag)
+        {
+            if (!environment.AutoDeploy)
+                return;
+            
+            var currentTags = _applicationService.GetCurrentImageTags(application, environment);
 
             if (!currentTags.TryGetValue(image, out var currentTag))
             {
                 currentTag = "<new image>";
             }
             
-            var deploymentUpdate = new DeploymentUpdate(application, image, currentTag, newTag);
+            var deploymentUpdate = new DeploymentUpdate(application, environment, image, currentTag, newTag);
 
             if (!_deploymentUpdates.TryAdd(deploymentUpdate, DeploymentUpdateStatus.Pending))
             {
@@ -67,7 +153,9 @@ namespace Shipbot.Controller.Core.Deployments
                 application.Name,
                 newTag
             );
-            var queue = _pendingDeploymentUpdates.GetOrAdd(application, key => new ConcurrentQueue<DeploymentUpdate>());
+
+            var pendingDeploymentKey = new PendingDeploymentKey(application, environment);
+            var queue = _pendingDeploymentUpdates.GetOrAdd(pendingDeploymentKey, key => new ConcurrentQueue<DeploymentUpdate>());
             queue.Enqueue( deploymentUpdate );
 
             var channel = application.Notifications.Channels.FirstOrDefault();
@@ -115,10 +203,10 @@ namespace Shipbot.Controller.Core.Deployments
         ///     Returns the next deployment update in the queue.
         /// </summary>
         /// <returns>Returns the next deployment update in the queue, or <c>null</c> if there are no pending deployment updates.</returns>
-        public async Task<DeploymentUpdate> GetNextPendingDeploymentUpdate(Application application)
+        public async Task<DeploymentUpdate> GetNextPendingDeploymentUpdate(Application application, ApplicationEnvironment environment)
         {
             // are there any pending deployments
-            if (_pendingDeploymentUpdates.TryGetValue(application, out var queue))
+            if (_pendingDeploymentUpdates.TryGetValue(new PendingDeploymentKey(application, environment), out var queue))
             {
                 if (queue.TryDequeue(out var deploymentUpdate))
                 {
@@ -136,20 +224,24 @@ namespace Shipbot.Controller.Core.Deployments
         )
         {
             await ChangeDeploymentUpdateStatus(deploymentUpdate, finalStatus);
-            _applicationService.SetCurrentImageTag(deploymentUpdate.Application, deploymentUpdate.Image, deploymentUpdate.TargetTag);
+            _applicationService.SetCurrentImageTag(deploymentUpdate.Application, deploymentUpdate.Environment, deploymentUpdate.Image, deploymentUpdate.TargetTag);
         }
     }
 
     public interface IDeploymentService
     {
-        Task AddDeploymentUpdate(Application application, Image image, string newTag);
+        Task AddDeploymentUpdate(string containerRepository, IEnumerable<ImageTag> tags);
+
+        Task AddDeploymentUpdate(Application application, ApplicationEnvironment environment, Image image,
+            string newTag);
+        
         Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status);
 
         /// <summary>
         ///     Returns the next deployment update in the queue.
         /// </summary>
         /// <returns>Returns the next deployment update in the queue, or <c>null</c> if there are no pending deployment updates.</returns>
-        Task<DeploymentUpdate> GetNextPendingDeploymentUpdate(Application application);
+        Task<DeploymentUpdate> GetNextPendingDeploymentUpdate(Application application, ApplicationEnvironment environment);
 
         Task FinishDeploymentUpdate(
             DeploymentUpdate deploymentUpdate,

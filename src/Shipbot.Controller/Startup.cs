@@ -12,6 +12,8 @@ using Quartz.Impl;
 using Quartz.Spi;
 using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.ApplicationSources;
+using Shipbot.Controller.Core.ApplicationSources.Jobs;
+using Shipbot.Controller.Core.ApplicationSources.Sync;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Deployments;
@@ -59,13 +61,19 @@ namespace Shipbot.Controller
 
             services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
             services.AddTransient<RegistryWatcherJob>();
-
+            services.AddSingleton<IRegistryWatcherStorage, RegistryWatcherStorage>();
+            
             services.AddSingleton<IDeploymentService, DeploymentService>();
+            services.AddTransient<NewImagesJobListener>();
 
+            services.AddTransient<IApplicationSourceSyncService, HelmApplicationSyncService>();
+            
             services.AddTransient<IHostedService, OperatorStartup>();
             
             services.AddTransient<IHostedService, SlackStartup>();
             services.AddSingleton<ISlackClient, SlackClient>();
+            
+            
 
             services.RegisterMediator(
                 new MediatorBuilder().RegisterHandlers(Assembly.GetExecutingAssembly())

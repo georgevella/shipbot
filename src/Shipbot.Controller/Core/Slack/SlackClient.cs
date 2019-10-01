@@ -254,6 +254,24 @@ namespace Shipbot.Controller.Core.Slack
                                 type = "mrkdwn"
                             },
                         }
+                    },
+                    new DividerBlock(), 
+                    new ActionsBlock()
+                    {
+                        block_id = "abcdef",
+                        elements = new IElement[]
+                        {
+                            new ButtonElement()
+                            {
+                                action_id = "promote",
+                                text = new Text()
+                                {
+                                    type= "plain_text",
+                                    text = "Promote to Staging"
+                                }, 
+                                value = "staging", 
+                            }
+                        }
                     }
                 }
             );

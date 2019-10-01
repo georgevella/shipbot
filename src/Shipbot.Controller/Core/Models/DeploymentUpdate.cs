@@ -6,9 +6,7 @@ namespace Shipbot.Controller.Core.Models
     {
         protected bool Equals(DeploymentUpdate other)
         {
-            return Application.Equals(other.Application) && 
-                   Image.Equals(other.Image) && 
-                   string.Equals(TargetTag, other.TargetTag, StringComparison.OrdinalIgnoreCase);
+            return Equals(Application, other.Application) && Equals(Environment, other.Environment) && Equals(Image, other.Image) && CurrentTag == other.CurrentTag && TargetTag == other.TargetTag;
         }
 
         public override bool Equals(object obj)
@@ -23,27 +21,33 @@ namespace Shipbot.Controller.Core.Models
         {
             unchecked
             {
-                return (Application.GetHashCode() * 984) ^ 
-                       (Image.GetHashCode() * 397) ^ 
-                       StringComparer.OrdinalIgnoreCase.GetHashCode(TargetTag) ^
-                       StringComparer.OrdinalIgnoreCase.GetHashCode(CurrentTag);
+                var hashCode = (Application != null ? Application.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Environment != null ? Environment.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Image != null ? Image.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (CurrentTag != null ? CurrentTag.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (TargetTag != null ? TargetTag.GetHashCode() : 0);
+                return hashCode;
             }
         }
 
         public Application Application { get; }
+        
+        public ApplicationEnvironment Environment { get; }
         public Image Image { get; }
         public string CurrentTag { get; }
 
         public string TargetTag { get; }
 
         public DeploymentUpdate(
-            Application application, 
-            Image image, 
+            Application application,
+            ApplicationEnvironment environment,
+            Image image,
             string currentTag,
             string targetTag
             )
         {
             Application = application;
+            Environment = environment;
             Image = image;
             CurrentTag = currentTag;
             TargetTag = targetTag;

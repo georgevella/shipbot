@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shipbot.Controller.Core.ApplicationSources.Jobs;
 using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Core.ApplicationSources
@@ -25,48 +28,87 @@ namespace Shipbot.Controller.Core.ApplicationSources
         
         public async Task AddApplicationSource(Application application)
         {            
-            var context = _trackingContexts.GetOrAdd(
-                application.Name, 
-                s => new ApplicationSourceTrackingContext(application)
-            );
-
-            var jobData = new JobDataMap((IDictionary<string, object>) new Dictionary<string, object>()
+            foreach (var keyValuePair in application.Environments)
             {
-                {"Context", context}
-            });
-            
-            var jobKey = new JobKey($"gitclone-{application.Name}", "gitrepowatcher");
-            
-            var job = JobBuilder.Create<GitRepositoryCheckoutJob>()
-                .WithIdentity(jobKey)
-                .UsingJobData(jobData)
-                .Build();
+                var context = _trackingContexts.GetOrAdd(
+                    $"{application.Name}__{keyValuePair.Value.Name}", 
+                    (key, val) => new ApplicationSourceTrackingContext(application, val), 
+                    keyValuePair.Value
+                );
 
-            var trigger = TriggerBuilder.Create()
-                .WithIdentity($"gitclone-trig-{application.Name}", "gitrepowatcher")
-                .StartNow()
-                .ForJob(job)
-                .Build();
+                var jobData = new JobDataMap((IDictionary<string, object>) new Dictionary<string, object>()
+                {
+                    {"Context", context}
+                });
+            
+                var jobKey = new JobKey($"gitclone-{application.Name}", "gitrepowatcher");
+            
+                var job = JobBuilder.Create<GitRepositoryCheckoutJob>()
+                    .WithIdentity(jobKey)
+                    .UsingJobData(jobData)
+                    .Build();
 
-            await _scheduler.ScheduleJob(job, trigger);
+                var trigger = TriggerBuilder.Create()
+                    .WithIdentity($"gitclone-trig-{application.Name}", "gitrepowatcher")
+                    .StartNow()
+                    .ForJob(job)
+                    .Build();
+
+                await _scheduler.ScheduleJob(job, trigger);
+            }
         }
 
-        public async Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate)
+        public async Task CheckoutApplicationSource(
+            ApplicationSourceRepository applicationSourceRepository, 
+            DirectoryInfo checkoutDirectory)
         {
-            var jobkey = new JobKey($"gitwatch-{deploymentUpdate.Application.Name}", "gitrepowatcher");
 
-            var data = new JobDataMap
+            if (checkoutDirectory.Exists)
             {
-                ["DeploymentUpdate"] = deploymentUpdate
-            };
+                checkoutDirectory.Delete(true);
+                checkoutDirectory.Create();
+            }
+            
+            await CheckoutSources(applicationSourceRepository.Uri, applicationSourceRepository.Ref, checkoutDirectory,
+                applicationSourceRepository.Credentials);
+        }
 
-            await _scheduler.TriggerJob(jobkey, data, CancellationToken.None);
+        private async Task CheckoutSources(Uri repository, string branch, DirectoryInfo checkoutDirectory, GitCredentials credentials = null )
+        {
+            _log.LogInformation("Cloning {Repository} into {Path}",
+                repository,
+                checkoutDirectory.FullName);
+            
+            var options = new CloneOptions();
+            if (credentials is UsernamePasswordGitCredentials usernamePasswordGitCredentials)
+            {
+                options.CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                {
+                    Username = usernamePasswordGitCredentials.Username,
+                    Password = usernamePasswordGitCredentials.Password
+                };
+            }
+
+            options.Checkout = true;
+            options.BranchName = branch;
+            
+            await Task.Run(() =>
+            {
+                LibGit2Sharp.Repository.Clone(
+                    repository.ToString(),
+                    checkoutDirectory.FullName,
+                    options
+                    );
+            });
         }
     }
 
     public interface IApplicationSourceService
     {
         Task AddApplicationSource(Application application);
-        Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate);
+
+        Task CheckoutApplicationSource(
+            ApplicationSourceRepository applicationSourceRepository,
+            DirectoryInfo checkoutDirectory);
     }
 }
