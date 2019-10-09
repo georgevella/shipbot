@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Shipbot.Controller.Core.Configuration;
+using Shipbot.Controller.Core.Deployments;
+using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
 using SlackAPI;
 
@@ -22,7 +24,7 @@ namespace Shipbot.Controller.Core.Slack
 
         public SlackClient(
             ILogger<SlackClient> log,
-            IOptions<SlackConfiguration> slackConfiguration
+            IOptions<SlackConfiguration> slackConfiguration 
         )
         {
             _log = log;
@@ -44,86 +46,7 @@ namespace Shipbot.Controller.Core.Slack
             {
                 throw new InvalidOperationException(loginResponse.error);
             }
-            
-//            _actualClient.OnHello += () => { _log.LogInformation("Slack -- hello"); };
-//            
-//            _actualClient.OnMessageReceived += message =>
-//            {
-//                _log.LogDebug("Slack message received: {slackMessage}", message);
-//            };
-//
-//            _actualClient.OnReactionAdded += added =>
-//            {
-//                _log.LogDebug("Slack message received: {slackReaction}", added);
-//            };
-//
-//            _actualClient.OnPongReceived += pong => { _log.LogDebug("Slack pong received: {pong}", pong); };
         }
-
-//        private Task<IEnumerable<Channel>> GetPublicChannels()
-//        {
-//            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
-//
-//            try
-//            {
-//                _actualClient.GetChannelList(
-//                    response =>
-//                    {
-//                        if (response.ok)
-//                        {
-//                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.channels));
-//                        }
-//                        else
-//                        {
-//                            tsc.SetException(new InvalidOperationException($"SLACKCLIENT ERROR: {response.error}"));
-//                        }
-//                    }
-//                );
-//            }
-//            catch (Exception e)
-//            {
-//                tsc.SetException(e);
-//            }
-//
-//            return tsc.Task;
-//        }
-//        
-//        private Task<IEnumerable<Channel>> GetPrivateChannels()
-//        {
-//            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
-//
-//            try
-//            {
-//                _actualClient.GetGroupsListAsync()
-//                _actualClient.GetGroupsListAsync(
-//                    response =>
-//                    {
-//                        if (response.ok)
-//                        {
-//                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.groups));
-//                        }
-//                        else
-//                        {
-//                            tsc.SetException(new InvalidOperationException($"SLACKCLIENT ERROR: {response.error}"));
-//                        }
-//                    }
-//                );
-//            }
-//            catch (Exception e)
-//            {
-//                tsc.SetException(e);
-//            }
-//
-//            return tsc.Task;
-//        }
-
-//        private async Task<IEnumerable<Channel>> GetChannels()
-//        {
-//            var publicChannels = await GetPublicChannels();
-//            var privateChannels = await GetPrivateChannels();
-//
-//            return privateChannels.Concat(publicChannels).ToArray();
-//        }
 
         private async Task<SingleMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
         {
@@ -207,124 +130,149 @@ namespace Shipbot.Controller.Core.Slack
             return await PostMessageAsync(channel, new SlackMessage(message));
         }
 
-        private SlackMessage BuildDeploymentUpdateMessage(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
+        private SlackMessage BuildDeploymentUpdateMessage(Deployment deployment)
         {
-            return new SlackMessage(
-                $"A new image of *{deploymentUpdate.Image.Repository}* was detected with tag *{deploymentUpdate.TargetTag}*.",
-                new IBlock[]
+            var blocks = new List<IBlock>()
+            {
+                new SectionBlock()
                 {
-                    new SectionBlock()
+                    text = new Text()
                     {
-                        text = new Text()
-                        {
-                            type = "mrkdwn",
-                            text = $"A new image of *{deploymentUpdate.Image.Repository}* was detected with tag *{deploymentUpdate.TargetTag}*.  Scheduling for deployment to '{deploymentUpdate.Application.Name}' on environment '{deploymentUpdate.Environment.Name}'."
-                        }
+                        type = "mrkdwn",
+                        text =
+                            $"*{deployment.Application.Name}*: A new image of *{deployment.ContainerRepository}* was detected with tag *{deployment.TargetTag}*."
+                    }
+                },
+                new DividerBlock()
+            };
+            
+            
+            
+            foreach (var pair in deployment.GetDeploymentUpdates())
+            {
+                var deploymentUpdate = pair.DeploymentUpdate;
+                var deploymentUpdateStatus = pair.DeploymentUpdateStatus;
+
+                var slackMessageFields = new Text[]
+                {
+                    new Text()
+                    {
+                        text = $"*Current Tag*\n{deploymentUpdate.CurrentTag}",
+                        type = "mrkdwn"
                     },
-                    new SectionBlock()
+                    new Text()
                     {
-                        fields = new Text[]
+                        text = $"*Status*\n{deploymentUpdateStatus}",
+                        type = "mrkdwn"
+                    }
+                };
+                
+                if (!deploymentUpdate.IsTriggeredByPromotion)
+                {
+                    blocks.Add(
+                        new SectionBlock()
                         {
-                            new Text()
+                            text = new Text()
                             {
-                                text = $"*From*\n{deploymentUpdate.CurrentTag}",
-                                type = "mrkdwn"
+                                type = "mrkdwn",
+                                text =
+                                    $"Scheduled deployment to environment *'{deploymentUpdate.Environment.Name}'*."
                             },
-                            new Text()
-                            {
-                                text = $"*To*\n{deploymentUpdate.TargetTag}",
-                                type = "mrkdwn"
-                            },
-                            new Text()
-                            {
-                                text = $"*Application*\n{deploymentUpdate.Application.Name}",
-                                type = "mrkdwn"
-                            },
-                            new Text()
-                            {
-                                text = $"*Environment*\n{deploymentUpdate.Environment.Name}",
-                                type = "mrkdwn"
-                            },
-                            new Text()
-                            {
-                                text = $"*Status*\n{status}",
-                                type = "mrkdwn"
-                            },
+                            fields = slackMessageFields
                         }
-                    },
-                    new DividerBlock(), 
-                    new ActionsBlock()
-                    {
-                        elements = new IElement[]
+                        );
+                }
+                else
+                {
+                    blocks.Add(
+                        new SectionBlock()
                         {
-                            new ButtonElement()
+                            text = new Text()
                             {
-                                action_id = "promote",
-                                text = new Text()
-                                {
-                                    type= "plain_text",
-                                    text = "Promote to Staging"
-                                }, 
-                                value = "staging", 
+                                type = "mrkdwn",
+                                text =
+                                    $"Promoting deployment from environment *'{deploymentUpdate.SourceDeploymentUpdate.Environment.Name}'* to environment *'{deploymentUpdate.Environment.Name}'*."
                             },
-                            new ButtonElement()
+                            fields = slackMessageFields
+                        }
+                    );
+                }
+                
+                blocks.Add(
+                        new DividerBlock()
+                );
+
+                if (deploymentUpdateStatus == DeploymentUpdateStatus.Complete)
+                {
+                    if (deploymentUpdate.Environment.PromotionEnvironments.Count > 0)
+                    {
+                        blocks.AddRange(
+                            new IBlock[]
                             {
-                                action_id = "revert",
-                                text = new Text()
+                                new ActionsBlock()
                                 {
-                                    type= "plain_text",
-                                    text = "Revert this deployment."
-                                }, 
-                                style = "danger",
-                                value = "revert", 
+                                    elements = new IElement[]
+                                    {
+                                        new ButtonElement()
+                                        {
+                                            action_id = "promote",
+                                            text = new Text()
+                                            {
+                                                type = "plain_text",
+                                                text = "Promote to Staging"
+                                            },
+                                            value = "staging",
+                                        },
+                                        new ButtonElement()
+                                        {
+                                            action_id = "revert",
+                                            text = new Text()
+                                            {
+                                                type = "plain_text",
+                                                text = "Revert this deployment."
+                                            },
+                                            style = "danger",
+                                            value = "revert",
+                                        }
+                                    }
+                                }
                             }
-                        }
+                        );           
                     }
                 }
+            }
+
+            return new SlackMessage(
+                $"A new image of *{deployment.ContainerRepository}* was detected with tag *{deployment.TargetTag}*.",
+                blocks.ToArray()
             );
         }
 
         public async Task<IMessageHandle> SendDeploymentUpdateNotification(
             string channel, 
-            DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status
+            Deployment deployment
             )
         {
             if (channel == null) throw new ArgumentNullException(nameof(channel));
-            if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
-
-//            var channelsResponse = await _actualClient.APIRequestWithTokenAsync<ConversationsListResponse>(
-//                new Tuple<string, string>("exclude_archived", "true"),
-//                new Tuple<string, string>("types", "public_channel,private_channel")
-//            );
-//            
-//            var channelMetadata = channelsResponse.channels.FirstOrDefault(c =>
-//                c.name.Equals(channel, StringComparison.OrdinalIgnoreCase)
-//            );
-//            
-//            if (channelMetadata == null)
-//            {
-//                throw new Exception($"Could not find channel with name {channel}");
-//            }
+            if (deployment == null) throw new ArgumentNullException(nameof(deployment));
 
             return await PostMessageAsync(
                 channel,
-                BuildDeploymentUpdateMessage(deploymentUpdate, status)
+                BuildDeploymentUpdateMessage(deployment)
             );
         }
 
         public async Task<IMessageHandle> UpdateDeploymentUpdateNotification(
             IMessageHandle handle, 
-            DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status
+            Deployment deployment
         )
         {
             if (handle == null) throw new ArgumentNullException(nameof(handle));
-            if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
+            if (deployment == null) throw new ArgumentNullException(nameof(deployment));
 
             return await UpdateMessageAsync(
                 handle as SingleMessageHandle, 
-                BuildDeploymentUpdateMessage(deploymentUpdate, status)
+                BuildDeploymentUpdateMessage(deployment)
             );
         }
 

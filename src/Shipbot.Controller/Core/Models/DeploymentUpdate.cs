@@ -1,7 +1,11 @@
 using System;
+using System.Linq;
 
 namespace Shipbot.Controller.Core.Models
 {
+    /// <summary>
+    ///     Describes a deployment change to execute by one of the deployment source updaters.
+    /// </summary>
     public class DeploymentUpdate
     {
         protected bool Equals(DeploymentUpdate other)
@@ -29,21 +33,28 @@ namespace Shipbot.Controller.Core.Models
                 return hashCode;
             }
         }
+        
+        /// <summary>
+        ///     Deployment update that triggered the current deployment.
+        /// </summary>
+        public DeploymentUpdate SourceDeploymentUpdate { get; }
 
         public Application Application { get; }
-        
         public ApplicationEnvironment Environment { get; }
         public Image Image { get; }
         public string CurrentTag { get; }
-
         public string TargetTag { get; }
+        public bool IsPromotable => Environment.PromotionEnvironments.Any();
+
+        public bool IsTriggeredByPromotion => SourceDeploymentUpdate != null;
 
         public DeploymentUpdate(
             Application application,
             ApplicationEnvironment environment,
             Image image,
             string currentTag,
-            string targetTag
+            string targetTag,
+            DeploymentUpdate sourceDeploymentUpdate = null
             )
         {
             Application = application;
@@ -51,7 +62,10 @@ namespace Shipbot.Controller.Core.Models
             Image = image;
             CurrentTag = currentTag;
             TargetTag = targetTag;
+            SourceDeploymentUpdate = sourceDeploymentUpdate;
         }
+        
+        
     }
 
     public enum DeploymentUpdateStatus
@@ -62,6 +76,8 @@ namespace Shipbot.Controller.Core.Models
         Synchronizing,
         Synchronized,
         Complete,
+        Promoting,
+        Promoted,
         Failed
     }
 }

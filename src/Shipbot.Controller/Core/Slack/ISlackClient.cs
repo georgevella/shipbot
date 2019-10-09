@@ -1,5 +1,7 @@
 using System;
 using System.Threading.Tasks;
+using Shipbot.Controller.Core.Deployments;
+using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Core.Slack
@@ -11,14 +13,12 @@ namespace Shipbot.Controller.Core.Slack
 
         Task<IMessageHandle> SendDeploymentUpdateNotification(
             string channel, 
-            DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status
+            Deployment deployment
         );
 
         Task<IMessageHandle> UpdateDeploymentUpdateNotification(
             IMessageHandle handle, 
-            DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status
+            Deployment deployment
         );
     }
 }

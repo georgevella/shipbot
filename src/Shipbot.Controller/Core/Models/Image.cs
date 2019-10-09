@@ -1,5 +1,8 @@
 namespace Shipbot.Controller.Core.Models
 {
+    /// <summary>
+    ///     Describes an image used within an environment.
+    /// </summary>
     public class Image
     {
         public Image(string repository, TagProperty tagProperty, ImageUpdatePolicy policy)

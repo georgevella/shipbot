@@ -165,14 +165,11 @@ namespace Shipbot.Controller.Core.Apps
 
         public IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application, ApplicationEnvironment environment)
         {
-            
             var result = new Dictionary<Image, string>();
-            
             foreach (var key in environment.Images.Select( image => new ImageTagKey(application, image, environment) ))
             {
                 result.Add(key.Image, _currentTags[key]);
             }
-
             return result;
         }
 
