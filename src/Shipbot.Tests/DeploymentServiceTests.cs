@@ -20,6 +20,7 @@ namespace Shipbot.Tests
     public class DeploymentServiceTests
     {
         private readonly ITestOutputHelper _testOutputHelper;
+        private const string SlackUserToken = "";
 
         public DeploymentServiceTests(ITestOutputHelper testOutputHelper)
         {
@@ -63,8 +64,8 @@ namespace Shipbot.Tests
             
             var services = new ServiceCollection()
                 .AddLogging((builder) => builder.AddXUnit(_testOutputHelper))
-                .Configure<SlackConfiguration>(configuration => configuration.Token = "xoxb-720397510838-721891676752-pVA3I7QAKeYRJ08ueLLv4Uco")
-                //.AddSingleton<ISlackClient>(BuildSlackClientMock().Object)
+                //.Configure<SlackConfiguration>(configuration => configuration.Token = SlackUserToken)
+                .AddSingleton<ISlackClient>(BuildSlackClientMock().Object)
                 .AddSingleton<ISlackClient, SlackClient>()
                 .AddSingleton<IApplicationService>(buildApplicationServiceMock.Object)
                 .AddSingleton<IDeploymentService, DeploymentService>();
@@ -102,8 +103,8 @@ namespace Shipbot.Tests
             
             var services = new ServiceCollection()
                 .AddLogging((builder) => builder.AddXUnit(_testOutputHelper))
-                .Configure<SlackConfiguration>(configuration => configuration.Token = "xoxb-720397510838-721891676752-pVA3I7QAKeYRJ08ueLLv4Uco")
-                //.AddSingleton<ISlackClient>(BuildSlackClientMock().Object)
+                //.Configure<SlackConfiguration>(configuration => configuration.Token = SlackUserToken)
+                .AddSingleton<ISlackClient>(BuildSlackClientMock().Object)
                 .AddSingleton<ISlackClient, SlackClient>()
                 .AddSingleton<IApplicationService>(buildApplicationServiceMock.Object)
                 .AddSingleton<IDeploymentService, DeploymentService>();
@@ -151,7 +152,7 @@ namespace Shipbot.Tests
             
             var services = new ServiceCollection()
                 .AddLogging((builder) => builder.AddXUnit(_testOutputHelper))
-                .Configure<SlackConfiguration>(configuration => configuration.Token = "xoxb-720397510838-721891676752-pVA3I7QAKeYRJ08ueLLv4Uco")
+                .Configure<SlackConfiguration>(configuration => configuration.Token = SlackUserToken)
                 //.AddSingleton<ISlackClient>(BuildSlackClientMock().Object)
                 .AddSingleton<ISlackClient, SlackClient>()
                 .AddSingleton<IApplicationService>(buildApplicationServiceMock.Object)
