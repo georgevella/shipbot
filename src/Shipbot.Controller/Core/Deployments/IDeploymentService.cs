@@ -26,5 +26,8 @@ namespace Shipbot.Controller.Core.Deployments
         );
 
         Task PromoteDeployment(DeploymentUpdate deploymentUpdate);
+
+        Task PromoteDeployment(Application application, string containerRepository, string targetTag,
+            string sourceEnvironment);
     }
 }

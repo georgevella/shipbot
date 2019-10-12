@@ -11,6 +11,7 @@ using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Slack.Models;
 using SlackAPI;
 
 namespace Shipbot.Controller.Core.Slack
@@ -206,35 +207,42 @@ namespace Shipbot.Controller.Core.Slack
                 {
                     if (deploymentUpdate.Environment.PromotionEnvironments.Count > 0)
                     {
+                        var slackPromoteActionDetails = new SlackPromoteActionDetails()
+                        {
+                            Application = deploymentUpdate.Application.Name,
+                            ContainerRepository = deploymentUpdate.Image.Repository,
+                            SourceEnvironment = deploymentUpdate.Environment.Name,
+                            TargetTag = deploymentUpdate.TargetTag
+                        };
+                        var buttons = deploymentUpdate.Environment.PromotionEnvironments.Select(x => new ButtonElement()
+                        {
+                            action_id = "promote",
+                            text = new Text()
+                            {
+                                type = "plain_text",
+                                text = $"Promote to '{x}'"
+                            },
+                            value = $"{JsonConvert.SerializeObject(slackPromoteActionDetails, Formatting.None)}",
+                        }).ToList();
+                        
+                        buttons.Add(new ButtonElement()
+                        {
+                            action_id = "revert",
+                            text = new Text()
+                            {
+                                type = "plain_text",
+                                text = "Revert this deployment."
+                            },
+                            style = "danger",
+                            value = "revert",
+                        });
+
                         blocks.AddRange(
                             new IBlock[]
                             {
                                 new ActionsBlock()
                                 {
-                                    elements = new IElement[]
-                                    {
-                                        new ButtonElement()
-                                        {
-                                            action_id = "promote",
-                                            text = new Text()
-                                            {
-                                                type = "plain_text",
-                                                text = "Promote to Staging"
-                                            },
-                                            value = "staging",
-                                        },
-                                        new ButtonElement()
-                                        {
-                                            action_id = "revert",
-                                            text = new Text()
-                                            {
-                                                type = "plain_text",
-                                                text = "Revert this deployment."
-                                            },
-                                            style = "danger",
-                                            value = "revert",
-                                        }
-                                    }
+                                    elements = buttons.Cast<IElement>().ToArray()
                                 }
                             }
                         );           

@@ -224,39 +224,60 @@ namespace Shipbot.Controller.Core.Deployments
             _applicationService.SetCurrentImageTag(deploymentUpdate.Application, deploymentUpdate.Environment, deploymentUpdate.Image, deploymentUpdate.TargetTag);
         }
 
+        public async Task PromoteDeployment(Application application, string containerRepository, string targetTag,
+            string sourceEnvironment)
+        {
+            var deploymentKey = new DeploymentKey(application, containerRepository, targetTag);
+            
+            if (_deployments.TryGetValue(deploymentKey, out var deployment))
+            {
+                var deploymentUpdateDetails = deployment.GetDeploymentUpdates()
+                    .First(x => x.DeploymentUpdate.Environment.Name == sourceEnvironment);
+                
+                DoPromoteDeployment(deploymentUpdateDetails.DeploymentUpdate, deployment);
+            }
+        }
+
         public async Task PromoteDeployment(DeploymentUpdate deploymentUpdate)
         {
             var deploymentKey = new DeploymentKey(deploymentUpdate.Application, deploymentUpdate.Image, deploymentUpdate.TargetTag);
 
             if (_deployments.TryGetValue(deploymentKey, out var deployment))
             {
-                deployment.ChangeDeploymentUpdateStatus(deploymentUpdate, DeploymentUpdateStatus.Promoting);
-
-                var targetEnvironmentName = deploymentUpdate.Environment.PromotionEnvironments.First();
-                var environment = deploymentUpdate.Application.Environments[targetEnvironmentName];
-                var currentTags = _applicationService.GetCurrentImageTags(deploymentUpdate.Application, environment);
-
-                if (!currentTags.TryGetValue(deploymentUpdate.Image, out var currentTag))
-                {
-                    currentTag = "<new image>";
-                }
-
-                var newDeploymentUpdate = deployment.CreateDeploymentUpdate(environment, currentTag, deploymentUpdate.TargetTag, deploymentUpdate);
-
-                _log.LogInformation(
-                    "Adding image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
-                    newDeploymentUpdate.Image.Repository, 
-                    currentTag,
-                    deploymentUpdate.Application.Name,
-                    newDeploymentUpdate.TargetTag
-                );
-                
-                var pendingDeploymentKey = new PendingDeploymentKey(newDeploymentUpdate.Application, environment);
-                var queue = _pendingDeploymentUpdates.GetOrAdd(pendingDeploymentKey, key => new ConcurrentQueue<DeploymentUpdate>());
-                queue.Enqueue( newDeploymentUpdate );
-
-                deployment.AddDeploymentUpdate(newDeploymentUpdate);
+                DoPromoteDeployment(deploymentUpdate, deployment);
             }
+        }
+
+        private void DoPromoteDeployment(DeploymentUpdate deploymentUpdate, Deployment deployment)
+        {
+            deployment.ChangeDeploymentUpdateStatus(deploymentUpdate, DeploymentUpdateStatus.Promoting);
+
+            var targetEnvironmentName = deploymentUpdate.Environment.PromotionEnvironments.First();
+            var environment = deploymentUpdate.Application.Environments[targetEnvironmentName];
+            var currentTags = _applicationService.GetCurrentImageTags(deploymentUpdate.Application, environment);
+
+            if (!currentTags.TryGetValue(deploymentUpdate.Image, out var currentTag))
+            {
+                currentTag = "<new image>";
+            }
+
+            var newDeploymentUpdate = deployment.CreateDeploymentUpdate(environment, currentTag,
+                deploymentUpdate.TargetTag, deploymentUpdate);
+
+            _log.LogInformation(
+                "Adding image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
+                newDeploymentUpdate.Image.Repository,
+                currentTag,
+                deploymentUpdate.Application.Name,
+                newDeploymentUpdate.TargetTag
+            );
+
+            var pendingDeploymentKey = new PendingDeploymentKey(newDeploymentUpdate.Application, environment);
+            var queue = _pendingDeploymentUpdates.GetOrAdd(pendingDeploymentKey,
+                key => new ConcurrentQueue<DeploymentUpdate>());
+            queue.Enqueue(newDeploymentUpdate);
+
+            deployment.AddDeploymentUpdate(newDeploymentUpdate);
         }
     }
 }
