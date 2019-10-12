@@ -41,7 +41,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
                     {"Context", context}
                 });
             
-                var jobKey = new JobKey($"gitclone-{application.Name}", "gitrepowatcher");
+                var jobKey = new JobKey($"gitclone-{application.Name}-{keyValuePair.Key}", "gitrepowatcher");
             
                 var job = JobBuilder.Create<GitRepositoryCheckoutJob>()
                     .WithIdentity(jobKey)
@@ -49,7 +49,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
                     .Build();
 
                 var trigger = TriggerBuilder.Create()
-                    .WithIdentity($"gitclone-trig-{application.Name}", "gitrepowatcher")
+                    .WithIdentity($"gitclone-trig-{application.Name}-{keyValuePair.Key}", "gitrepowatcher")
                     .StartNow()
                     .ForJob(job)
                     .Build();
