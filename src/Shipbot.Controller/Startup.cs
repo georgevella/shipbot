@@ -72,9 +72,9 @@ namespace Shipbot.Controller
             
             services.AddTransient<IHostedService, SlackStartup>();
             services.AddSingleton<ISlackClient, SlackClient>();
-            
-            
 
+            services.AddControllers();
+            
             services.RegisterMediator(
                 new MediatorBuilder().RegisterHandlers(Assembly.GetExecutingAssembly())
             );
@@ -96,7 +96,14 @@ namespace Shipbot.Controller
             app.UseHealthChecks("/health");
 
             app.UseHttpsRedirection();
-            app.UseMvc();
+            app.UseRouting();
+
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
     }
     
