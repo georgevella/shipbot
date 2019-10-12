@@ -26,9 +26,7 @@ namespace Shipbot.Tests
         {
             _testOutputHelper = testOutputHelper;
         }
-
         
-
         private Application BuildApplication(string name = "MockedApplication", IEnumerable<ApplicationEnvironment> environments = null)
         {
             return new Application(name, environments, new NotificationSettings("slack-bots-and-more"));

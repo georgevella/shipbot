@@ -64,8 +64,6 @@ namespace Shipbot.Controller.Core.Models
             TargetTag = targetTag;
             SourceDeploymentUpdate = sourceDeploymentUpdate;
         }
-        
-        
     }
 
     public enum DeploymentUpdateStatus
