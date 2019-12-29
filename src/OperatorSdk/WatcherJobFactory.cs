@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using k8s;
 using Microsoft.Extensions.Logging;
+using Microsoft.Rest;
 
 namespace OperatorSdk
 {
@@ -34,7 +35,7 @@ namespace OperatorSdk
                 cancellationToken: token
             );
             
-            using var watcher = result.Watch<T>(async (type, o) =>
+            using var watcher = result.Watch<T,object>(async (type, o) =>
             {
                 foreach (var watcherEventHandler in _handlers)
                 {

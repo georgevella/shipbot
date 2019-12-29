@@ -1,0 +1,354 @@
+//using System;
+//using System.Collections.Generic;
+//using System.Linq;
+//using System.Threading.Tasks;
+//using LibGit2Sharp;
+//using Microsoft.Extensions.Logging;
+//using Quartz;
+//using Shipbot.Controller.Core.Apps;
+//using Shipbot.Controller.Core.Deployments;
+//using Shipbot.Controller.Core.Deployments.Models;
+//using Shipbot.Controller.Core.DeploymentSources.Models;
+//using Shipbot.Controller.Core.Git.Models;
+//using Shipbot.Controller.Core.Jobs;
+//
+//namespace Shipbot.Controller.Core.DeploymentSources.Jobs
+//{
+//    [DisallowConcurrentExecution]
+//    public class GitRepositorySyncJob : BaseScheduledJob<ApplicationSourceTrackingContext>
+//    {
+//        private readonly ILogger<GitRepositorySyncJob> _log;
+//        private readonly IApplicationService _applicationService;
+//        private readonly IDeploymentService _deploymentService;
+//        private readonly IApplicationSourceService _applicationSourceService;
+//        private readonly IApplicationSourceSyncService _applicationSourceSyncService;
+//
+//        public GitRepositorySyncJob(
+//            ILogger<GitRepositorySyncJob> log,
+//            IApplicationService applicationService,
+//            IDeploymentService deploymentService,
+//            IApplicationSourceService applicationSourceService,
+//            IApplicationSourceSyncService applicationSourceSyncService
+//        )
+//        {
+//            _log = log;
+//            _applicationService = applicationService;
+//            _deploymentService = deploymentService;
+//            _applicationSourceService = applicationSourceService;
+//            _applicationSourceSyncService = applicationSourceSyncService;
+//        }
+//
+//        protected override async Task Execute(ApplicationSourceTrackingContext context)
+//        {
+//            // TODO: report failures to Application model
+//
+//            using (_log.BeginScope(new Dictionary<string, object>
+//            {
+//                {"Application", context.Application.Name},
+//                {"Ref", context.Environment.Source.Repository.Ref},
+//                {"Path", context.Environment.Source.Path}
+//            }))
+//            {
+//                var repository = context.Environment.Source.Repository;
+//
+//                // TODO: improve this to not have passwords in memory / use SecureStrings
+//                var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
+//
+//                var gitRepository = new LibGit2Sharp.Repository(context.GitRepositoryPath.FullName);
+//
+//                // TODO: handle scenario when we are tracking a git commit or a tag
+//
+//                var branch = CheckoutDeploymentManifest(gitRepository, repository, credentials);
+//                
+//                
+//                var applicationSourceDetails = await _applicationSourceSyncService.BuildApplicationSourceDetails(context,
+//                    context.Environment.Source as HelmApplicationSource);
+//                
+//                
+//                DeploymentUpdate deploymentUpdate = null;
+//                while ((deploymentUpdate = await _deploymentService.GetNextPendingDeploymentUpdate( context.Application, context.Environment )) != null)
+//                {
+//                    await _applicationSourceSyncService.ApplyDeploymentUpdates(applicationSourceDetails, deploymentUpdate);
+//                }
+//
+//                if (context.Environment.AutoDeploy)
+//                {
+//                    _log.LogInformation("Pushing repository changes for {application}", context.Application);
+//
+////                        gitRepository.Network.Push(branch, new PushOptions()
+////                        {
+////                            CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+////                            {
+////                                Username = credentials.Username,
+////                                Password = credentials.Password
+////                            }
+////                        });
+//                }
+//            }
+//        }
+//
+//        
+//
+//        private Branch CheckoutDeploymentManifest(Repository gitRepository, ApplicationSourceRepository repository,
+//            UsernamePasswordGitCredentials credentials)
+//        {
+//            var branchNames = gitRepository.Branches.Select(x => x.CanonicalName).ToList();
+//
+//            var branch = gitRepository.Branches.FirstOrDefault(b => b.FriendlyName == repository.Ref);
+//            var originBranch =
+//                gitRepository.Branches.FirstOrDefault(b => b.FriendlyName == $"origin/{repository.Ref}");
+//            if (branch != null || originBranch != null)
+//            {
+//                if (branch == null)
+//                {
+//                    // checkout branch from origin and make sure we are tracking the remote branchb
+//                    branch = gitRepository.CreateBranch(repository.Ref, originBranch.Tip);
+//                    branch = gitRepository.Branches.Update(branch,
+//                        b => b.TrackedBranch = originBranch.CanonicalName
+//                    );
+//                }
+//
+//                // we already have a local copy of the branch, make sure it's the current head (if not switch to it)
+//                if (branch.Tip != gitRepository.Head.Tip)
+//                {
+//                    // switch to selected branch
+//                    _log.LogInformation("Switching from branch {currentBranch} to {requestedBranch}",
+//                        gitRepository.Head.CanonicalName, branch.CanonicalName);
+//                    Commands.Checkout(gitRepository, branch);
+//                }
+//
+//                var currentHash = gitRepository.Head.Tip.Sha;
+//
+//                _log.LogInformation("Fetching latest sources for {branch} [{currentHash}] ...",
+//                    branch.CanonicalName, currentHash);
+//
+//                // TODO maybe this needs to be a fetch
+//                Commands.Pull(gitRepository,
+//                    new Signature("rig-deploy-bot", "devops@riverigaming.com", DateTimeOffset.Now),
+//                    new PullOptions()
+//                    {
+//                        FetchOptions = new FetchOptions()
+//                        {
+//                            Prune = true,
+//                            CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+//                            {
+//                                Username = credentials.Username,
+//                                Password = credentials.Password
+//                            }
+//                        },
+//                        MergeOptions = new MergeOptions()
+//                        {
+//                            FastForwardStrategy = FastForwardStrategy.FastForwardOnly
+//                        }
+//                    });
+//
+//                if (gitRepository.Head.Tip.Sha != currentHash)
+//                {
+//                    _log.LogInformation("Branch changed, triggered application refresh");
+//                }
+//            }
+//            else
+//            {
+//                var tag = gitRepository.Tags[repository.Ref];
+//                if (tag != null)
+//                {
+//                    var currentHash = tag.Target.Sha;
+//
+//                    Commands.Fetch(
+//                        gitRepository,
+//                        "origin",
+//                        Enumerable.Empty<string>(),
+//                        new FetchOptions()
+//                        {
+//                            Prune = true,
+//                            CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+//                            {
+//                                Username = credentials.Username,
+//                                Password = credentials.Password
+//                            }
+//                        },
+//                        null);
+//
+//
+//                    tag = gitRepository.Tags[repository.Ref];
+//
+//                    if (currentHash != tag.Target.Sha)
+//                    {
+//                        _log.LogInformation("Tag hash changed, triggered application refresh.");
+//                    }
+//                }
+//                else
+//                {
+//                    // its a git commit hash
+//                    var currentHash = gitRepository.Head.Tip.Sha;
+//
+//                    if (currentHash != repository.Ref)
+//                    {
+//                        _log.LogInformation(
+//                            $"Current hash [{currentHash}] is not requested hash [{repository.Ref}], git checkout of commit will be triggered.");
+//
+//                        Commands.Checkout(gitRepository, repository.Ref);
+//                    }
+//                }
+//            }
+//
+//            return branch;
+//        }
+//
+////        private async Task<bool> SynchronizeHelmApplicationSource(Repository gitRepository,
+////            ApplicationSourceTrackingContext context,
+////            HelmApplicationSource helmApplicationSource)
+////        {
+////            var relativePath = helmApplicationSource.Path;
+////            var applicationSourcePath = Path.Combine(context.GitRepositoryPath, relativePath);
+////
+////            var application = context.Application;
+////            var yamlUtilities = new YamlUtilities();
+////
+////            // build map of images -> yaml file that defines them and image -> current tag
+////            _log.LogInformation("Beginning to parse value files defined in application source ...");
+////
+////            var imageToFilenameMap = new Dictionary<Image, string>();
+////            var imageToTagInManifest = new Dictionary<Image, string>();
+////
+////            foreach (var file in helmApplicationSource.ValuesFiles)
+////            {
+////                var yaml = new YamlStream();
+////                var filePath = Path.Combine(applicationSourcePath, file);
+////                yamlUtilities.ReadYamlStream(yaml, filePath);
+////
+////                foreach (var doc in yaml.Documents)
+////                {
+////                    foreach (var image in context.Environment.Images)
+////                    {
+////                        var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
+////
+////                        if (tagInManifest == null)
+////                            continue;
+////
+////                        if (imageToFilenameMap.ContainsKey(image))
+////                        {
+////                            // TODO: handle situation where multiple files define the same image tag (ERROR and warn user)
+////                        }
+////
+////                        imageToFilenameMap[image] = file;
+////                        imageToTagInManifest[image] = tagInManifest;
+////                    }
+////                }
+////            }
+////            
+////            _log.LogInformation("Completing parsing value files defined in application source ...");
+////
+////            // start updating files
+////            var manifestsChanged = false;
+////            DeploymentUpdate deploymentUpdate = null;
+////            while ((deploymentUpdate = await _deploymentService.GetNextPendingDeploymentUpdate(application)) != null) 
+////            {
+////                _log.LogInformation("Executing pending deployment update ...");
+////                
+////                await _deploymentService.ChangeDeploymentUpdateStatus(
+////                    deploymentUpdate,
+////                    DeploymentUpdateStatus.UpdatingManifests
+////                );
+////                
+////                manifestsChanged = await UpdateDeploymentManifests(gitRepository, 
+////                    deploymentUpdate, 
+////                    imageToFilenameMap, 
+////                    imageToTagInManifest.TryGetAndReturn(deploymentUpdate.Image) ?? "n/a", 
+////                    applicationSourcePath, 
+////                    yamlUtilities, 
+////                    relativePath);
+////
+////                if (manifestsChanged)
+////                {
+////                    imageToTagInManifest[deploymentUpdate.Image] = deploymentUpdate.TargetTag;
+////                }
+////                
+////                await _deploymentService.FinishDeploymentUpdate(
+////                    deploymentUpdate,
+////                    manifestsChanged ? DeploymentUpdateStatus.Complete : DeploymentUpdateStatus.Failed
+////                );
+////            }
+////            
+////            if (!manifestsChanged)
+////            {
+////                // we don't have a deployment, ensure application manifest is up to date with latest image tags
+////                foreach (var keyValuePair in imageToTagInManifest)
+////                {
+////                    _applicationService.SetCurrentImageTag(application, context.Environment, keyValuePair.Key, keyValuePair.Value);   
+////                }
+////            }
+////            
+////            return manifestsChanged;
+////        }
+////
+////        private async Task<bool> UpdateDeploymentManifests(
+////            Repository gitRepository, 
+////            DeploymentUpdate deploymentUpdate,
+////            Dictionary<Image, string> imageToFilenameMap, 
+////            string currentImageTag,
+////            string applicationSourcePath,
+////            YamlUtilities yamlUtilities, 
+////            string relativePath)
+////        {
+////            if (!imageToFilenameMap.TryGetValue(deploymentUpdate.Image, out string file))
+////            {
+////                // TODO: warn that we have an image tag update but no corresponding file
+////                _log.LogWarning("Update to {Repository} cannot be applied since there isn't matching file.");
+////                return false;
+////            }
+////
+////            _log.LogInformation("Upgrading {Repository} to {NewTag} from {Tag}",
+////                deploymentUpdate.Image.Repository,
+////                deploymentUpdate.TargetTag,
+////                currentImageTag
+////            );
+////
+////            var yaml = new YamlStream();
+////            var filePath = Path.Combine(applicationSourcePath, file);
+////
+////            yamlUtilities.ReadYamlStream(yaml, filePath);
+////
+////            var image = deploymentUpdate.Image;
+////
+////            var doCommit = false;
+////
+////            foreach (var doc in yaml.Documents)
+////            {
+////                var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
+////                if (tagInManifest == null) continue;
+////
+////                if (tagInManifest == deploymentUpdate.TargetTag)
+////                {
+////                    _log.LogInformation("Tag for {Repository} matches new tag {NewTag}", image.Repository, deploymentUpdate.TargetTag);
+////                    continue;
+////                }
+////
+////                _log.LogInformation("Setting current-tag for {Repository} to {Tag}", image.Repository,
+////                    deploymentUpdate.TargetTag);
+////                yamlUtilities.SetValueInDoc(image.TagProperty.Path, doc, deploymentUpdate.TargetTag);
+////
+////                doCommit = true;
+////            }
+////
+////            if (!doCommit)
+////                return true;
+////
+////            yamlUtilities.WriteYamlStream(yaml, filePath);
+////
+////            _log.LogInformation("Adding {Path} to repository staging", filePath);
+////            var gitFilePath = Path.Combine(relativePath, file);
+////            Commands.Stage(gitRepository, gitFilePath);
+////
+////            gitRepository.Commit(
+////                $"Updated deployment for {image.Repository} to version with tag {deploymentUpdate.TargetTag}",
+////                new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now),
+////                new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now)
+////            );
+////
+////            // add delay instruction due to the deployment update notification delivered too fast
+////            await Task.Delay(500);
+////            return true;
+////        }
+//    }
+//}

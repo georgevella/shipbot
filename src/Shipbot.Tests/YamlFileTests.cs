@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using FluentAssertions;
-using Shipbot.Controller.Core.ApplicationSources;
+using Shipbot.Controller.Core.DeploymentSources;
 using Xunit;
 using YamlDotNet.RepresentationModel;
 

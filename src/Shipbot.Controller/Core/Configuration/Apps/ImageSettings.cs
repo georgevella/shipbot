@@ -1,4 +1,5 @@
 using System;
+using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Core.Configuration.Apps
@@ -12,24 +13,6 @@ namespace Shipbot.Controller.Core.Configuration.Apps
         public TagPropertySettings TagProperty { get; set; }
 
         public UpdatePolicy Policy { get; set; }
-
-        public static implicit operator Image(ImageSettings imageSettings)
-        {
-            return new Image(
-                imageSettings.Repository,
-                new TagProperty(
-                    imageSettings.TagProperty.Path,
-                    imageSettings.TagProperty.ValueFormat
-                ),
-                imageSettings.Policy switch
-                    {
-                    UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
-                        imageSettings.Pattern),
-                    UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
-                    _ => throw new NotImplementedException()
-                    }
-            );
-        }
     }
 
     public class TagPropertySettings

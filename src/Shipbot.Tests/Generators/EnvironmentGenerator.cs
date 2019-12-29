@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
+using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.DeploymentSources.Models;
 using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Tests.Generators
@@ -26,7 +29,7 @@ namespace Shipbot.Tests.Generators
             }
 
             return new ApplicationEnvironment(name,
-                images.ToImmutableList(),
+                images.ToList(),
                 new HelmApplicationSource(),
                 autoDeploy,
                 promotionList ?? new List<string>());

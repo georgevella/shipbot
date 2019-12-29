@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Deployments", "Ship
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Applications", "Shipbot.Applications\Shipbot.Applications.csproj", "{F54C8DE4-B99C-4554-ABD2-472D91FB116F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Slack", "Shipbot.Slack\Shipbot.Slack.csproj", "{22D5E257-5A4F-41DD-931F-28CB833BBF36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -114,5 +116,17 @@ Global
 		{F54C8DE4-B99C-4554-ABD2-472D91FB116F}.Release|x64.Build.0 = Release|Any CPU
 		{F54C8DE4-B99C-4554-ABD2-472D91FB116F}.Release|x86.ActiveCfg = Release|Any CPU
 		{F54C8DE4-B99C-4554-ABD2-472D91FB116F}.Release|x86.Build.0 = Release|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Debug|x64.Build.0 = Debug|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Debug|x86.Build.0 = Debug|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Release|x64.ActiveCfg = Release|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Release|x64.Build.0 = Release|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Release|x86.ActiveCfg = Release|Any CPU
+		{22D5E257-5A4F-41DD-931F-28CB833BBF36}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

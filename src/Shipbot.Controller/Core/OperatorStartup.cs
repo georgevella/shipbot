@@ -8,20 +8,23 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans;
 using Quartz;
 using Quartz.Impl.Matchers;
-using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Apps;
+using Shipbot.Controller.Core.Apps.Grains;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Registry;
+using Shipbot.Controller.Core.ContainerRegistry;
+using Shipbot.Controller.Core.ContainerRegistry.Ecr;
+using Shipbot.Controller.Core.ContainerRegistry.Watcher;
 using Shipbot.Controller.Core.Deployments;
-using Shipbot.Controller.Core.Registry;
-using Shipbot.Controller.Core.Registry.Ecr;
-using Shipbot.Controller.Core.Registry.Watcher;
+using Shipbot.Controller.Core.DeploymentSources;
+using Shipbot.Controller.Core.Git.Extensions;
 //using ArgoAutoDeploy.Core.K8s;
 //using k8s;
-using ApplicationSourceRepository = Shipbot.Controller.Core.Models.ApplicationSourceRepository;
+using ApplicationSourceRepository = Shipbot.Controller.Core.DeploymentSources.Models.ApplicationSourceRepository;
 
 namespace Shipbot.Controller.Core
 {
@@ -30,13 +33,10 @@ namespace Shipbot.Controller.Core
         private readonly ILogger<OperatorStartup> _log;
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly RegistryClientPool _registryClientPool;
-        private readonly IApplicationService _applicationService;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IApplicationSourceService _applicationSourceService;
-        private readonly IRegistryWatcher _registryWatcher;
-        private readonly IDeploymentService _deploymentService;
-        private readonly IScheduler _scheduler;
-        private readonly NewImagesJobListener _newImagesJobListener;
+//        private readonly IScheduler _scheduler;
+        private readonly IClusterClient _clusterClient;
+        private readonly IGrainFactory _grainFactory;
         private readonly ConcurrentBag<Task> _watcherJobs = new ConcurrentBag<Task>();
         private readonly CancellationTokenSource _cancelSource;
 
@@ -44,31 +44,26 @@ namespace Shipbot.Controller.Core
             ILogger<OperatorStartup> log, 
             IOptions<ShipbotConfiguration> configuration,
             RegistryClientPool registryClientPool,
-            IApplicationService applicationService,
             IServiceProvider serviceProvider,
-            IApplicationSourceService applicationSourceService,
-            IRegistryWatcher registryWatcher,
-            IDeploymentService deploymentService,
-            IScheduler scheduler,
-            NewImagesJobListener newImagesJobListener
+//            IScheduler scheduler,
+            IClusterClient clusterClient,
+            IGrainFactory grainFactory
             )
         {
             _log = log;
             _configuration = configuration;
             _registryClientPool = registryClientPool;
-            _applicationService = applicationService;
             _serviceProvider = serviceProvider;
-            _applicationSourceService = applicationSourceService;
-            _registryWatcher = registryWatcher;
-            _deploymentService = deploymentService;
-            _scheduler = scheduler;
-            _newImagesJobListener = newImagesJobListener;
+//            _scheduler = scheduler;
+            _clusterClient = clusterClient;
+            _grainFactory = grainFactory;
 
             _cancelSource = new CancellationTokenSource();
         }
         
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            
             var conf = _configuration.Value;
             
             // register image repositories
@@ -87,16 +82,19 @@ namespace Shipbot.Controller.Core
                 }
             } );
             
+            var credentialsRegistry = _grainFactory.GetGitCredentialsRegistryGrain();
+            conf.GitCredentials.ForEach(c => credentialsRegistry.AddCredentials(c.Name, c.ConvertToGitCredentials()));
+            
             // register applications
-            var trackedApplications = conf.Applications.Select(applicationDefinition => _applicationService.AddApplication( applicationDefinition ));
-
-            foreach (var trackedApplication in trackedApplications)
+            foreach (var applicationDefinition in conf.Applications)
             {
-                await _applicationSourceService.AddApplicationSource(trackedApplication);
-//                await _registryWatcher.StartWatchingImageRepository(trackedApplication);
+                var grain = _grainFactory.GetApplication(applicationDefinition.Name);
+                await grain.Configure(applicationDefinition);
             }
             
-            _scheduler.ListenerManager.AddJobListener(_newImagesJobListener, GroupMatcher<JobKey>.GroupEquals("containerrepowatcher"));
+
+            
+            
 
 //            // start watching argo applications
 //            foreach (var connectionDetails in conf.Kubernetes)
@@ -121,16 +119,16 @@ namespace Shipbot.Controller.Core
 //            }
         }
 
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
             _cancelSource.Cancel();
             
             foreach (var task in _watcherJobs.ToArray())
             {
-                task.Wait();
+                task.Wait(cancellationToken);
             }
 
-//            _clientPool.Shutdown();
+            return Task.CompletedTask;
         }
     }
 }

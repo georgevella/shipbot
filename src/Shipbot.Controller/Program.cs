@@ -1,63 +1,168 @@
 ﻿using System;
+using System.Net;
+using System.Threading.Tasks;
 using CommandLine;
-using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Orleans;
+using Orleans.Configuration;
+using Orleans.Hosting;
+using Orleans.Providers;
 using Serilog;
+using Serilog.Events;
 using Serilog.Formatting.Json;
-using Serilog.Sinks.SystemConsole.Themes;
 using Shipbot.Controller.Cmd;
+using Shipbot.Controller.Core;
+using Shipbot.Controller.Core.Apps.Grains;
+using Shipbot.Controller.Core.Deployments;
 
 namespace Shipbot.Controller
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static Task Main(string[] args)
         {
-            var builder = CreateWebHostBuilder(args);
+            var hostBuilder = Host.CreateDefaultBuilder(args);
 
-            builder.Build().Run();
+            BuildOrleansSilo(hostBuilder);
+            BuildOrleansClient(hostBuilder);
+            SetupWebHosting(hostBuilder, args);
+
+            hostBuilder.UseSerilog(
+                (hostingContext, loggerConfiguration) =>
+                {
+                    loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration);
+                    if (hostingContext.HostingEnvironment.IsDevelopment())
+                    {
+                        loggerConfiguration
+                            .Filter.ByExcluding( 
+                                logEvent => logEvent.Properties["SourceContext"].ToString().Contains("Orleans") && 
+                                            (logEvent.Exception != null || (logEvent.Level != LogEventLevel.Warning && logEvent.Level != LogEventLevel.Error && logEvent.Level != LogEventLevel.Fatal ))
+                                            )
+                            .WriteTo.Console(
+                                outputTemplate:
+                                "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: <{Application}:{Environment}> {Message:lj} {Properties:j}{NewLine}{Exception}"
+                            );
+                    }
+                    else
+                    {
+                        loggerConfiguration.WriteTo.Console(
+                            formatter: new JsonFormatter(renderMessage: true)
+                        );
+                    }
+                });
+
+            hostBuilder.ConfigureAppConfiguration(
+                (context, builder) =>
+                {
+                    Parser.Default.ParseArguments<CommandLineOptions>(args)
+                        .WithParsed<CommandLineOptions>(opts =>
+                        {
+                            if (opts.ConfigFilePath != null)
+                            {
+                                builder.AddJsonFile(opts.ConfigFilePath, false, true).Build();
+                            }
+                        });
+                }
+            );
+            hostBuilder.ConfigureServices(services =>
+            {
+                services.AddHostedService<OperatorStartup>();
+                //services.AddHostedService<SlackStartup>();
+                services.Configure<ConsoleLifetimeOptions>(options => { options.SuppressStatusMessages = false; });
+            });
+
+            
+            return hostBuilder.RunConsoleAsync();
         }
 
-        public static IHostBuilder CreateWebHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
+        static IHostBuilder BuildOrleansClient(IHostBuilder hostBuilder)
+        {
+            hostBuilder.ConfigureServices(services =>
+            {
+//                services.AddSingleton<IClusterClient>(
+//                    provider =>
+//                    {
+//                        var clientBuilder = new ClientBuilder()
+//                            .UseLocalhostClustering()
+//                            .Configure<ClusterOptions>(options =>
+//                            {
+//                                options.ClusterId = "dev";
+//                                options.ServiceId = "HelloWorldApp";
+//                            })
+//                            .Configure<ClientMessagingOptions>(options =>
+//                            {
+//                                options.ResponseTimeout = TimeSpan.FromSeconds(30);
+//                            })
+//                            .ConfigureApplicationParts(
+//                                parts => parts.AddApplicationPart(typeof(IApplicationGrain).Assembly).WithReferences()
+//                            );
+//
+//                        return clientBuilder.Build();
+//                    }
+//                );
+
+                services.AddHostedService<OrleansClientStartup>();
+            });
+            return hostBuilder;
+        }
+
+        static IHostBuilder BuildOrleansSilo(IHostBuilder hostBuilder)
+        {
+            hostBuilder
+                .UseOrleans((context, siloBuilder) =>
+                {
+                    siloBuilder
+                        .UseLocalhostClustering()
+                        .Configure<ClusterOptions>(options =>
+                        {
+                            options.ClusterId = "dev";
+                            options.ServiceId = "HelloWorldApp";
+                        })
+                        .AddAdoNetGrainStorage(ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME, options =>
+                        {
+                            options.Invariant = "Npgsql";
+                            options.UseJsonFormat = true;
+                            options.ConnectionString =
+                                "User ID=postgres;Password=password123;Host=localhost;Database=shipbot;";
+                        })
+                        .AddMemoryGrainStorage("PubSubStore")
+                        .UseAdoNetReminderService(options =>
+                        {
+                            options.Invariant = "Npgsql";
+                            options.ConnectionString =
+                                "User ID=postgres;Password=password123;Host=localhost;Database=shipbot;";
+                        })
+                        .AddSimpleMessageStreamProvider(Constants.InternalMessageStreamProvider)
+                        .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
+                        .ConfigureApplicationParts(parts =>
+                            parts.AddApplicationPart(typeof(IApplicationGrain).Assembly).WithReferences()
+                        )
+                        .UseDashboard(options =>
+                        {
+                            options.BasePath = "orleans";
+                        })
+                        ;
+                });
+
+            return hostBuilder;
+        }
+
+        public static IHostBuilder SetupWebHosting(IHostBuilder hostBuilder, string[] args) =>
+            hostBuilder
                 .ConfigureWebHostDefaults(
                     webBuilder =>
                     {
                         webBuilder
                             .UseStartup<Startup>()
-                            .UseSerilog(
-                                (hostingContext, loggerConfiguration) =>
-                                {
-                                    loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration);
-                                    if (hostingContext.HostingEnvironment.IsDevelopment())
-                                    {
-                                        loggerConfiguration
-                                            .WriteTo.Console(
-                                                outputTemplate:
-                                                "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}"
-                                            );
-                                    }
-                                    else
-                                    {
-                                        loggerConfiguration.WriteTo.Console(
-                                            formatter: new JsonFormatter(renderMessage: true)
-                                        );
-                                    }
-                                })
                             .UseShutdownTimeout(TimeSpan.FromSeconds(10));
-
-                        CommandLine.Parser.Default.ParseArguments<CommandLineOptions>(args)
-                            .WithParsed<CommandLineOptions>(opts =>
-                            {
-                                if (opts.ConfigFilePath != null)
-                                {
-                                    webBuilder.UseConfiguration(new ConfigurationBuilder()
-                                        .AddJsonFile(opts.ConfigFilePath, false, true).Build());
-                                }
-                            });
                     }
                 );
+    }
+
+    internal class TestGrainExtension
+    {
     }
 }

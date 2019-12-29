@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.EKS" Version="3.3.101.54" />
+    <PackageReference Include="AWSSDK.EKS" Version="3.3.103.19" />
   </ItemGroup>
 
 </Project>

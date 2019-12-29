@@ -21,6 +21,13 @@ services:
     ports:
       - 6370:6379
 
+  postgres:
+    image: postgres:11.5-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password123
+
 #  shipbot:
 #    image: georgevella/shipbot:dev
 #    build:

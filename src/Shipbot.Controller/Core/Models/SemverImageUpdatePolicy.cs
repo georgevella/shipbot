@@ -6,5 +6,10 @@ namespace Shipbot.Controller.Core.Models
         {
             throw new System.NotImplementedException();
         }
+
+        public override bool IsGreaterThen(string tag, string currentTag)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

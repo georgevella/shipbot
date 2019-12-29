@@ -1,49 +1,90 @@
+using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.ObjectPool;
+using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Core.Deployments.Models
 {
-    public class DeploymentKey 
+    /// <summary>
+    ///     A reference to an image deployment.
+    /// </summary>
+    public class DeploymentKey
     {
-        public DeploymentKey(Application application, Image image, string targetTag)
-            : this(application, image.Repository, targetTag)
+        private sealed class DeploymentKeyEqualityComparer : IEqualityComparer<DeploymentKey>
+        {
+            public bool Equals(DeploymentKey x, DeploymentKey y)
+            {
+                if (ReferenceEquals(x, y)) return true;
+                if (ReferenceEquals(x, null)) return false;
+                if (ReferenceEquals(y, null)) return false;
+                if (x.GetType() != y.GetType()) return false;
+                return x.Application == y.Application &&
+                       x.ImageRepository == y.ImageRepository &&
+                       x.TargetTag == y.TargetTag &&
+                       x.DeploymentId == y.DeploymentId;
+            }
+
+            public int GetHashCode(DeploymentKey obj)
+            {
+                unchecked
+                {
+                    var hashCode = (obj.Application != null ? obj.Application.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (obj.ImageRepository != null ? obj.ImageRepository.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (obj.TargetTag != null ? obj.TargetTag.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (obj.DeploymentId.GetHashCode());
+                    return hashCode;
+                }
+            }
+        }
+        
+        public static IEqualityComparer<DeploymentKey> EqualityComparer { get; } = new DeploymentKeyEqualityComparer();
+
+        public DeploymentKey(string application, string imageRepository, string targetTag)
+        {
+            Application = application;
+            ImageRepository = imageRepository;
+            TargetTag = targetTag;
+            DeploymentId = Guid.NewGuid();
+        }
+
+        public DeploymentKey()
         {
             
         }
-        public DeploymentKey(Application application, string containerRepository, string targetTag)
-        {
-            Application = application;
-            ContainerRepository = containerRepository;
-            TargetTag = targetTag;
-        }
+
+        /// <summary>
+        ///     The application that this deployment will update.
+        /// </summary>
+        public string Application { get; set; }
         
-        protected bool Equals(DeploymentKey other)
+        public Guid DeploymentId { get; set; }
+        
+        /// <summary>
+        ///    Location of repository where images are stored. 
+        /// </summary>
+        public string ImageRepository { get; set; }
+        
+        public string TargetTag { get; set; }
+
+        public static implicit operator string(DeploymentKey deploymentKey)
         {
-            return Equals(Application, other.Application) && Equals(ContainerRepository, other.ContainerRepository) && TargetTag == other.TargetTag;
+            return $"{deploymentKey.Application}:{deploymentKey.ImageRepository}:{deploymentKey.TargetTag}:{deploymentKey.DeploymentId:N}";
         }
 
-        public override bool Equals(object obj)
+        public static implicit operator DeploymentKey(string deploymentKey)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((DeploymentKey) obj);
-        }
+            var parts = deploymentKey.Split(':');
+            if (parts.Length != 4)
+                throw new InvalidCastException();
 
-        public override int GetHashCode()
-        {
-            unchecked
+            return new DeploymentKey()
             {
-                var hashCode = (Application != null ? Application.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (ContainerRepository != null ? ContainerRepository.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (TargetTag != null ? TargetTag.GetHashCode() : 0);
-                return hashCode;
-            }
+                Application = parts[0],
+                ImageRepository = parts[1],
+                TargetTag = parts[2],
+                DeploymentId = Guid.Parse(parts[3])
+            };
         }
-
-        public Application Application { get; }
-        
-        public string ContainerRepository { get; }
-        
-        public string TargetTag { get; }
     }
 }

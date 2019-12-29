@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Quartz;
-using Shipbot.Controller.Core.ApplicationSources;
-using Shipbot.Controller.Core.ApplicationSources.Jobs;
+
 
 namespace Shipbot.Controller.Core.Jobs
 {
@@ -25,7 +24,7 @@ namespace Shipbot.Controller.Core.Jobs
                 {"Context", jobContext}
             });
 
-            var job = JobBuilder.Create<GitRepositoryCheckoutJob>()
+            var job = JobBuilder.Create<TJob>()
                 .WithIdentity(jobKey)
                 .UsingJobData(jobData)
                 .Build();
