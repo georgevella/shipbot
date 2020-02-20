@@ -28,35 +28,35 @@ namespace Shipbot.Controller.Core.ApplicationSources
             var repository = context.Application.Source.Repository;
 
             // TODO: improve this to not have passwords in memory / use SecureStrings
-            var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
+//            var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
 
-            if (Directory.Exists(context.GitRepositoryPath))
-            {
-//                if (!Directory.Exists(Path.Combine(context.GitRepositoryPath, ".git/")))
-//                {
-//                    
-//                }
-                Directory.Delete(context.GitRepositoryPath, true);
-            }
-
-            _log.LogInformation("Cloning {Repository} into {Path}",
-                repository.Uri,
-                context.GitRepositoryPath);
-
-            await Task.Run(() =>
-            {
-                LibGit2Sharp.Repository.Clone(
-                    repository.Uri.ToString(),
-                    context.GitRepositoryPath,
-                    new CloneOptions()
-                    {
-                        CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
-                        {
-                            Username = credentials.Username,
-                            Password = credentials.Password
-                        }
-                    });
-            });
+//             if (Directory.Exists(context.GitRepositoryPath))
+//             {
+// //                if (!Directory.Exists(Path.Combine(context.GitRepositoryPath, ".git/")))
+// //                {
+// //                    
+// //                }
+//                 Directory.Delete(context.GitRepositoryPath, true);
+//             }
+//
+//             _log.LogInformation("Cloning {Repository} into {Path}",
+//                 repository.Uri,
+//                 context.GitRepositoryPath);
+//
+//             await Task.Run(() =>
+//             {
+//                 LibGit2Sharp.Repository.Clone(
+//                     repository.Uri.ToString(),
+//                     context.GitRepositoryPath,
+//                     new CloneOptions()
+//                     {
+//                         CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+//                         {
+//                             Username = credentials.Username,
+//                             Password = credentials.Password
+//                         }
+//                     });
+//             });
 
             _log.LogInformation("Starting sync-job for {Repository} in {Path}",
                 repository.Uri,

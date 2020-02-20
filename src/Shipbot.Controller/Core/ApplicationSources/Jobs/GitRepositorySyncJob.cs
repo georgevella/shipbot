@@ -51,9 +51,35 @@ namespace Shipbot.Controller.Core.ApplicationSources
 
                 // TODO: improve this to not have passwords in memory / use SecureStrings
                 var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
+                
+                _log.LogInformation("Removing local copy of git repository",
+                    repository.Uri,
+                    context.GitRepositoryPath);
+                
+                if (Directory.Exists(context.GitRepositoryPath))
+                {
+                    Directory.Delete(context.GitRepositoryPath, true);
+                }
 
-                var gitRepository = new LibGit2Sharp.Repository(context.GitRepositoryPath);
+                _log.LogInformation("Cloning {Repository} into {Path}",
+                    repository.Uri,
+                    context.GitRepositoryPath);
 
+                Repository.Clone(
+                    repository.Uri.ToString(),
+                    context.GitRepositoryPath,
+                    new CloneOptions()
+                    {
+                        CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                        {
+                            Username = credentials.Username,
+                            Password = credentials.Password
+                        }
+                    });
+                
+                using var gitRepository = new Repository(context.GitRepositoryPath);
+
+                
                 var branch = CheckoutDeploymentManifest(gitRepository, repository, credentials);
                 
                 // TODO: handle scenario when we are tracking a git commit or a tag
@@ -81,8 +107,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
         private Branch CheckoutDeploymentManifest(Repository gitRepository, ApplicationSourceRepository repository,
             UsernamePasswordGitCredentials credentials)
         {
-            _log.LogInformation("Resetting git repository ...");
-            gitRepository.Reset(ResetMode.Hard);
+            _log.LogInformation("CheckoutDeploymentManifest ...");
             
             var branchNames = gitRepository.Branches.Select(x => x.CanonicalName).ToList();
 
