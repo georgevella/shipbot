@@ -245,7 +245,7 @@ namespace Shipbot.Controller.Core.Slack
                         {
                             new Text()
                             {
-                                text = $"*Tag*\n{deploymentUpdate.Application}",
+                                text = $"*Application*\n{deploymentUpdate.Application}",
                                 type = "mrkdwn"
                             },
                             new Text()
