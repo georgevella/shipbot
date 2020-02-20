@@ -81,6 +81,9 @@ namespace Shipbot.Controller.Core.ApplicationSources
         private Branch CheckoutDeploymentManifest(Repository gitRepository, ApplicationSourceRepository repository,
             UsernamePasswordGitCredentials credentials)
         {
+            _log.LogInformation("Resetting git repository ...");
+            gitRepository.Reset(ResetMode.Hard);
+            
             var branchNames = gitRepository.Branches.Select(x => x.CanonicalName).ToList();
 
             var branch = gitRepository.Branches.FirstOrDefault(b => b.FriendlyName == repository.Ref);
