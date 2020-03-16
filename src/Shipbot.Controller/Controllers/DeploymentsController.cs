@@ -24,7 +24,7 @@ namespace Shipbot.Controller.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DeploymentDto>>> Get(string application)
         {
-            var result = new List<DeploymentDto>();
+            var result = new Dictionary<string, DeploymentDto>();
             
             var deploymentServiceGrain = _grainFactory.GetDeploymentServiceGrain(application);
 
@@ -32,11 +32,8 @@ namespace Shipbot.Controller.Controllers
             
             foreach (var deploymentKey in deploymentIds)
             {
-                var deploymentDto = new DeploymentDto()
-                {
-                    Id = deploymentKey.DeploymentId
-                };
-                result.Add(deploymentDto);
+                var deploymentDto = new DeploymentDto();
+                result.Add(deploymentKey.DeploymentId.ToString("D"), deploymentDto);
                 
                 var deployment = _grainFactory.GetDeploymentGrain(deploymentKey);
                 var deploymentActionIds = await deployment.GetDeploymentActionIds();
@@ -44,7 +41,7 @@ namespace Shipbot.Controller.Controllers
                 foreach (var deploymentActionId in deploymentActionIds)
                 {
                     var deploymentActionGrain = _grainFactory.GetDeploymentActionGrain(deploymentActionId);
-                    var deploymentActionDto = new DeploymentUpdateDto()
+                    var deploymentActionDto = new DeploymentActionDto()
                     {
                         Environment = deploymentActionId.Environment,
                         Image = deploymentActionId.ImageRepository,
@@ -52,8 +49,22 @@ namespace Shipbot.Controller.Controllers
                         CurrentTag = (await deploymentActionGrain.GetCurrentTag()),
                         Status = (await deploymentActionGrain.GetStatus())
                     };
-                    
-                    deploymentDto.DeploymentUpdates.Add(deploymentActionDto);
+
+                    deploymentDto.DeploymentActions.Add(deploymentActionDto);
+                }
+
+                var deploymentPlan = await deployment.GetDeploymentPlan();
+
+                foreach (var plannedDeploymentAction in deploymentPlan)
+                {
+                    deploymentDto.DeploymentPlan.Add(new PlannedDeploymentActionDto()
+                    {
+                        Environment = plannedDeploymentAction.Environment,
+                        Image = plannedDeploymentAction.Image.Repository,
+                        TagProperty = plannedDeploymentAction.Image.TagProperty.Path,
+                        CurrentTag = plannedDeploymentAction.CurrentTag,
+                        TargetTag = plannedDeploymentAction.TargetTag
+                    });
                 }
             }
 
@@ -63,12 +74,12 @@ namespace Shipbot.Controller.Controllers
 
     public class DeploymentDto
     {
-        public Guid Id { get; set; }
+        public List<PlannedDeploymentActionDto> DeploymentPlan { get; } = new List<PlannedDeploymentActionDto>();
         
-        public List<DeploymentUpdateDto> DeploymentUpdates { get; } = new List<DeploymentUpdateDto>();
+        public List<DeploymentActionDto> DeploymentActions { get; } = new List<DeploymentActionDto>();
     }
 
-    public class DeploymentUpdateDto
+    public class DeploymentActionDto
     {
         public string Environment { get; set; }
         
@@ -79,5 +90,17 @@ namespace Shipbot.Controller.Controllers
         public string TargetTag { get; set; }
 
         public DeploymentActionStatus Status { get; set; }
+    }
+
+    public class PlannedDeploymentActionDto
+    {
+        public string Environment { get; set; }
+        
+        public string Image { get; set; }
+        
+        public string CurrentTag { get; set; }
+        
+        public string TargetTag { get; set; }
+        public string TagProperty { get; set; }
     }
 }

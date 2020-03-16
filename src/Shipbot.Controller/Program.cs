@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Hosting;
@@ -17,6 +18,7 @@ using Shipbot.Controller.Cmd;
 using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.Apps.Grains;
 using Shipbot.Controller.Core.Deployments;
+using Shipbot.Controller.Core.Deployments.GrainState;
 
 namespace Shipbot.Controller
 {
@@ -125,10 +127,24 @@ namespace Shipbot.Controller
                         {
                             options.Invariant = "Npgsql";
                             options.UseJsonFormat = true;
+                            options.ConfigureJsonSerializerSettings = settings =>
+                            {
+                                settings.ContractResolver = new DictionaryAsArrayResolver();
+                            };
+                            options.ConnectionString =
+                                "User ID=postgres;Password=password123;Host=localhost;Database=shipbot;";
+                        })                        
+                        .AddAdoNetGrainStorage("PubSubStore", options =>
+                        {
+                            options.Invariant = "Npgsql";
+                            options.UseJsonFormat = true;
+                            options.ConfigureJsonSerializerSettings = settings =>
+                            {
+                                settings.ContractResolver = new DictionaryAsArrayResolver();
+                            };
                             options.ConnectionString =
                                 "User ID=postgres;Password=password123;Host=localhost;Database=shipbot;";
                         })
-                        .AddMemoryGrainStorage("PubSubStore")
                         .UseAdoNetReminderService(options =>
                         {
                             options.Invariant = "Npgsql";

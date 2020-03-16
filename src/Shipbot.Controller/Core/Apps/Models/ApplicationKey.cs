@@ -4,6 +4,11 @@ namespace Shipbot.Controller.Core.Apps.Models
     {
         public string Name { get; set; }
 
+        public ApplicationKey(string name)
+        {
+            Name = name;
+        }
+
         public static implicit operator string(ApplicationKey applicationKey)
         {
             return applicationKey.Name;
@@ -11,10 +16,7 @@ namespace Shipbot.Controller.Core.Apps.Models
 
         public static implicit operator ApplicationKey(string name)
         {
-            return new ApplicationKey()
-            {
-                Name = name
-            };
+            return new ApplicationKey(name);    
         }
     }
 }

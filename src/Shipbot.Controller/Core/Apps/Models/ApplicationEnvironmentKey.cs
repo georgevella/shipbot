@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Shipbot.Controller.Core.Apps.Models
 {

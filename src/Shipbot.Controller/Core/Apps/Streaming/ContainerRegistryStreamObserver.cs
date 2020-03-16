@@ -68,21 +68,21 @@ namespace Shipbot.Controller.Core.Apps.Streaming
                             item.Tag
                         );
 
-                        if (deploymentKey != null)
-                        {
-                            // we have a deployment
-                            var deploymentGrain = _grainFactory.GetDeploymentGrain(deploymentKey);
-                            // await deploymentGrain.Deploy();
-
-                            var firstDeploymentAction = (await deploymentGrain.GetDeploymentActionIds()).First();
-
-                            var deploymentSourceGrain =
-                                _grainFactory.GetHelmDeploymentSourceGrain(_applicationEnvironmentKey);
-
-                            await deploymentSourceGrain.ApplyDeploymentAction(
-                                firstDeploymentAction
-                            );
-                        }
+                        // if (deploymentKey != null)
+                        // {
+                        //     // we have a deployment
+                        //     var deploymentGrain = _grainFactory.GetDeploymentGrain(deploymentKey);
+                        //     // await deploymentGrain.Deploy();
+                        //
+                        //     var firstDeploymentAction = (await deploymentGrain.GetDeploymentActionIds()).First();
+                        //
+                        //     var deploymentSourceGrain =
+                        //         _grainFactory.GetHelmDeploymentSourceGrain(_applicationEnvironmentKey);
+                        //
+                        //     await deploymentSourceGrain.ApplyDeploymentAction(
+                        //         firstDeploymentAction
+                        //     );
+                        // }
                     }
                 }
             }

@@ -48,22 +48,11 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         )
         {
             if (applicationSourceSettings == null) throw new ArgumentNullException(nameof(applicationSourceSettings));
-
-            var credentialsRegistry = GrainFactory.GetGitCredentialsRegistryGrain();
-            if (!await credentialsRegistry.Contains(applicationSourceSettings.Repository.Credentials))
-            {
-                throw new DeploymentSourceException("Supplied credential key is unknown");
-            }
             
-            State.Repository.Uri = new Uri(applicationSourceSettings.Repository.Uri);
-            State.Repository.Ref = applicationSourceSettings.Repository.Ref;
-            State.Repository.CredentialsKey = applicationSourceSettings.Repository.Credentials;
+            await base.Configure(applicationSourceSettings, applicationEnvironmentKey);
 
-            State.Path = applicationSourceSettings.Path;
             State.SecretFiles = applicationSourceSettings.Helm.Secrets;
             State.ValuesFiles = applicationSourceSettings.Helm.ValueFiles;
-
-            State.ApplicationEnvironment = applicationEnvironmentKey;
         }
         
         public override async Task Refresh()
@@ -234,6 +223,29 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
                     new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now),
                     new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now)
                 );
+
+                try
+                {
+                    var branch = gitRepository.Branches[State.Repository.Ref];
+                    gitRepository.Network.Push(branch);
+                }
+                catch (Exception e)
+                {
+                    _log.LogWarning("Failed to push to branch '{branch}'", State.Repository.Ref);
+                    var remote = gitRepository.Network.Remotes["origin"];
+                    
+                    var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
+                    Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
+
+                    gitRepository.Rebase.Start(gitRepository.Branches[State.Repository.Ref],
+                        gitRepository.Branches[$"origin/{State.Repository.Ref}"],
+                        gitRepository.Branches[$"origin/{State.Repository.Ref}"],
+                        new Identity("shipbot", "shipbot@email"), new RebaseOptions()
+                        {
+
+                        });
+                }
+
             }
 
             // add delay instruction due to the deployment update notification delivered too fast

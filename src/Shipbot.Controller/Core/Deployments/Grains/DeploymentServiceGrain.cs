@@ -45,7 +45,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             }))
             {
                 // get first target environment
-                var deploymentActionKeys = new List<DeploymentActionKey>();
+                var deploymentPlan = new List<PlannedDeploymentAction>();
                 var targetEnvironments = new List<string>();
                 var firstEnvironmentGrain = GrainFactory.GetEnvironment(firstApplicationEnvironmentKey);
                 
@@ -63,57 +63,82 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                     var imageUpdatePolicy = await environmentGrain.GetImageUpdatePolicy(image);
                     var currentTags = await environmentGrain.GetCurrentImageTags();
                     
-                    var deploymentUpdateKey = new DeploymentActionKey(
+                    var deploymentActionKey = new DeploymentActionKey(
                         applicationEnvironmentKey, 
                         image, 
                         newTag
                         );
-                    
-                    // check if we have a deployment for the same image
-                    if (State.DeploymentUpdates.Contains(deploymentUpdateKey))
+
+                    var plannedDeploymentAction = new PlannedDeploymentAction()
+                    {
+                        Image = image,
+                        Application = applicationEnvironmentKey.Application,
+                        Environment = applicationEnvironmentKey.Environment,
+                        CurrentTag = currentTags[image],
+                        TargetTag = newTag
+                    };
+
+                    if (State.PlannedDeploymentActionsIndex.ContainsKey(plannedDeploymentAction))
                     {
                         _log.LogWarning(
-                            "A deployment action for {image} with tag {newTag} already present ({deploymentActionKey}), skipping ...",
-                            image.Repository, 
-                            newTag, 
-                            deploymentUpdateKey
-                            );
+                            "A deployment action for {image} with tag {newTag} is already planned ({deploymentActionKey}), skipping ...",
+                            image.Repository,
+                            newTag,
+                            deploymentActionKey
+                        );
+
+                        // TODO: maybe this needs to be handled better?
                         return null;
                     }
 
-                    State.DeploymentUpdates.Add(deploymentUpdateKey);
-                
-                    // check if there is a pending deployment with a newer image.
-                    var applicationImageKey = new ApplicationImageKey(applicationEnvironmentKey, image);
-                    // TODO move this to auto  deploy logic space (before calling into DeploymentService)
-                    if (State.LatestImageDeployments.TryGetValue(applicationImageKey, out var latestImageDeploymentKey))
-                    {
-                        if (!imageUpdatePolicy.IsGreaterThen(newTag, latestImageDeploymentKey.TargetTag))
-                        {
-                            _log.LogWarning(
-                                "A newer tag ({currentTag}) for {image} is already deployed or pending deployment, skipping ({newTag})",
-                                latestImageDeploymentKey.TargetTag,
-                                image.Repository,
-                                newTag
-                            );
-                            return null;
-                        }
-                    }       
-                    
-                    State.LatestImageDeployments[applicationImageKey] = deploymentUpdateKey;
-                    
-                    // start building deployment update grain
-                    var deploymentUpdateGrain = GrainFactory.GetDeploymentActionGrain(deploymentUpdateKey);
-                    await deploymentUpdateGrain.Configure(image, currentTags[image], newTag);
-                    // await deploymentUpdateGrain.SetStatus(
-                    //     targetEnvironments.IndexOf(env) == 0 ? DeploymentUpdateStatus.Pending : DeploymentUpdateStatus.Created 
-                    //     );
-                    await deploymentUpdateGrain.SetParentDeploymentKey(deploymentKey);
+                    State.PlannedDeploymentActionsIndex[plannedDeploymentAction] = deploymentKey;
+                    deploymentPlan.Add(plannedDeploymentAction);
 
-                    deploymentActionKeys.Add(deploymentUpdateKey);
+                    // // check if we have a deployment for the same image
+                    // if (State.DeploymentActions.Contains(deploymentUpdateKey))
+                    // {
+                    //     _log.LogWarning(
+                    //         "A deployment action for {image} with tag {newTag} already present ({deploymentActionKey}), skipping ...",
+                    //         image.Repository, 
+                    //         newTag, 
+                    //         deploymentUpdateKey
+                    //         );
+                    //     return null;
+                    // }
+                    //
+                    // State.DeploymentActions.Add(deploymentUpdateKey);
+                    //
+                    // // check if there is a pending deployment with a newer image.
+                    // var applicationImageKey = new ApplicationImageKey(applicationEnvironmentKey, image);
+                    // // TODO move this to auto  deploy logic space (before calling into DeploymentService)
+                    // if (State.LatestImageDeployments.TryGetValue(applicationImageKey, out var latestImageDeploymentKey))
+                    // {
+                    //     if (!imageUpdatePolicy.IsGreaterThen(newTag, latestImageDeploymentKey.TargetTag))
+                    //     {
+                    //         _log.LogWarning(
+                    //             "A newer tag ({currentTag}) for {image} is already deployed or pending deployment, skipping ({newTag})",
+                    //             latestImageDeploymentKey.TargetTag,
+                    //             image.Repository,
+                    //             newTag
+                    //         );
+                    //         return null;
+                    //     }
+                    // }       
+                    //
+                    // State.LatestImageDeployments[applicationImageKey] = deploymentUpdateKey;
+                    //
+                    // // start building deployment update grain
+                    // var deploymentUpdateGrain = GrainFactory.GetDeploymentActionGrain(deploymentUpdateKey);
+                    // await deploymentUpdateGrain.Configure(image, currentTags[image], newTag);
+                    // // await deploymentUpdateGrain.SetStatus(
+                    // //     targetEnvironments.IndexOf(env) == 0 ? DeploymentUpdateStatus.Pending : DeploymentUpdateStatus.Created 
+                    // //     );
+                    // await deploymentUpdateGrain.SetParentDeploymentKey(deploymentKey);
+                    //
+                    // deploymentActionKeys.Add(deploymentUpdateKey);
                 }
 
-                if (!deploymentActionKeys.Any())
+                if (!deploymentPlan.Any())
                 {
                     return null;
                 }
@@ -121,7 +146,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 // start building deployment
                 var deploymentGrain = GrainFactory.GetDeploymentGrain(deploymentKey);
                 
-                deploymentActionKeys.ForEach( async x=> await deploymentGrain.AddDeploymentActionId(x) );
+                deploymentPlan.ForEach( async x=> await deploymentGrain.AddDeploymentPlanAction(x) );
                 
                 await deploymentGrain.Configure(_key, image, newTag);
                 State.Deployments.Add(deploymentKey);

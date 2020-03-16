@@ -10,13 +10,14 @@ using Orleans.Runtime;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Deployments.Models;
+using Shipbot.Controller.Core.DeploymentSources.Exceptions;
 using Shipbot.Controller.Core.DeploymentSources.Models;
 using Shipbot.Controller.Core.Git.Models;
 using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Core.DeploymentSources.Grains
 {
-    public abstract class GitBasedDeploymentSourceGrain<TState> : Grain<TState>, IDeploymentSourceGrain, IRemindable
+    public abstract class  GitBasedDeploymentSourceGrain<TState> : Grain<TState>, IDeploymentSourceGrain, IRemindable
         where TState : ApplicationSource, new()
     {
         private readonly ILogger _log;
@@ -95,10 +96,27 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             );
         }
 
-        public abstract Task Configure(
+        public virtual async Task Configure(
             ApplicationSourceSettings applicationSourceSettings,
-            ApplicationEnvironmentKey applicationEnvironmentKey 
-        );
+            ApplicationEnvironmentKey applicationEnvironmentKey
+        )
+        {
+            if (applicationSourceSettings == null) throw new ArgumentNullException(nameof(applicationSourceSettings));
+
+            var credentialsRegistry = GrainFactory.GetGitCredentialsRegistryGrain();
+            if (!await credentialsRegistry.Contains(applicationSourceSettings.Repository.Credentials))
+            {
+                throw new DeploymentSourceException("Supplied credential key is unknown");
+            }
+            
+            State.Repository.Uri = new Uri(applicationSourceSettings.Repository.Uri);
+            State.Repository.Ref = applicationSourceSettings.Repository.Ref;
+            State.Repository.CredentialsKey = applicationSourceSettings.Repository.Credentials;
+
+            State.Path = applicationSourceSettings.Path;
+
+            State.ApplicationEnvironment = applicationEnvironmentKey;
+        }
         
         public Task<IReadOnlyDictionary<Image, string>> GetImageTags()
         {

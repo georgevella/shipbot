@@ -23,5 +23,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         Task<IEnumerable<DeploymentActionKey>> GetDeploymentActionIds();
         Task Configure(ApplicationKey application, Image image, string tag);
         Task Deploy();
+        Task AddDeploymentPlanAction(PlannedDeploymentAction plannedDeploymentAction);
+        Task<IEnumerable<PlannedDeploymentAction>> GetDeploymentPlan();
     }
 }

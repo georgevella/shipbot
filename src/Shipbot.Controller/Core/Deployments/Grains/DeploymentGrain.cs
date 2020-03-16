@@ -41,6 +41,12 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             );
         }
 
+        public Task AddDeploymentPlanAction(PlannedDeploymentAction plannedDeploymentAction)
+        {
+            State.DeploymentPlan.Add(plannedDeploymentAction);
+            return WriteStateAsync();
+        }
+
         public Task AddDeploymentActionId(DeploymentActionKey deploymentActionKey)
         {
             State.DeploymentActions.Add(deploymentActionKey);
@@ -50,6 +56,11 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         public Task<IEnumerable<DeploymentActionKey>> GetDeploymentActionIds()
         {
             return Task.FromResult(State.DeploymentActions.ToArray().AsEnumerable());
+        }
+
+        public Task<IEnumerable<PlannedDeploymentAction>> GetDeploymentPlan()
+        {
+            return Task.FromResult(State.DeploymentPlan.ToArray().AsEnumerable());
         }
     }
 }
