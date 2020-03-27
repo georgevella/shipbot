@@ -89,16 +89,44 @@ namespace Shipbot.Controller.Core.ApplicationSources
                     if (await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
                         context.Application.AutoDeploy)
                     {
-                        _log.LogInformation("Pushing repository changes for {application}", context.Application);
+                        int attempt = 3;
 
-                        gitRepository.Network.Push(branch, new PushOptions()
+                        while (attempt > 0)
                         {
-                            CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                            _log.LogInformation("Pushing repository changes for {application}", context.Application);
+                        
+                            try
                             {
-                                Username = credentials.Username,
-                                Password = credentials.Password
+                                gitRepository.Network.Push(branch, new PushOptions()
+                                {
+                                    CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                                    {
+                                        Username = credentials.Username,
+                                        Password = credentials.Password
+                                    }
+                                });
+
+                                break;
                             }
-                        });
+                            catch (NonFastForwardException e)
+                            {
+                                _log.LogInformation("Remote has newer commits, re-fetching");
+                                var remote = gitRepository.Network.Remotes["origin"];
+                                var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
+                                Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
+                            
+                                _log.LogInformation("Rebasing on remote branch prior to trying to re-push changes ...");
+                                var upstream = gitRepository.Head.TrackedBranch;
+                                gitRepository.Rebase.Start(gitRepository.Head, upstream, upstream, new Identity("deploy-bot", "deploy-bot@riverigaming.com"), new RebaseOptions()
+                                {
+                                    FileConflictStrategy = CheckoutFileConflictStrategy.Theirs,
+                                });
+
+                                
+                                --attempt;
+                            }
+                        }
+                        
                     }
                 }
             }
