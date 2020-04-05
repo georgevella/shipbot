@@ -16,7 +16,6 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
 
         Task SetParentDeploymentKey(DeploymentKey deploymentKey);
-        Task Configure(Image image, string currentTag, string targetTag);
         Task<Image> GetImage();
         Task<string> GetTargetTag();
         Task<string> GetCurrentTag();

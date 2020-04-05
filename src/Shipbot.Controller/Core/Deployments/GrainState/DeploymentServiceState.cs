@@ -20,7 +20,8 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
         /// <summary>
         ///     Map storing the planned deployment actions and their associated deployment keys.
         /// </summary>
-        public Dictionary<PlannedDeploymentAction, DeploymentKey> PlannedDeploymentActionsIndex { get; } = new Dictionary<PlannedDeploymentAction, DeploymentKey>( PlannedDeploymentAction.EqualityComparer );
+        public Dictionary<PlannedDeploymentAction, DeploymentKey> PlannedDeploymentActionsIndex { get; } 
+            = new Dictionary<PlannedDeploymentAction, DeploymentKey>( PlannedDeploymentAction.EqualityComparer );
 
         /// <summary>
         ///     Index of deployment IDs per environment

@@ -10,6 +10,7 @@ using Orleans.Providers;
 using Orleans.Runtime;
 using Orleans.Streams;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.ContainerRegistry.Clients;
 using Shipbot.Controller.Core.ContainerRegistry.GrainState;
 using Shipbot.Controller.Core.ContainerRegistry.Models;
 using Shipbot.Controller.Core.ContainerRegistry.Watcher;
@@ -48,7 +49,8 @@ namespace Shipbot.Controller.Core.ContainerRegistry.Grains
             
             var streamProvider = GetStreamProvider(Constants.InternalMessageStreamProvider);
 
-            _stream = streamProvider.GetStream<ImageTag>(imageRepository.CreateGuidFromString(),
+            _stream = streamProvider.GetStream<ImageTag>(
+                imageRepository.CreateGuidFromString(),
                 Constants.ContainerRegistryQueueNamespace);
 
             await WriteStateAsync();
@@ -113,6 +115,8 @@ namespace Shipbot.Controller.Core.ContainerRegistry.Grains
             var imageRepository = this.GetPrimaryKeyString();
             
             var client = await _registryClientPool.GetRegistryClientForRepository(imageRepository);
+            
+            if (client == null) return new List<ImageTag>();
 
             var tags = (await client.GetRepositoryTags(imageRepository))
                 .Select(

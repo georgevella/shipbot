@@ -17,7 +17,8 @@ using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Registry;
 using Shipbot.Controller.Core.ContainerRegistry;
-using Shipbot.Controller.Core.ContainerRegistry.Ecr;
+using Shipbot.Controller.Core.ContainerRegistry.Clients;
+using Shipbot.Controller.Core.ContainerRegistry.Clients.Ecr;
 using Shipbot.Controller.Core.ContainerRegistry.Watcher;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.DeploymentSources;
@@ -67,20 +68,20 @@ namespace Shipbot.Controller.Core
             var conf = _configuration.Value;
             
             // register image repositories
-            conf.Registries.ForEach(settings =>
-            {
-                switch (settings.Type)
-                {
-                    case ContainerRegistryType.DockerRegistry:
-                        break;
-                    
-                    case ContainerRegistryType.Ecr:
-                        _registryClientPool.AddClient(
-                            new EcrClientFactory(_serviceProvider).BuildClient(settings)
-                        );
-                        break;
-                }
-            } );
+            // conf.Registries.ForEach(settings =>
+            // {
+            //     switch (settings.Type)
+            //     {
+            //         case ContainerRegistryType.DockerRegistry:
+            //             break;
+            //         
+            //         case ContainerRegistryType.Ecr:
+            //             _registryClientPool.AddClient(
+            //                 new EcrClientFactory(_serviceProvider).BuildClient(settings)
+            //             );
+            //             break;
+            //     }
+            // } );
             
             var credentialsRegistry = _grainFactory.GetGitCredentialsRegistryGrain();
             conf.GitCredentials.ForEach(c => credentialsRegistry.AddCredentials(c.Name, c.ConvertToGitCredentials()));

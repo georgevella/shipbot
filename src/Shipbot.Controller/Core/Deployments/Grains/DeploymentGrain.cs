@@ -17,27 +17,63 @@ namespace Shipbot.Controller.Core.Deployments.Grains
     [StorageProvider(ProviderName = ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME)]
     public class DeploymentGrain : Grain<DeploymentState>, IDeploymentGrain
     {
-        public Task Configure(ApplicationKey application, Image image, string tag)
+        public override async Task OnActivateAsync()
         {
-            State.Application = application;
-            State.ImageRepository = image.Repository;
-            State.TargetTag = tag;
+            var key = (DeploymentKey) this.GetPrimaryKeyString();
+            State.Application = key.Application;
+            State.ImageRepository = key.ImageRepository;
+            State.TargetTag = key.TargetTag;
 
-            return WriteStateAsync();
+            await WriteStateAsync();
+            
+            await base.OnActivateAsync();
         }
 
-        public Task Deploy()
+        public async Task Deploy()
         {
-            var firstDeploymentAction = State.DeploymentActions.First();
+            // TODO: handle multiple items in the deployment plan
+            var deploymentPlan = State.DeploymentPlan.First();
+            
+            var applicationEnvironmentKey = new ApplicationEnvironmentKey(
+                deploymentPlan.Application, 
+                deploymentPlan.Environment
+                );
+            // var environmentGrain = GrainFactory.GetEnvironment(applicationEnvironmentKey);
+            // var currentImageTagsInEnvironment = await environmentGrain.GetCurrentImageTags();
+            //
+            // prepare deployment action information
+            var deploymentActionKey = new DeploymentActionKey(
+                deploymentPlan.Application,
+                deploymentPlan.Environment, 
+                deploymentPlan.Image.Repository, 
+                deploymentPlan.Image.TagProperty.Path,
+                deploymentPlan.TargetTag
+            );
 
-            var deploymentSourceGrain = GrainFactory.GetHelmDeploymentSourceGrain(new ApplicationEnvironmentKey(firstDeploymentAction.Application, firstDeploymentAction.Environment));
+            State.DeploymentActions.Add(deploymentActionKey);
+            var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(deploymentActionKey);
+            // await deploymentActionGrain.Configure(
+            //     deploymentPlan.Image, 
+            //     currentImageTagsInEnvironment[deploymentPlan.Image], 
+            //     deploymentPlan.TargetTag
+            //     );
+            //
+            await deploymentActionGrain.SetStatus(
+                DeploymentActionStatus.Pending 
+                );
+            await deploymentActionGrain.SetParentDeploymentKey(this.GetPrimaryKeyString());
+
+            State.DeploymentActions.Add(deploymentActionKey);
+            
+            // get deployment source and start applying the deployment
+            var deploymentSourceGrain = GrainFactory.GetHelmDeploymentSourceGrain(new ApplicationEnvironmentKey(deploymentActionKey.Application, deploymentActionKey.Environment));
 
             // var environmentGrain = GrainFactory.GetEnvironment(
             //     new ApplicationEnvironmentKey(firstDeploymentAction.Application, firstDeploymentAction.Environment));
             // environmentGrain.GetCurrentImageTags();
             
-            return deploymentSourceGrain.ApplyDeploymentAction(
-                firstDeploymentAction
+            await deploymentSourceGrain.ApplyDeploymentAction(
+                deploymentActionKey
             );
         }
 

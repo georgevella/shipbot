@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Shipbot.Controller.Core.ContainerRegistry
+namespace Shipbot.Controller.Core.ContainerRegistry.Clients
 {
     public class RegistryClientPool
     {
@@ -17,7 +17,7 @@ namespace Shipbot.Controller.Core.ContainerRegistry
                     return c;
             }
 
-            throw new Exception($"No registry client for '{repository}'");
+            return null;
         }
 
         public void AddClient(IRegistryClient client)

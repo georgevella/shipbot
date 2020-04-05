@@ -12,6 +12,7 @@ using Quartz.Impl;
 using Quartz.Spi;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.ContainerRegistry;
+using Shipbot.Controller.Core.ContainerRegistry.Clients;
 using Shipbot.Controller.Core.ContainerRegistry.Watcher;
 using Shipbot.Controller.Core.Jobs;
 using IHostingEnvironment = Microsoft.AspNetCore.Hosting.IHostingEnvironment;

@@ -12,6 +12,11 @@ using ApplicationSourceRepository = Shipbot.Controller.Core.Configuration.Applic
 
 namespace Shipbot.Controller.Core.Apps.Grains
 {
+    public interface IApplicationGrain : IGrainWithStringKey
+    {
+        Task Configure(ApplicationDefinition applicationDefinition);
+    }
+    
     [StorageProvider()]
     public class ApplicationGrain : Grain<Application>, IApplicationGrain 
     {

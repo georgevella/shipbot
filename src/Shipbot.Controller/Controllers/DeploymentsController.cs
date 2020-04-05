@@ -14,11 +14,13 @@ namespace Shipbot.Controller.Controllers
     [ApiController]
     public class DeploymentsController : ControllerBase
     {
+        private readonly IClusterClient _clusterClient;
         private readonly IGrainFactory _grainFactory;
 
-        public DeploymentsController(IGrainFactory grainFactory)
+        public DeploymentsController(IClusterClient clusterClient)
         {
-            _grainFactory = grainFactory;
+            _clusterClient = clusterClient;
+            _grainFactory = clusterClient;
         }
         
         [HttpGet]
@@ -33,7 +35,7 @@ namespace Shipbot.Controller.Controllers
             foreach (var deploymentKey in deploymentIds)
             {
                 var deploymentDto = new DeploymentDto();
-                result.Add(deploymentKey.DeploymentId.ToString("D"), deploymentDto);
+                result.Add(deploymentKey, deploymentDto);
                 
                 var deployment = _grainFactory.GetDeploymentGrain(deploymentKey);
                 var deploymentActionIds = await deployment.GetDeploymentActionIds();

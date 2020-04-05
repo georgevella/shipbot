@@ -34,7 +34,8 @@ namespace Shipbot.Controller.Core.Deployments.Models
             }
         }
 
-        public static IEqualityComparer<PlannedDeploymentAction> EqualityComparer { get; } = new PlannedDeploymentActionEqualityComparer();
+        public static IEqualityComparer<PlannedDeploymentAction> EqualityComparer { get; } 
+            = new PlannedDeploymentActionEqualityComparer();
 
         public string Application { get; set; }
         

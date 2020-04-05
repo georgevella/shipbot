@@ -22,43 +22,43 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         
         public override async Task OnActivateAsync()
         {
-            _key = (DeploymentActionKey) this.GetPrimaryKeyString();
+            _key = this.GetPrimaryKeyString();
             
             if (State.ApplicationEnvironmentKey == null)
             {
                 State.ApplicationEnvironmentKey = new ApplicationEnvironmentKey(_key.Application, _key.Environment);
             }
-            
-            _log.LogInformation(
-                $"Adding deployment action for '{{image}}' with tag '{{newTag}}' (from '{{currentTag}}') on '{{environment}}'",
-                _key.ImageRepository,
-                _key.TargetTag,
-                State.CurrentTag ?? "",
-                (string)State.ApplicationEnvironmentKey
-            );
 
-            // try
-            // {
-            //     if (State.Image == null)
-            //     {
-            //         var applicationEnvironmentGrain = GrainFactory.GetEnvironment(State.ApplicationEnvironmentKey);
-            //
-            //         var currentTags = await applicationEnvironmentGrain.GetCurrentImageTags();
-            //         State.Image = currentTags.Keys.FirstOrDefault(x =>
-            //             x.Repository == _key.ImageRepository && x.TagProperty.Path == _key.TagPropertyPath);
-            //         State.CurrentTag = currentTags[State.Image];
-            //         
-            //         State.TargetTag = _key.TargetTag;
-            //         
-            //
-            //     }
-            // }
-            // catch (Exception e)
-            // {
-            //     _log.LogError("abc", e);
-            //     throw;
-            // }
+            if (State.Image == null)
+            {
+                _log.LogInformation(
+                    $"Adding deployment action for '{{image}}' with tag '{{newTag}}' (from '{{currentTag}}') on '{{environment}}'",
+                    _key.ImageRepository,
+                    _key.TargetTag,
+                    State.CurrentTag ?? "",
+                    (string)State.ApplicationEnvironmentKey
+                );
+                
+                // first activation
+                State.Image = new Image()
+                {
+                    Repository = _key.ImageRepository,
+                    TagProperty = new TagProperty()
+                    {
+                        Path = _key.TagPropertyPath,
+                        ValueFormat = TagPropertyValueFormat.TagOnly
+                    }
+                };
             
+                var applicationEnvironmentGrain = GrainFactory.GetEnvironment(State.ApplicationEnvironmentKey);
+            
+                var currentTags = await applicationEnvironmentGrain.GetCurrentImageTags();
+                State.Image = currentTags.Keys.FirstOrDefault(x =>
+                    x.Repository == _key.ImageRepository && x.TagProperty.Path == _key.TagPropertyPath);
+                State.CurrentTag = currentTags[State.Image];
+                State.TargetTag = _key.TargetTag;
+            }
+
             await WriteStateAsync();
 
             await base.OnActivateAsync();
@@ -67,15 +67,6 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         public Task SetParentDeploymentKey(DeploymentKey deploymentKey)
         {
             State.DeploymentKey = deploymentKey;
-            return WriteStateAsync();
-        }
-
-        public Task Configure(Image image, string currentTag, string targetTag)
-        {
-            State.Image = image;
-            State.CurrentTag = currentTag;
-            State.TargetTag = targetTag;
-
             return WriteStateAsync();
         }
 

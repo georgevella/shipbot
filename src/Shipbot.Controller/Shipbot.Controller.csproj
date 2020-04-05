@@ -13,33 +13,33 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.ECR" Version="3.3.102.3" />
-    <PackageReference Include="CommandLineParser" Version="2.6.0" />
-    <PackageReference Include="DotNet.Glob" Version="3.0.5" />
-    <PackageReference Include="LibGit2Sharp" Version="0.26.1" />
-    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.289" PrivateAssets="All" IncludeAssets="All">
+    <PackageReference Include="AWSSDK.ECR" Version="3.3.103.37" />
+    <PackageReference Include="CommandLineParser" Version="2.7.82" />
+    <PackageReference Include="DotNet.Glob" Version="3.0.9" />
+    <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
+    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.306" PrivateAssets="All" IncludeAssets="All">
       <SendToOutputDir>runtimes/fedora-x64/native/*</SendToOutputDir>
     </PackageReference>
-    <PackageReference Include="Mediator.Net.MicrosoftDependencyInjection" Version="2.0.3" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Core" Version="3.0.2" />
-    <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator.Build" Version="3.0.2" />
-    <PackageReference Include="Microsoft.Orleans.OrleansProviders" Version="3.0.2" />
-    <PackageReference Include="Microsoft.Orleans.OrleansRuntime" Version="3.0.2" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.0.2" />
-    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.0.2" />
-    <PackageReference Include="Npgsql" Version="4.1.1" />
-    <PackageReference Include="Octokit" Version="0.36.0" />
+    <PackageReference Include="Mediator.Net.MicrosoftDependencyInjection" Version="3.0.1" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Core" Version="3.1.4" />
+    <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator.Build" Version="3.1.4" />
+    <PackageReference Include="Microsoft.Orleans.OrleansProviders" Version="3.1.4" />
+    <PackageReference Include="Microsoft.Orleans.OrleansRuntime" Version="3.1.4" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.1.4" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.1.4" />
+    <PackageReference Include="Npgsql" Version="4.1.3.1" />
+    <PackageReference Include="Octokit" Version="0.46.0" />
     <PackageReference Include="OrleansDashboard" Version="3.0.8" />
     <PackageReference Include="Quartz" Version="3.0.7" />
-    <PackageReference Include="Serilog.AspNetCore" Version="3.1.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="3.0.0" />
-    <PackageReference Include="Serilog.Filters.Expressions" Version="2.0.0" />
+    <PackageReference Include="Serilog.Filters.Expressions" Version="2.1.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-    <PackageReference Include="SlackAPI" Version="1.1.2" />
-    <PackageReference Include="Stateless" Version="4.2.1" />
-    <PackageReference Include="YamlDotNet" Version="8.0.0" />
+    <PackageReference Include="SlackAPI" Version="1.1.7" />
+    <PackageReference Include="Stateless" Version="5.1.1" />
+    <PackageReference Include="YamlDotNet" Version="8.1.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,17 +1,12 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Providers;
-using Orleans.Runtime;
 using Shipbot.Controller.Core.Apps.Models;
-using Shipbot.Controller.Core.ContainerRegistry.Models;
-using Shipbot.Controller.Core.ContainerRegistry.Watcher;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
-using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Core.Deployments.Grains
 {
@@ -22,7 +17,8 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         private ApplicationKey _key;
 
         public DeploymentServiceGrain(
-            ILogger<DeploymentServiceGrain> log)
+            ILogger<DeploymentServiceGrain> log
+            )
         {
             _log = log;
         }
@@ -44,31 +40,34 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 {"Environment", environment}
             }))
             {
-                // get first target environment
+                // start planning the first environment we are deploying to
                 var deploymentPlan = new List<PlannedDeploymentAction>();
-                var targetEnvironments = new List<string>();
+                var targetEnvironments = new List<string>
+                {
+                    environment
+                };
+
+                // determine if we have other environments we want to promote to.
                 var firstEnvironmentGrain = GrainFactory.GetEnvironment(firstApplicationEnvironmentKey);
-                
-                targetEnvironments.Add(environment);
                 var promotionSettings = await firstEnvironmentGrain.GetDeploymentPromotionSettings();
                 targetEnvironments.AddRange(promotionSettings);
 
-                var deploymentKey = new DeploymentKey(_key, image.Repository, newTag);
+                // generate image deployment (starting with the identifier)
+                var deploymentKey = new DeploymentKey(
+                    _key, 
+                    image.Repository, 
+                    newTag
+                    );
                 
+                // build deployment plan
                 foreach (var env in targetEnvironments)
                 {
                     var applicationEnvironmentKey = new ApplicationEnvironmentKey(_key, env);
                     var environmentGrain = GrainFactory.GetEnvironment(applicationEnvironmentKey);
 
-                    var imageUpdatePolicy = await environmentGrain.GetImageUpdatePolicy(image);
+//                    var imageUpdatePolicy = await environmentGrain.GetImageUpdatePolicy(image);
                     var currentTags = await environmentGrain.GetCurrentImageTags();
                     
-                    var deploymentActionKey = new DeploymentActionKey(
-                        applicationEnvironmentKey, 
-                        image, 
-                        newTag
-                        );
-
                     var plannedDeploymentAction = new PlannedDeploymentAction()
                     {
                         Image = image,
@@ -77,14 +76,16 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                         CurrentTag = currentTags[image],
                         TargetTag = newTag
                     };
-
+                    
+                    // check if there is already an planned deployment action for this image
                     if (State.PlannedDeploymentActionsIndex.ContainsKey(plannedDeploymentAction))
                     {
+                        var otherDeploymentKey = State.PlannedDeploymentActionsIndex[plannedDeploymentAction];
                         _log.LogWarning(
-                            "A deployment action for {image} with tag {newTag} is already planned ({deploymentActionKey}), skipping ...",
+                            "A deployment action for {image} with tag {newTag} is already planned and will be executed by ({deploymentKey}), skipping ...",
                             image.Repository,
                             newTag,
-                            deploymentActionKey
+                            otherDeploymentKey
                         );
 
                         // TODO: maybe this needs to be handled better?
@@ -148,7 +149,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 
                 deploymentPlan.ForEach( async x=> await deploymentGrain.AddDeploymentPlanAction(x) );
                 
-                await deploymentGrain.Configure(_key, image, newTag);
+                //await deploymentGrain.Configure(_key, image, newTag);
                 State.Deployments.Add(deploymentKey);
                     
                 await WriteStateAsync();
