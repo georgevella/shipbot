@@ -1,4 +1,4 @@
-namespace Shipbot.Controller.Core.Models
+namespace Shipbot.Controller.Core.Apps.Models
 {
     public abstract class ImageUpdatePolicy
     {

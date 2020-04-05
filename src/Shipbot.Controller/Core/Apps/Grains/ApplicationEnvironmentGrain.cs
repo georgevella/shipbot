@@ -59,7 +59,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
         
         public override async Task OnActivateAsync()
         {
-            if (State.Images == null) State.Images = new List<Image>();
             if (State.PromotionEnvironments == null) State.PromotionEnvironments = new List<string>();
             //if (State.CurrentImageTags == null) State.CurrentImageTags = new List<(Image, string)>();
 
@@ -91,8 +90,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 
             var handles = await asyncStream.GetAllSubscriptionHandles();
                 
-            var imageUpdateSettings = State.ImageUpdateSettings
-                .First(x => Image.EqualityComparer.Equals(x.Image, image));
+            var imageUpdateSettings = State.Images
+                .First(x => Image.EqualityComparer.Equals(x, image));
                     
             var logger = _loggerFactory.CreateLogger<ContainerRegistryStreamObserver>();
             var grainFactory = _serviceProvider.GetService<IGrainFactory>();
@@ -100,7 +99,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
             var streamObserver = new ContainerRegistryStreamObserver(
                 logger,
                 image,
-                imageUpdateSettings,
                 _key,
                 grainFactory
             );
@@ -174,7 +172,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
                 // clear
                 await StopListeningToImageTagUpdates();
-                State.Images.Clear();
                 State.PromotionEnvironments.Clear();
                 State.CurrentImageTags.Clear();
 
@@ -186,30 +183,27 @@ namespace Shipbot.Controller.Core.Apps.Grains
                         new TagProperty(
                             imageSettings.TagProperty.Path,
                             imageSettings.TagProperty.ValueFormat
-                        )
+                        ), 
+                        imageSettings.Policy switch
+                        {
+                            UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
+                                imageSettings.Pattern),
+                            UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
+                            _ => throw new NotImplementedException()
+                        }
                     );
 
-                    var imageUpdateSettings = new ImageUpdateSettings()
-                    {
-                        Image = image,
-                        Policy = imageSettings.Policy switch
-                            {
-                                UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
-                                    imageSettings.Pattern),
-                                UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
-                                _ => throw new NotImplementedException()
-                            }
-                    };
-                    
                     State.Images.Add(image);
-                    State.ImageUpdateSettings.Add(imageUpdateSettings);
                 }
 
                 State.ApplicationSourceSettings = applicationEnvironmentSettings.Source;
                 State.AutoDeploy = applicationEnvironmentSettings.AutoDeploy;
 
                 State.PromotionEnvironments.AddRange(applicationEnvironmentSettings.PromoteTargets);
-                State.Images.ForEach(image => { State.CurrentImageTags.Add(new DeployedImageTag() {Image = image}); });
+                foreach (var image in State.Images)
+                {
+                    State.CurrentImageTags.Add(new DeployedImageTag() {Image = image}); 
+                }
 
                 await WriteStateAsync();
                 
@@ -239,9 +233,9 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         public async Task CheckForMissedImageTags()
         {
-            foreach (var imageUpdateSetting in State.ImageUpdateSettings)
+            foreach (var imageUpdateSetting in State.Images)
             {
-                var image = imageUpdateSetting.Image;
+                var image = imageUpdateSetting;
                 // await StartListeningToImageTagUpdates(image);
                 
                 var repositoryWatcherGrain = GrainFactory.GetElasticContainerRegistryWatcher(image.Repository);
@@ -284,8 +278,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
         public Task<ImageUpdatePolicy> GetImageUpdatePolicy(Image image)
         {
             return Task.FromResult(
-                State.ImageUpdateSettings
-                    .FirstOrDefault(x => Image.EqualityComparer.Equals(x.Image, image))?.Policy
+                State.Images
+                    .FirstOrDefault(x => Image.EqualityComparer.Equals(x, image))?.Policy
                 );
         }
 

@@ -1,6 +1,6 @@
 using DotNet.Globbing;
 
-namespace Shipbot.Controller.Core.Models
+namespace Shipbot.Controller.Core.Apps.Models
 {
     public class GlobImageUpdatePolicy : ImageUpdatePolicy
     {

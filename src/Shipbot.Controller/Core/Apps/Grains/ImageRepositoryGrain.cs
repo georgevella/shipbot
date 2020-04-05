@@ -6,7 +6,7 @@ using Shipbot.Controller.Core.Utilities;
 
 namespace Shipbot.Controller.Core.Apps.Grains
 {
-    public class ContainerImageGrain : Grain, IContainerImageGrain
+    public class ImageRepositoryGrain : Grain, IImageRepositoryGrain
     {
         public Task SubmitNewImageTag(string tag)
         {
@@ -25,7 +25,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
         }
     }
 
-    public interface IContainerImageGrain : IGrainWithStringKey
+    public interface IImageRepositoryGrain : IGrainWithStringKey
     {
         Task SubmitNewImageTag(string tag);
     }

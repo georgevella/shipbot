@@ -16,20 +16,17 @@ namespace Shipbot.Controller.Core.Apps.Streaming
     {
         private readonly ILogger _log;
         private readonly Image _image;
-        private readonly ImageUpdateSettings _imageUpdateSettings;
         private readonly ApplicationEnvironmentKey _applicationEnvironmentKey;
         private readonly IGrainFactory _grainFactory;
         
         public ContainerRegistryStreamObserver(
             ILogger log,
             Image image, 
-            ImageUpdateSettings imageUpdateSettings,
             ApplicationEnvironmentKey applicationEnvironmentKey, 
             IGrainFactory grainFactory)
         {
             _log = log;
             _image = image;
-            _imageUpdateSettings = imageUpdateSettings;
             _applicationEnvironmentKey = applicationEnvironmentKey;
             _grainFactory = grainFactory;
         }
@@ -45,7 +42,7 @@ namespace Shipbot.Controller.Core.Apps.Streaming
                 var environmentGrain = _grainFactory.GetEnvironment(_applicationEnvironmentKey);
                 var currentTags = await environmentGrain.GetCurrentImageTags();
 
-                if (_imageUpdateSettings.Policy.IsMatch(item.Tag))
+                if (_image.Policy.IsMatch(item.Tag))
                 {
                     _log.Info("Received new image notification for {image}, with tag {tag}, for {application}::{env}",
                         _image,
@@ -57,8 +54,8 @@ namespace Shipbot.Controller.Core.Apps.Streaming
 
                     // handle the case where the current image tag does not match the policy specified (for example, manually updated or overridden)
                     // TODO: maybe we don't want to do this and we may need to put a flag or a facility to force
-                    if ((!_imageUpdateSettings.Policy.IsMatch(currentTag)) ||
-                        _imageUpdateSettings.Policy.IsGreaterThen(item.Tag, currentTag))
+                    if ((!_image.Policy.IsMatch(currentTag)) ||
+                        _image.Policy.IsGreaterThen(item.Tag, currentTag))
                     {
                         var deploymentServiceGrain =
                             _grainFactory.GetDeploymentServiceGrain(_applicationEnvironmentKey);

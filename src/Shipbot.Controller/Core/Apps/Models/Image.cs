@@ -44,13 +44,15 @@ namespace Shipbot.Controller.Core.Apps.Models
         public static IEqualityComparer<Image> EqualityComparer { get; } = new ImageEqualityComparer();
         
         public string Repository { get; set; }
-
         public TagProperty TagProperty { get; set; }
+        
+        public ImageUpdatePolicy Policy { get; set; }
 
-        public Image(string repository, TagProperty tagProperty)
+        public Image(string repository, TagProperty tagProperty, ImageUpdatePolicy policy)
         {
             Repository = repository;
             TagProperty = tagProperty;
+            Policy = policy;
         }
 
         public Image()
