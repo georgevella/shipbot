@@ -34,6 +34,8 @@ namespace Shipbot.Controller.Core.Deployments.Models
         
         public static IEqualityComparer<DeploymentKey> EqualityComparer { get; } = new DeploymentKeyEqualityComparer();
 
+        public static DeploymentKey Empty { get; } = new DeploymentKey(Guid.Empty);
+
         private Guid Id { get; }
 
         public DeploymentKey(Guid id)
