@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Octokit;
+using Orleans;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Deployments;
+using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
-using Shipbot.Controller.Core.Slack.Models;
 using SlackAPI;
 
 namespace Shipbot.Controller.Core.Slack
@@ -22,14 +24,17 @@ namespace Shipbot.Controller.Core.Slack
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
         private SlackTaskClient _actualClient;
         private int _timeout;
+        private IGrainFactory _grainFactory;
 
         public SlackClient(
             ILogger<SlackClient> log,
-            IOptions<SlackConfiguration> slackConfiguration 
+            IOptions<SlackConfiguration> slackConfiguration,
+            IClusterClient clusterClient
         )
         {
             _log = log;
             _slackConfiguration = slackConfiguration;
+            _grainFactory = clusterClient;
         }
 
         public async Task Connect()
@@ -131,8 +136,11 @@ namespace Shipbot.Controller.Core.Slack
             return await PostMessageAsync(channel, new SlackMessage(message));
         }
 
-        private SlackMessage BuildDeploymentUpdateMessage(Deployment deployment)
+        private async Task<SlackMessage> BuildDeploymentUpdateMessage(DeploymentKey deploymentKey)
         {
+            var deploymentGrain = _grainFactory.GetDeploymentGrain(deploymentKey);
+            var deployment = await deploymentGrain.GetDeploymentInformation();
+            
             var blocks = new List<IBlock>()
             {
                 new SectionBlock()
@@ -141,18 +149,19 @@ namespace Shipbot.Controller.Core.Slack
                     {
                         type = "mrkdwn",
                         text =
-                            $"*{deployment.Application.Name}*: A new image of *{deployment.ContainerRepository}* was detected with tag *{deployment.TargetTag}*."
+                            $"*{deployment.Application}*: A new image of *{deployment.ContainerRepository}* was detected with tag *{deployment.TargetTag}*."
                     }
                 },
                 new DividerBlock()
             };
+
+            var deploymentActionIds = await deploymentGrain.GetDeploymentActionIds();
             
-            
-            
-            foreach (var pair in deployment.GetDeploymentUpdates())
+            foreach (var deploymentActionId in deploymentActionIds)
             {
-                var deploymentUpdate = pair.DeploymentUpdate;
-                var deploymentUpdateStatus = pair.DeploymentUpdateStatus;
+                var deploymentActionGrain = _grainFactory.GetDeploymentActionGrain(deploymentActionId);
+
+                var deploymentUpdate = await deploymentActionGrain.GetAction();
 
                 var slackMessageFields = new Text[]
                 {
@@ -163,91 +172,91 @@ namespace Shipbot.Controller.Core.Slack
                     },
                     new Text()
                     {
-                        text = $"*Status*\n{deploymentUpdateStatus}",
+                        text = $"*Status*\n{deploymentUpdate.Status}",
                         type = "mrkdwn"
                     }
                 };
                 
-                if (!deploymentUpdate.IsTriggeredByPromotion)
-                {
-                    blocks.Add(
-                        new SectionBlock()
-                        {
-                            text = new Text()
-                            {
-                                type = "mrkdwn",
-                                text =
-                                    $"Scheduled deployment to environment *'{deploymentUpdate.Environment.Name}'*."
-                            },
-                            fields = slackMessageFields
-                        }
-                        );
-                }
-                else
-                {
-                    blocks.Add(
-                        new SectionBlock()
-                        {
-                            text = new Text()
-                            {
-                                type = "mrkdwn",
-                                text =
-                                    $"Promoting deployment from environment *'{deploymentUpdate.SourceDeploymentUpdate.Environment.Name}'* to environment *'{deploymentUpdate.Environment.Name}'*."
-                            },
-                            fields = slackMessageFields
-                        }
-                    );
-                }
-                
-                blocks.Add(
-                        new DividerBlock()
-                );
-
-                if (deploymentUpdateStatus == DeploymentUpdateStatus.Complete)
-                {
-                    if (deploymentUpdate.Environment.PromotionEnvironments.Count > 0)
-                    {
-                        var slackPromoteActionDetails = new SlackPromoteActionDetails()
-                        {
-                            Application = deploymentUpdate.Application.Name,
-                            ContainerRepository = deploymentUpdate.Image.Repository,
-                            SourceEnvironment = deploymentUpdate.Environment.Name,
-                            TargetTag = deploymentUpdate.TargetTag
-                        };
-                        var buttons = deploymentUpdate.Environment.PromotionEnvironments.Select(x => new ButtonElement()
-                        {
-                            action_id = "promote",
-                            text = new Text()
-                            {
-                                type = "plain_text",
-                                text = $"Promote to '{x}'"
-                            },
-                            value = $"{JsonConvert.SerializeObject(slackPromoteActionDetails, Formatting.None)}",
-                        }).ToList();
-                        
-                        buttons.Add(new ButtonElement()
-                        {
-                            action_id = "revert",
-                            text = new Text()
-                            {
-                                type = "plain_text",
-                                text = "Revert this deployment."
-                            },
-                            style = "danger",
-                            value = "revert",
-                        });
-
-                        blocks.AddRange(
-                            new IBlock[]
-                            {
-                                new ActionsBlock()
-                                {
-                                    elements = buttons.Cast<IElement>().ToArray()
-                                }
-                            }
-                        );           
-                    }
-                }
+                // if (!deploymentUpdate.IsTriggeredByPromotion)
+                // {
+                //     blocks.Add(
+                //         new SectionBlock()
+                //         {
+                //             text = new Text()
+                //             {
+                //                 type = "mrkdwn",
+                //                 text =
+                //                     $"Scheduled deployment to environment *'{deploymentUpdate.Environment.Name}'*."
+                //             },
+                //             fields = slackMessageFields
+                //         }
+                //         );
+                // }
+                // else
+                // {
+                //     blocks.Add(
+                //         new SectionBlock()
+                //         {
+                //             text = new Text()
+                //             {
+                //                 type = "mrkdwn",
+                //                 text =
+                //                     $"Promoting deployment from environment *'{deploymentUpdate.SourceDeploymentUpdate.Environment.Name}'* to environment *'{deploymentUpdate.Environment.Name}'*."
+                //             },
+                //             fields = slackMessageFields
+                //         }
+                //     );
+                // }
+                //
+                // blocks.Add(
+                //         new DividerBlock()
+                // );
+                //
+                // if (deploymentUpdate.status == DeploymentActionStatus.Complete)
+                // {
+                //     if (deploymentUpdate.Environment.PromotionEnvironments.Count > 0)
+                //     {
+                //         var slackPromoteActionDetails = new SlackPromoteActionDetails()
+                //         {
+                //             Application = deploymentUpdate.Application.Name,
+                //             ContainerRepository = deploymentUpdate.Image.Repository,
+                //             SourceEnvironment = deploymentUpdate.Environment.Name,
+                //             TargetTag = deploymentUpdate.TargetTag
+                //         };
+                //         var buttons = deploymentUpdate.Environment.PromotionEnvironments.Select(x => new ButtonElement()
+                //         {
+                //             action_id = "promote",
+                //             text = new Text()
+                //             {
+                //                 type = "plain_text",
+                //                 text = $"Promote to '{x}'"
+                //             },
+                //             value = $"{JsonConvert.SerializeObject(slackPromoteActionDetails, Formatting.None)}",
+                //         }).ToList();
+                //         
+                //         buttons.Add(new ButtonElement()
+                //         {
+                //             action_id = "revert",
+                //             text = new Text()
+                //             {
+                //                 type = "plain_text",
+                //                 text = "Revert this deployment."
+                //             },
+                //             style = "danger",
+                //             value = "revert",
+                //         });
+                //
+                //         blocks.AddRange(
+                //             new IBlock[]
+                //             {
+                //                 new ActionsBlock()
+                //                 {
+                //                     elements = buttons.Cast<IElement>().ToArray()
+                //                 }
+                //             }
+                //         );           
+                //     }
+                // }
             }
 
             return new SlackMessage(
@@ -258,7 +267,7 @@ namespace Shipbot.Controller.Core.Slack
 
         public async Task<IMessageHandle> SendDeploymentUpdateNotification(
             string channel, 
-            Deployment deployment
+            DeploymentKey deployment
             )
         {
             if (channel == null) throw new ArgumentNullException(nameof(channel));
@@ -266,13 +275,13 @@ namespace Shipbot.Controller.Core.Slack
 
             return await PostMessageAsync(
                 channel,
-                BuildDeploymentUpdateMessage(deployment)
+                await BuildDeploymentUpdateMessage(deployment)
             );
         }
 
         public async Task<IMessageHandle> UpdateDeploymentUpdateNotification(
             IMessageHandle handle, 
-            Deployment deployment
+            DeploymentKey deployment
         )
         {
             if (handle == null) throw new ArgumentNullException(nameof(handle));
@@ -280,7 +289,7 @@ namespace Shipbot.Controller.Core.Slack
 
             return await UpdateMessageAsync(
                 handle as SingleMessageHandle, 
-                BuildDeploymentUpdateMessage(deployment)
+                await BuildDeploymentUpdateMessage(deployment)
             );
         }
 

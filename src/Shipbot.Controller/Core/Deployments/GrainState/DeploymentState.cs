@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.Models;
 
 namespace Shipbot.Controller.Core.Deployments.GrainState
@@ -9,13 +10,13 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
     /// </summary>
     public class DeploymentState
     {
-        
-        public HashSet<DeploymentActionKey> DeploymentActions { get; } = new HashSet<DeploymentActionKey>();
-        
-        public List<PlannedDeploymentAction> DeploymentPlan { get; } = new List<PlannedDeploymentAction>();
+        public List<DeploymentActionKey> DeploymentActions { get; } 
+            = new List<DeploymentActionKey>();
 
-        public string Application { get; set; }
-        public string ImageRepository { get; set; }
-        public string TargetTag { get; set; }
+        public int NextDeploymentActionIndex = 0;
+
+        public string? Application { get; set; }
+        public string? ImageRepository { get; set; }
+        public string? TargetTag { get; set; }
     }
 }

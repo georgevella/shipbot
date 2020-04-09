@@ -21,14 +21,13 @@ namespace Shipbot.Controller.Core.Apps.Grains
 {
     public interface IApplicationEnvironmentGrain : IGrainWithStringKey
     {
-        Task<IEnumerable<Image>> GetImages();
+        Task<IEnumerable<ApplicationEnvironmentImageSettings>> GetImages();
         Task EnableAutoDeploy();
         Task DisableAutoDeploy();
-        Task SetImageTag(Image image, string newImageTag);
-        Task<IReadOnlyDictionary<Image, string>> GetCurrentImageTags();
+        Task SetImageTag(ApplicationEnvironmentImageSettings image, string newImageTag);
+        Task<IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>> GetCurrentImageTags();
         Task Configure(ApplicationEnvironmentSettings applicationEnvironmentSettings);
         Task<IEnumerable<string>> GetDeploymentPromotionSettings();
-        Task<ImageUpdatePolicy> GetImageUpdatePolicy(Image image);
         Task<bool> IsAutoDeployEnabled();
         Task CheckForMissedImageTags();
         Task StartListeningToImageTagUpdates();
@@ -83,7 +82,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
         
         private async Task<StreamSubscriptionHandle<ImageTag>> GetStreamSubscriptionHandle(
             IAsyncStream<ImageTag> asyncStream, 
-            Image image
+            ApplicationEnvironmentImageSettings image
         )
         {
             if (asyncStream == null) throw new ArgumentNullException(nameof(asyncStream));
@@ -91,7 +90,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
             var handles = await asyncStream.GetAllSubscriptionHandles();
                 
             var imageUpdateSettings = State.Images
-                .First(x => Image.EqualityComparer.Equals(x, image));
+                .First(x => ApplicationEnvironmentImageSettings.EqualityComparer.Equals(x, image));
                     
             var logger = _loggerFactory.CreateLogger<ContainerRegistryStreamObserver>();
             var grainFactory = _serviceProvider.GetService<IGrainFactory>();
@@ -112,7 +111,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
         }
 
 
-        private async Task StartListeningToImageTagUpdates(Image image)
+        private async Task StartListeningToImageTagUpdates(ApplicationEnvironmentImageSettings image)
         {
 
             _log.LogInformation("Listening to image update events for {image}", image);
@@ -128,12 +127,15 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         public async Task StopListeningToImageTagUpdates()
         {
-            foreach (var streamSubscriptionHandle in _streamSubscriptionHandles)
+            using (_log.BeginShipbotLogScope(_key))
             {
-                await streamSubscriptionHandle.Value.UnsubscribeAsync();
+                foreach (var streamSubscriptionHandle in _streamSubscriptionHandles)
+                {
+                    await streamSubscriptionHandle.Value.UnsubscribeAsync();
+                }
+
+                _streamSubscriptionHandles.Clear();
             }
-            
-            _streamSubscriptionHandles.Clear();
         }
 
         public static bool StreamFilterFunc(IStreamIdentity stream, object filterdata, object item)
@@ -160,25 +162,20 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         public async Task Configure(ApplicationEnvironmentSettings applicationEnvironmentSettings)
         {
-            using (_log.BeginScope(new Dictionary<string, object>()
+            using (_log.BeginShipbotLogScope(_key))
             {
-                {"Application", _key.Application},
-                {"Environment", _key.Environment}
-            }))
-            {
-
-                _log.LogInformation("Starting application environment configuration for '{application}:{environment}'",
-                    _key.Application, _key.Environment);
+                _log.LogInformation(
+                    "Starting application environment configuration"
+                );
 
                 // clear
                 await StopListeningToImageTagUpdates();
                 State.PromotionEnvironments.Clear();
-                State.CurrentImageTags.Clear();
-
+                
                 // update state
                 foreach (var imageSettings in applicationEnvironmentSettings.Images)
                 {
-                    var image = new Image(
+                    var image = new ApplicationEnvironmentImageSettings(
                         imageSettings.Repository,
                         new TagProperty(
                             imageSettings.TagProperty.Path,
@@ -200,10 +197,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 State.AutoDeploy = applicationEnvironmentSettings.AutoDeploy;
 
                 State.PromotionEnvironments.AddRange(applicationEnvironmentSettings.PromoteTargets);
-                foreach (var image in State.Images)
-                {
-                    State.CurrentImageTags.Add(new DeployedImageTag() {Image = image}); 
-                }
 
                 await WriteStateAsync();
                 
@@ -247,7 +240,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 
                 if (latestTag != null)
                 {
-                    if (State.CurrentImageTags.TryGetValue(image, out var currentTag))
+                    if (State.Images.TryGetValue(image, out var currentTag))
                     {
                         if ((!imageUpdateSetting.Policy.IsMatch(currentTag.Tag)) ||
                             imageUpdateSetting.Policy.IsGreaterThen(latestTag.Tag, currentTag.Tag))
@@ -275,27 +268,18 @@ namespace Shipbot.Controller.Core.Apps.Grains
             return Task.FromResult(State.PromotionEnvironments.ToArray().AsEnumerable());
         }
 
-        public Task<ImageUpdatePolicy> GetImageUpdatePolicy(Image image)
+        public Task SetImageTag(ApplicationEnvironmentImageSettings image, string newImageTag)
         {
-            return Task.FromResult(
-                State.Images
-                    .FirstOrDefault(x => Image.EqualityComparer.Equals(x, image))?.Policy
-                );
-        }
+            using var _ = _log.BeginShipbotLogScope(_key);
 
-        public Task SetImageTag(Image image, string newImageTag)
-        {
-            _log.LogTrace("ApplicationEnvironmentGrain::SetImageTag({Repository}, {Tag}) >>", 
-                image.Repository, newImageTag);
-
-            if (!State.CurrentImageTags.TryGetValue(image, out var deployedImageTag)) 
+            if (!State.Images.TryGetValue(image, out var deployedImageTag)) 
                 return Task.CompletedTask;
             
             if (deployedImageTag.Tag == newImageTag)
                 return Task.CompletedTask;
             
             _log.LogInformation(
-                "{Application}-{Environment}: Setting tag for '{Repository}' to '{Tag}' from {CurrentTag}",
+                "Setting tag for '{Repository}' to '{Tag}' from {CurrentTag}",
                 _key.Application,
                 _key.Environment,
                 image.Repository,
@@ -307,16 +291,19 @@ namespace Shipbot.Controller.Core.Apps.Grains
             return WriteStateAsync();
         }
 
-        public Task<IReadOnlyDictionary<Image, string>> GetCurrentImageTags()
+        public Task<IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>> GetCurrentImageTags()
         {
             return Task.FromResult(
-                (IReadOnlyDictionary<Image, string>) State.CurrentImageTags
-                    .ToDictionary(x => x.Image, x => x.Tag, Image.EqualityComparer
+                (IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>) State.Images
+                    .ToDictionary(
+                        x => x, 
+                        x => x.Tag, 
+                        ApplicationEnvironmentImageSettings.EqualityComparer
                     )
             );
         }
 
-        public Task<IEnumerable<Image>> GetImages()
+        public Task<IEnumerable<ApplicationEnvironmentImageSettings>> GetImages()
         {
             return Task.FromResult(State.Images.ToList().AsEnumerable());
         }

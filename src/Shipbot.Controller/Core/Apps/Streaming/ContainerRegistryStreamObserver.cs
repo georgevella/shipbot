@@ -15,13 +15,13 @@ namespace Shipbot.Controller.Core.Apps.Streaming
     class ContainerRegistryStreamObserver : IAsyncObserver<ImageTag>
     {
         private readonly ILogger _log;
-        private readonly Image _image;
+        private readonly ApplicationEnvironmentImageSettings _image;
         private readonly ApplicationEnvironmentKey _applicationEnvironmentKey;
         private readonly IGrainFactory _grainFactory;
         
         public ContainerRegistryStreamObserver(
             ILogger log,
-            Image image, 
+            ApplicationEnvironmentImageSettings image, 
             ApplicationEnvironmentKey applicationEnvironmentKey, 
             IGrainFactory grainFactory)
         {

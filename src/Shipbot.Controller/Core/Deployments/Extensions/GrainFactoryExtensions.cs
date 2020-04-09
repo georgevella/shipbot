@@ -1,6 +1,7 @@
 using System;
 using Orleans;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.Grains;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;

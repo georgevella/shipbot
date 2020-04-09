@@ -9,6 +9,7 @@ using Orleans;
 using Orleans.Runtime;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
+using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.DeploymentSources.Exceptions;
 using Shipbot.Controller.Core.DeploymentSources.Models;
@@ -118,13 +119,13 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             State.ApplicationEnvironment = applicationEnvironmentKey;
         }
         
-        public Task<IReadOnlyDictionary<Image, string>> GetImageTags()
+        public Task<IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>> GetImageTags()
         {
             return Task.FromResult(
-                (IReadOnlyDictionary<Image, string>)State.Metadata.ImageTags.ToDictionary(
+                (IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>)State.Metadata.ImageTags.ToDictionary(
                     x => x.Image,
                     x => x.Tag,
-                    Image.EqualityComparer
+                    ApplicationEnvironmentImageSettings.EqualityComparer
                 )
             );
         }

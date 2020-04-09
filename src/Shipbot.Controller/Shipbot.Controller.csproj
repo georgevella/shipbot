@@ -6,7 +6,7 @@
 <!--    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>-->
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <LangVersion>8</LangVersion>
-    <Nullable>warnings</Nullable>
+    <Nullable>enable</Nullable>
 <!--    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>-->
 <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
 
@@ -40,10 +40,6 @@
     <PackageReference Include="SlackAPI" Version="1.1.7" />
     <PackageReference Include="Stateless" Version="5.1.1" />
     <PackageReference Include="YamlDotNet" Version="8.1.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Core\Slack" />
   </ItemGroup>
 
 <!--  <ItemGroup>-->

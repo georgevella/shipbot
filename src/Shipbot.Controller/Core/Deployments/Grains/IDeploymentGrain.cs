@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Orleans;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
 
@@ -17,12 +18,10 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         //
         // Task FailDeploymentUpdate(DeploymentUpdate deploymentUpdate);
         
-        
-        
-        Task AddDeploymentActionId(DeploymentActionKey deploymentActionKey);
         Task<IEnumerable<DeploymentActionKey>> GetDeploymentActionIds();
         Task Deploy();
-        Task AddDeploymentPlanAction(PlannedDeploymentAction plannedDeploymentAction);
-        Task<IEnumerable<PlannedDeploymentAction>> GetDeploymentPlan();
+        Task AddDeploymentAction(DeploymentAction deploymentAction);
+        Task<(string Application, string ContainerRepository, string TargetTag)> GetDeploymentInformation();
+        Task Configure(ApplicationKey key, ApplicationEnvironmentImageSettings image, string targetTag);
     }
 }

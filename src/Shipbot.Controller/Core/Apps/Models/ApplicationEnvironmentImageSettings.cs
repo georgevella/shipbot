@@ -6,11 +6,11 @@ namespace Shipbot.Controller.Core.Apps.Models
     /// <summary>
     ///     Describes an image used within an environment.
     /// </summary>
-    public class Image
+    public class ApplicationEnvironmentImageSettings
     {
-        private class ImageEqualityComparer : IEqualityComparer<Image>
+        private class ImageEqualityComparer : IEqualityComparer<ApplicationEnvironmentImageSettings>
         {
-            public bool Equals(Image x, Image other)
+            public bool Equals(ApplicationEnvironmentImageSettings x, ApplicationEnvironmentImageSettings other)
             {
                 if (x == null && other == null) return true;
                 if (x == null) return false;
@@ -23,7 +23,7 @@ namespace Shipbot.Controller.Core.Apps.Models
                        (x.TagProperty.ValueFormat == other.TagProperty.ValueFormat);
             }
 
-            public int GetHashCode(Image obj)
+            public int GetHashCode(ApplicationEnvironmentImageSettings obj)
             {
                 unchecked
                 {
@@ -41,21 +41,24 @@ namespace Shipbot.Controller.Core.Apps.Models
             }
         }
         
-        public static IEqualityComparer<Image> EqualityComparer { get; } = new ImageEqualityComparer();
+        public static IEqualityComparer<ApplicationEnvironmentImageSettings> EqualityComparer { get; } = new ImageEqualityComparer();
         
         public string Repository { get; set; }
+        
+        public string Tag { get; set; }
+        
         public TagProperty TagProperty { get; set; }
         
         public ImageUpdatePolicy Policy { get; set; }
 
-        public Image(string repository, TagProperty tagProperty, ImageUpdatePolicy policy)
+        public ApplicationEnvironmentImageSettings(string repository, TagProperty tagProperty, ImageUpdatePolicy policy)
         {
             Repository = repository;
             TagProperty = tagProperty;
             Policy = policy;
         }
 
-        public Image()
+        public ApplicationEnvironmentImageSettings()
         {
             
         }

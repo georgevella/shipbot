@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 using Orleans;
 using Orleans.Providers;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
@@ -17,41 +19,33 @@ namespace Shipbot.Controller.Core.Deployments.Grains
     [StorageProvider(ProviderName = ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME)]
     public class DeploymentGrain : Grain<DeploymentState>, IDeploymentGrain
     {
-        public override async Task OnActivateAsync()
-        {
-            var key = (DeploymentKey) this.GetPrimaryKeyString();
-            State.Application = key.Application;
-            State.ImageRepository = key.ImageRepository;
-            State.TargetTag = key.TargetTag;
+        public Task<(string Application, string ContainerRepository, string TargetTag)> GetDeploymentInformation() =>
+            Task.FromResult(
+                (State.Application!, State.ImageRepository!, State.TargetTag!)
+            );
 
-            await WriteStateAsync();
+        public Task Configure(ApplicationKey key, ApplicationEnvironmentImageSettings image, string targetTag)
+        {
+            State.Application = key;
+            State.ImageRepository = image.Repository;
+            State.TargetTag = targetTag;
             
-            await base.OnActivateAsync();
+            return WriteStateAsync();
         }
+
 
         public async Task Deploy()
         {
             // TODO: handle multiple items in the deployment plan
-            var deploymentPlan = State.DeploymentPlan.First();
+            var deploymentActionKey = State.DeploymentActions[State.NextDeploymentActionIndex];
+            var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(deploymentActionKey);
             
-            var applicationEnvironmentKey = new ApplicationEnvironmentKey(
-                deploymentPlan.Application, 
-                deploymentPlan.Environment
-                );
-            // var environmentGrain = GrainFactory.GetEnvironment(applicationEnvironmentKey);
-            // var currentImageTagsInEnvironment = await environmentGrain.GetCurrentImageTags();
+            var environmentGrain = GrainFactory.GetEnvironment(await deploymentActionGrain.GetApplicationEnvironment());
+            var currentImageTagsInEnvironment = await environmentGrain.GetCurrentImageTags();
             //
             // prepare deployment action information
-            var deploymentActionKey = new DeploymentActionKey(
-                deploymentPlan.Application,
-                deploymentPlan.Environment, 
-                deploymentPlan.Image.Repository, 
-                deploymentPlan.Image.TagProperty.Path,
-                deploymentPlan.TargetTag
-            );
-
-            State.DeploymentActions.Add(deploymentActionKey);
-            var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(deploymentActionKey);
+            
+            
             // await deploymentActionGrain.Configure(
             //     deploymentPlan.Image, 
             //     currentImageTagsInEnvironment[deploymentPlan.Image], 
@@ -61,12 +55,12 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             await deploymentActionGrain.SetStatus(
                 DeploymentActionStatus.Pending 
                 );
-            await deploymentActionGrain.SetParentDeploymentKey(this.GetPrimaryKeyString());
 
-            State.DeploymentActions.Add(deploymentActionKey);
+            // State.DeploymentActions.Add(deploymentActionKey);
             
             // get deployment source and start applying the deployment
-            var deploymentSourceGrain = GrainFactory.GetHelmDeploymentSourceGrain(new ApplicationEnvironmentKey(deploymentActionKey.Application, deploymentActionKey.Environment));
+            var deploymentSourceGrain =
+                GrainFactory.GetHelmDeploymentSourceGrain(await deploymentActionGrain.GetApplicationEnvironment());
 
             // var environmentGrain = GrainFactory.GetEnvironment(
             //     new ApplicationEnvironmentKey(firstDeploymentAction.Application, firstDeploymentAction.Environment));
@@ -77,26 +71,21 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             );
         }
 
-        public Task AddDeploymentPlanAction(PlannedDeploymentAction plannedDeploymentAction)
+        public async Task AddDeploymentAction(DeploymentAction deploymentAction)
         {
-            State.DeploymentPlan.Add(plannedDeploymentAction);
-            return WriteStateAsync();
-        }
+            var key = new DeploymentActionKey();
 
-        public Task AddDeploymentActionId(DeploymentActionKey deploymentActionKey)
-        {
-            State.DeploymentActions.Add(deploymentActionKey);
-            return WriteStateAsync();
+            State.DeploymentActions.Add(key);
+            var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(key);
+            await deploymentActionGrain.Configure(deploymentAction);
+            await deploymentActionGrain.SetParentDeploymentKey(this.GetPrimaryKeyString());
+            
+            await  WriteStateAsync();
         }
-
+        
         public Task<IEnumerable<DeploymentActionKey>> GetDeploymentActionIds()
         {
             return Task.FromResult(State.DeploymentActions.ToArray().AsEnumerable());
-        }
-
-        public Task<IEnumerable<PlannedDeploymentAction>> GetDeploymentPlan()
-        {
-            return Task.FromResult(State.DeploymentPlan.ToArray().AsEnumerable());
         }
     }
 }

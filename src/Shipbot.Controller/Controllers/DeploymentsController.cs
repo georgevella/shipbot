@@ -43,30 +43,17 @@ namespace Shipbot.Controller.Controllers
                 foreach (var deploymentActionId in deploymentActionIds)
                 {
                     var deploymentActionGrain = _grainFactory.GetDeploymentActionGrain(deploymentActionId);
+                    var deploymentAction = await deploymentActionGrain.GetAction();
                     var deploymentActionDto = new DeploymentActionDto()
                     {
-                        Environment = deploymentActionId.Environment,
-                        Image = deploymentActionId.ImageRepository,
-                        TargetTag = deploymentActionId.TargetTag,
+                        Environment = deploymentAction.ApplicationEnvironmentKey.Environment,
+                        Image = deploymentAction.Image.Repository,
+                        TargetTag = deploymentAction.TargetTag,
                         CurrentTag = (await deploymentActionGrain.GetCurrentTag()),
                         Status = (await deploymentActionGrain.GetStatus())
                     };
 
                     deploymentDto.DeploymentActions.Add(deploymentActionDto);
-                }
-
-                var deploymentPlan = await deployment.GetDeploymentPlan();
-
-                foreach (var plannedDeploymentAction in deploymentPlan)
-                {
-                    deploymentDto.DeploymentPlan.Add(new PlannedDeploymentActionDto()
-                    {
-                        Environment = plannedDeploymentAction.Environment,
-                        Image = plannedDeploymentAction.Image.Repository,
-                        TagProperty = plannedDeploymentAction.Image.TagProperty.Path,
-                        CurrentTag = plannedDeploymentAction.CurrentTag,
-                        TargetTag = plannedDeploymentAction.TargetTag
-                    });
                 }
             }
 
@@ -76,8 +63,6 @@ namespace Shipbot.Controller.Controllers
 
     public class DeploymentDto
     {
-        public List<PlannedDeploymentActionDto> DeploymentPlan { get; } = new List<PlannedDeploymentActionDto>();
-        
         public List<DeploymentActionDto> DeploymentActions { get; } = new List<DeploymentActionDto>();
     }
 
@@ -92,17 +77,5 @@ namespace Shipbot.Controller.Controllers
         public string TargetTag { get; set; }
 
         public DeploymentActionStatus Status { get; set; }
-    }
-
-    public class PlannedDeploymentActionDto
-    {
-        public string Environment { get; set; }
-        
-        public string Image { get; set; }
-        
-        public string CurrentTag { get; set; }
-        
-        public string TargetTag { get; set; }
-        public string TagProperty { get; set; }
     }
 }

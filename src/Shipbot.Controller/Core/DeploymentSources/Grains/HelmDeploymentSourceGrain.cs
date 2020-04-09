@@ -9,6 +9,7 @@ using Orleans;
 using Quartz.Util;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
+using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.DeploymentSources.Exceptions;
@@ -67,7 +68,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
             var environmentGrain = GrainFactory.GetEnvironment(State.ApplicationEnvironment);
 
-            var imageMetadataFromFile = new Dictionary<Image, (FileInfo, string)>(Image.EqualityComparer);
+            var imageMetadataFromFile = new Dictionary<ApplicationEnvironmentImageSettings, (FileInfo, string)>(ApplicationEnvironmentImageSettings.EqualityComparer);
     
             foreach (var file in State.ValuesFiles)
             {
@@ -160,7 +161,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         }
         
         private async Task<bool> UpdateDeploymentManifests(
-            Image image,
+            ApplicationEnvironmentImageSettings image,
             string targetTag,
             FileSystemInfo file,
             string currentImageTag)

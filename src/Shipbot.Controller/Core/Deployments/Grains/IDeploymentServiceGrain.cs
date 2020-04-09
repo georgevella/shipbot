@@ -12,7 +12,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 {
     public interface IDeploymentServiceGrain : IGrainWithStringKey
     {
-        Task<DeploymentKey> CreateNewImageDeployment(string environment, Image image, string newTag);
+        Task<DeploymentKey> CreateNewImageDeployment(string environment, ApplicationEnvironmentImageSettings image, string newTag);
         
         //Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status);
 

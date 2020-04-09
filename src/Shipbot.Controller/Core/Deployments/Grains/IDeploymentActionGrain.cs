@@ -16,8 +16,11 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
 
         Task SetParentDeploymentKey(DeploymentKey deploymentKey);
-        Task<Image> GetImage();
+        Task<ApplicationEnvironmentImageSettings> GetImage();
         Task<string> GetTargetTag();
         Task<string> GetCurrentTag();
+        Task<DeploymentAction> GetAction();
+        Task Configure(DeploymentAction deploymentAction);
+        Task<ApplicationEnvironmentKey> GetApplicationEnvironment();
     }
 }

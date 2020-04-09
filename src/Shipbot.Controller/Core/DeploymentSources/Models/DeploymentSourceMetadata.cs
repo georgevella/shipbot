@@ -14,7 +14,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Models
 
     public class ImageTagMetadata
     {
-        public Image Image { get; set; }
+        public ApplicationEnvironmentImageSettings Image { get; set; }
         
         public string File { get; set; }
         
@@ -25,14 +25,14 @@ namespace Shipbot.Controller.Core.DeploymentSources.Models
             
         }
 
-        public ImageTagMetadata(Image image, string file, string tag)
+        public ImageTagMetadata(ApplicationEnvironmentImageSettings image, string file, string tag)
         {
             Image = image;
             File = file;
             Tag = tag;
         }
 
-        public static implicit operator ImageTagMetadata(Image image)
+        public static implicit operator ImageTagMetadata(ApplicationEnvironmentImageSettings image)
         {
             return new ImageTagMetadata(image, null, null);
         }
@@ -76,12 +76,12 @@ namespace Shipbot.Controller.Core.DeploymentSources.Models
 
             if (y == null) return false;
 
-            return ReferenceEquals(x, y) || Image.EqualityComparer.Equals(x.Image, y.Image);
+            return ReferenceEquals(x, y) || ApplicationEnvironmentImageSettings.EqualityComparer.Equals(x.Image, y.Image);
         }
 
         public int GetHashCode(ImageTagMetadata obj)
         {
-            return Image.EqualityComparer.GetHashCode(obj.Image);
+            return ApplicationEnvironmentImageSettings.EqualityComparer.GetHashCode(obj.Image);
         }
     }
 }

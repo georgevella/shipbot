@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Serialization;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.Models;
 
 namespace Shipbot.Controller.Core.Deployments.GrainState
@@ -20,8 +21,8 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
         /// <summary>
         ///     Map storing the planned deployment actions and their associated deployment keys.
         /// </summary>
-        public Dictionary<PlannedDeploymentAction, DeploymentKey> PlannedDeploymentActionsIndex { get; } 
-            = new Dictionary<PlannedDeploymentAction, DeploymentKey>( PlannedDeploymentAction.EqualityComparer );
+        public Dictionary<DeploymentAction, DeploymentKey> PlannedDeploymentActionsIndex { get; } 
+            = new Dictionary<DeploymentAction, DeploymentKey>( DeploymentAction.EqualityComparer );
 
         /// <summary>
         ///     Index of deployment IDs per environment
