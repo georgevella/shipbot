@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Orleans;
 using Shipbot.Controller.Core.Deployments.Models;
+using Shipbot.Controller.RestApiDto;
 
 namespace Shipbot.Controller.Controllers
 {
@@ -26,23 +27,14 @@ namespace Shipbot.Controller.Controllers
             // generate deployment DTO
             
             // TODO: extract this as an extension method
-            var deploymentDto = new DeploymentDto();
+            var deploymentDto = new DeploymentDto(deploymentQueueEntry.Id);
             var deploymentActionIds = await deployment.GetDeploymentActionIds();
 
             foreach (var deploymentActionId in deploymentActionIds)
             {
                 var deploymentActionGrain = _grainFactory.GetDeploymentActionGrain(deploymentActionId);
                 var deploymentAction = await deploymentActionGrain.GetAction();
-                var deploymentActionDto = new DeploymentActionDto()
-                {
-                    Environment = deploymentAction.ApplicationEnvironmentKey.Environment,
-                    Image = deploymentAction.Image.Repository,
-                    TargetTag = deploymentAction.TargetTag,
-                    CurrentTag = (await deploymentActionGrain.GetCurrentTag()),
-                    Status = (await deploymentActionGrain.GetStatus())
-                };
-
-                deploymentDto.DeploymentActions.Add(deploymentActionDto);
+                deploymentDto.Actions.Add(deploymentAction);
             }
 
             return Ok(deploymentDto);

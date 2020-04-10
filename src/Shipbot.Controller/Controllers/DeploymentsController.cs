@@ -7,6 +7,7 @@ using Orleans;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
+using Shipbot.Controller.RestApiDto;
 
 namespace Shipbot.Controller.Controllers
 { 
@@ -26,7 +27,7 @@ namespace Shipbot.Controller.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DeploymentDto>>> Get(string application)
         {
-            var result = new Dictionary<string, DeploymentDto>();
+            var result = new List<DeploymentDto>();
             
             var deploymentServiceGrain = _grainFactory.GetDeploymentServiceGrain(application);
 
@@ -34,48 +35,23 @@ namespace Shipbot.Controller.Controllers
             
             foreach (var deploymentKey in deploymentIds)
             {
-                var deploymentDto = new DeploymentDto();
-                result.Add(deploymentKey, deploymentDto);
-                
                 var deployment = _grainFactory.GetDeploymentGrain(deploymentKey);
                 var deploymentActionIds = await deployment.GetDeploymentActionIds();
-
+                
+                
+                var deploymentDto = new DeploymentDto(deploymentKey);
                 foreach (var deploymentActionId in deploymentActionIds)
                 {
                     var deploymentActionGrain = _grainFactory.GetDeploymentActionGrain(deploymentActionId);
                     var deploymentAction = await deploymentActionGrain.GetAction();
-                    var deploymentActionDto = new DeploymentActionDto()
-                    {
-                        Environment = deploymentAction.ApplicationEnvironmentKey.Environment,
-                        Image = deploymentAction.Image.Repository,
-                        TargetTag = deploymentAction.TargetTag,
-                        CurrentTag = (await deploymentActionGrain.GetCurrentTag()),
-                        Status = (await deploymentActionGrain.GetStatus())
-                    };
-
-                    deploymentDto.DeploymentActions.Add(deploymentActionDto);
+                    deploymentDto.Actions.Add(deploymentAction);
                 }
+                
+                result.Add(deploymentDto);
             }
 
             return Ok(result);
         }
     }
 
-    public class DeploymentDto
-    {
-        public List<DeploymentActionDto> DeploymentActions { get; } = new List<DeploymentActionDto>();
-    }
-
-    public class DeploymentActionDto
-    {
-        public string Environment { get; set; }
-        
-        public string Image { get; set; }
-        
-        public string CurrentTag { get; set; }
-        
-        public string TargetTag { get; set; }
-
-        public DeploymentActionStatus Status { get; set; }
-    }
 }
