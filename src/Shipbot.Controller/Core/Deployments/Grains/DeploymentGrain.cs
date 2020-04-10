@@ -1,15 +1,20 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Providers;
+using Orleans.Runtime;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.Events;
 using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Utilities.Eventing;
 
 namespace Shipbot.Controller.Core.Deployments.Grains
 {
@@ -17,8 +22,30 @@ namespace Shipbot.Controller.Core.Deployments.Grains
     ///     Describes an image deployment for an application.  
     /// </summary>
     [StorageProvider(ProviderName = ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME)]
-    public class DeploymentGrain : Grain<DeploymentState>, IDeploymentGrain
+    public class DeploymentGrain : EventHandlingGrain<DeploymentState>, IDeploymentGrain
     {
+        private readonly ILogger<DeploymentGrain> _log;
+
+        public DeploymentGrain(ILogger<DeploymentGrain> log)
+        {
+            _log = log;
+        }
+        public override async Task OnActivateAsync()
+        {
+            await SubscribeForEvents<DeploymentActionStatusChange>((change, token) =>
+            {
+                _log.Info("DeploymentAction {deploymentActionKey} changed state {fromStatus}->{toStatus}",
+                    change.ActionKey,
+                    change.FromStatus,
+                    change.ToStatus
+                );
+                
+                return Task.CompletedTask;
+            });
+            
+            await base.OnActivateAsync();
+        }
+
         public Task<(string Application, string ContainerRepository, string TargetTag)> GetDeploymentInformation() =>
             Task.FromResult(
                 (State.Application!, State.ImageRepository!, State.TargetTag!)
@@ -32,8 +59,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             
             return WriteStateAsync();
         }
-
-
+        
         public async Task Deploy()
         {
             // TODO: handle multiple items in the deployment plan
@@ -42,22 +68,11 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             
             var environmentGrain = GrainFactory.GetEnvironment(await deploymentActionGrain.GetApplicationEnvironment());
             var currentImageTagsInEnvironment = await environmentGrain.GetCurrentImageTags();
-            //
-            // prepare deployment action information
-            
-            
-            // await deploymentActionGrain.Configure(
-            //     deploymentPlan.Image, 
-            //     currentImageTagsInEnvironment[deploymentPlan.Image], 
-            //     deploymentPlan.TargetTag
-            //     );
-            //
+
             await deploymentActionGrain.SetStatus(
                 DeploymentActionStatus.Pending 
                 );
 
-            // State.DeploymentActions.Add(deploymentActionKey);
-            
             // get deployment source and start applying the deployment
             var deploymentSourceGrain =
                 GrainFactory.GetHelmDeploymentSourceGrain(await deploymentActionGrain.GetApplicationEnvironment());
@@ -73,7 +88,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
         public async Task AddDeploymentAction(DeploymentAction deploymentAction)
         {
-            var key = new DeploymentActionKey();
+            var key = new DeploymentActionKey(Guid.NewGuid());
 
             State.DeploymentActions.Add(key);
             var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(key);

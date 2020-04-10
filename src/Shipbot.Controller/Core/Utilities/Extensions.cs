@@ -5,11 +5,31 @@ using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shipbot.Controller.Core.Apps.Models;
 
 namespace Shipbot.Controller.Core.Utilities
 {
+    public static class EnumerableExtensions
+    {
+        public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
+        {
+            foreach (var item in enumerable)
+            {
+                action(item);
+            }
+        }         
+        
+        public static void ForEach<T>(this IEnumerable<T> enumerable, Func<T, Task> action)
+        {
+            foreach (var item in enumerable)
+            {
+                action(item);
+            }
+        } 
+    }
+    
     public static class LoggerExtensions
     {
         public static IDisposable BeginShipbotLogScope<T>(this ILogger<T> log, ApplicationEnvironmentKey applicationEnvironmentKey, [CallerMemberName] string? callerMemberName = null)

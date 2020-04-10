@@ -1,21 +1,25 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Providers;
+using Orleans.Runtime;
+using Orleans.Streams;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.Events;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Utilities;
+using Shipbot.Controller.Core.Utilities.Eventing;
 
 namespace Shipbot.Controller.Core.Deployments.Grains
 {
     [StorageProvider(ProviderName = ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME)]
-    public class DeploymentServiceGrain : Grain<DeploymentServiceState>, IDeploymentServiceGrain
+    public class DeploymentServiceGrain : EventHandlingGrain<DeploymentServiceState>, IDeploymentServiceGrain
     {
         private readonly ILogger<DeploymentServiceGrain> _log;
-        private ApplicationKey _key;
 
         public DeploymentServiceGrain(
             ILogger<DeploymentServiceGrain> log
@@ -24,11 +28,22 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             _log = log;
         }
 
-        public override Task OnActivateAsync()
+        public override async Task OnActivateAsync()
         {
-            _key = (ApplicationKey) this.GetPrimaryKeyString();
+            await SubscribeForEvents<DeploymentStatusChange>(HandleDeploymentStatusChange);
+
+            await base.OnActivateAsync();
+        }
+
+        private Task HandleDeploymentStatusChange(DeploymentStatusChange arg1, StreamSequenceToken arg2)
+        {
+            _log.Info("Deployment {deploymentKey} changed state {fromStatus}->{toStatus}", 
+                arg1.DeploymentKey, 
+                arg1.FromStatus,
+                arg1.ToStatus
+                );
             
-            return base.OnActivateAsync();
+            return Task.CompletedTask;
         }
 
         public async Task<DeploymentKey> CreateNewImageDeployment(
@@ -37,9 +52,9 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             string newTag
             )
         {
-            using (_log.BeginShipbotLogScope(_key, environment))
+            using (_log.BeginShipbotLogScope(this.GetPrimaryKeyString(), environment))
             {
-                var firstApplicationEnvironmentKey = new ApplicationEnvironmentKey(_key, environment);
+                var firstApplicationEnvironmentKey = new ApplicationEnvironmentKey(this.GetPrimaryKeyString(), environment);
                 
                 // start planning the first environment we are deploying to
                 var deploymentPlan = new List<DeploymentAction>();
@@ -54,12 +69,12 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 targetEnvironments.AddRange(promotionSettings);
 
                 // generate image deployment (starting with the identifier)
-                var deploymentKey = new DeploymentKey();
+                var deploymentKey = new DeploymentKey(Guid.NewGuid());
                 
                 // build deployment plan
                 foreach (var env in targetEnvironments)
                 {
-                    var applicationEnvironmentKey = new ApplicationEnvironmentKey(_key, env);
+                    var applicationEnvironmentKey = new ApplicationEnvironmentKey(this.GetPrimaryKeyString(), env);
                     var environmentGrain = GrainFactory.GetEnvironment(applicationEnvironmentKey);
 
 //                    var imageUpdatePolicy = await environmentGrain.GetImageUpdatePolicy(image);
@@ -97,7 +112,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
                 // start building deployment
                 var deploymentGrain = GrainFactory.GetDeploymentGrain(deploymentKey);
-                await deploymentGrain.Configure(_key, image, newTag);
+                await deploymentGrain.Configure(this.GetPrimaryKeyString(), image, newTag);
                 deploymentPlan.ForEach( async x=>
                 {
                     // store reference to the deployment that will execute this action

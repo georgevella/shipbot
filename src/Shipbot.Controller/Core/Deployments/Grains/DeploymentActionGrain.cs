@@ -4,14 +4,16 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.Deployments.Events;
 using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Utilities.Eventing;
 
 namespace Shipbot.Controller.Core.Deployments.Grains
 {
-    public class DeploymentActionGrain : Grain<DeploymentActionState>, IDeploymentActionGrain
+    public class DeploymentActionGrain : EventHandlingGrain<DeploymentActionState>, IDeploymentActionGrain
     {
         private readonly ILogger<DeploymentActionGrain> _log;
         public DeploymentActionGrain(ILogger<DeploymentActionGrain> log)
@@ -67,14 +69,15 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             return Task.FromResult(State.Action.Status);
         }
 
-        public Task SetStatus(DeploymentActionStatus status)
+        public async Task SetStatus(DeploymentActionStatus status)
         {
             if (State.Action.Status == status) 
-                return Task.CompletedTask;
-            
-            State.Action.Status = status;
-            return WriteStateAsync();
+                return;
 
+            var currentStatus = State.Action.Status;
+            State.Action.Status = status;
+            await WriteStateAsync();
+            await SendEvent(new DeploymentActionStatusChange(this.GetPrimaryKeyString(), currentStatus, status));
         }
     }
 }

@@ -19,6 +19,7 @@ using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.Apps.Grains;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Deployments.GrainState;
+using Shipbot.Controller.Core.Utilities.Eventing;
 
 namespace Shipbot.Controller
 {
@@ -152,6 +153,7 @@ namespace Shipbot.Controller
                                 "User ID=postgres;Password=password123;Host=localhost;Database=shipbot;";
                         })
                         .AddSimpleMessageStreamProvider(Constants.InternalMessageStreamProvider)
+                        .AddSimpleMessageStreamProvider(EventHandlingConstants.EventHandlingStreamProvider)
                         .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
                         .ConfigureApplicationParts(parts =>
                             parts.AddApplicationPart(typeof(IApplicationGrain).Assembly).WithReferences()
