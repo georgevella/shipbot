@@ -49,6 +49,11 @@ namespace Shipbot.Controller.Core.Deployments.GrainKeys
         {
             return $"{deploymentActionKey.Id}";
         }
+        
+        public static implicit operator DeploymentActionKey(string raw)
+        {
+            return new DeploymentActionKey(Guid.Parse(raw));
+        }
     }
     // public class DeploymentActionKey
     // {
