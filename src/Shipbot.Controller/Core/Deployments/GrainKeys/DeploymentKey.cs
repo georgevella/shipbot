@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.ObjectPool;
+using Newtonsoft.Json;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Models;
 
@@ -36,17 +37,18 @@ namespace Shipbot.Controller.Core.Deployments.Models
 
         public static DeploymentKey Empty { get; } = new DeploymentKey(Guid.Empty);
 
-        private Guid Id { get; }
+        public Guid Id { get; }
 
+        [JsonConstructor]
         public DeploymentKey(Guid id)
         {
             Id = id;
         }
 
-        public DeploymentKey() : this(Guid.NewGuid())
-        {
-            
-        }
+        // public DeploymentKey() : this(Guid.NewGuid())
+        // {
+        //     
+        // }
         
         public static implicit operator string(DeploymentKey deploymentKey)
         {

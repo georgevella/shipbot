@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Deployments.Models;
 
@@ -33,18 +34,15 @@ namespace Shipbot.Controller.Core.Deployments.GrainKeys
         
         public static IEqualityComparer<DeploymentActionKey> EqualityComparer { get; } = new DeploymentKeyEqualityComparer();
 
-        private Guid Id { get; }
+        // ReSharper disable once MemberCanBePrivate.Global
+        public Guid Id { get; }
 
+        [JsonConstructor]
         public DeploymentActionKey(Guid id)
         {
             Id = id;
         }
 
-        public DeploymentActionKey() : this(Guid.NewGuid())
-        {
-            
-        }
-        
         public static implicit operator string(DeploymentActionKey deploymentActionKey)
         {
             return $"{deploymentActionKey.Id}";
