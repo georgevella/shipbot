@@ -44,25 +44,48 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             await base.OnActivateAsync();
         }
         
-        
-
         public Task QueueDeploymentAction(DeploymentActionKey deploymentActionKey)
         {
-            State.PendingDeploymentActions.Add(deploymentActionKey);
+            State.PendingDeploymentActions.Add(deploymentActionKey, new InternalDeploymentQueueItem(DateTime.Now, deploymentActionKey));
             return WriteStateAsync();
         }
+
+        public async Task<IReadOnlyList<DeploymentQueueItem>> GetQueue()
+        {
+            var result = new List<DeploymentQueueItem>();
+            foreach (var pair in State.PendingDeploymentActions)
+            {
+                var deploymentAction = GrainFactory.GetDeploymentActionGrain(pair.Key);
+
+                var applicationEnvironment = await deploymentAction.GetApplicationEnvironment();
+
+                result.Add(new DeploymentQueueItem(
+                        pair.Value.QueuedOn,
+                        pair.Value.Action,
+                        applicationEnvironment.Application,
+                        applicationEnvironment.Environment,
+                        await deploymentAction.GetCurrentTag(),
+                        await deploymentAction.GetTargetTag(),
+                        await deploymentAction.GetStatus()
+                    )
+                );
+            }
+
+            return result.AsReadOnly();
+        }
+
 
         public async Task ReceiveReminder(string reminderName, TickStatus status)
         {
             using (_log.BeginShipbotLogScope())
             {
-                var deploymentActionKeys = new List<DeploymentActionKey>(State.PendingDeploymentActions);
+                var deploymentActionKeys = new List<InternalDeploymentQueueItem>(State.PendingDeploymentActions.Values.ToList());
                 State.PendingDeploymentActions.Clear();
                 await WriteStateAsync();
 
-                foreach (var deploymentActionKey in deploymentActionKeys)
+                foreach (var item in deploymentActionKeys)
                 {
-                    var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(deploymentActionKey);
+                    var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(item.Action);
                 
                     await deploymentActionGrain.SetStatus(
                         DeploymentActionStatus.Pending 
@@ -97,5 +120,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
     public interface IDeploymentQueueGrain : IGrainWithStringKey, IRemindable
     {
         Task QueueDeploymentAction(DeploymentActionKey deploymentActionKey);
+
+        Task<IReadOnlyList<DeploymentQueueItem>> GetQueue();
     }
 }
