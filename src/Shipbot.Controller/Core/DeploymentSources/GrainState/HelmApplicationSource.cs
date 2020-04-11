@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using Shipbot.Controller.Core.Apps.Models;
 
-namespace Shipbot.Controller.Core.DeploymentSources.Models
+namespace Shipbot.Controller.Core.DeploymentSources.GrainState
 {
     public class HelmApplicationSource : ApplicationSource
     {

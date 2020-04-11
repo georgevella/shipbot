@@ -80,4 +80,20 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             await SendEvent(new DeploymentActionStatusChange(this.GetPrimaryKeyString(), currentStatus, status));
         }
     }
+    
+    public interface IDeploymentActionGrain : IGrainWithStringKey
+    {
+        Task<DeploymentActionStatus> GetStatus();
+
+        Task SetStatus(DeploymentActionStatus status);
+
+
+        Task SetParentDeploymentKey(DeploymentKey deploymentKey);
+        Task<ApplicationEnvironmentImageSettings> GetImage();
+        Task<string> GetTargetTag();
+        Task<string> GetCurrentTag();
+        Task<DeploymentAction> GetAction();
+        Task Configure(DeploymentAction deploymentAction);
+        Task<ApplicationEnvironmentKey> GetApplicationEnvironment();
+    }
 }

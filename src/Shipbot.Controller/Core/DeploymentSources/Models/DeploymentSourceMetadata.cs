@@ -9,32 +9,23 @@ namespace Shipbot.Controller.Core.DeploymentSources.Models
 {
     public class DeploymentSourceMetadata
     {
-        public HashSet<ImageTagMetadata> ImageTags { get; set; } = new HashSet<ImageTagMetadata>(new ImageTagSourceFileEqualityComparer());
+        public HashSet<DeploymentSourceValuePathMetadata> ImageTags { get; set; } = new HashSet<DeploymentSourceValuePathMetadata>(new DeploymentSourceValuePathEqualityComparer());
     }
 
-    public class ImageTagMetadata
+    public class DeploymentSourceValuePathMetadata
     {
-        public ApplicationEnvironmentImageSettings Image { get; set; }
+        public string File { get; }
         
-        public string File { get; set; }
+        public string ValuePath { get; }
         
-        public string Tag { get; set; }
+        public string Value { get; }
 
-        public ImageTagMetadata()
+        [JsonConstructor]
+        public DeploymentSourceValuePathMetadata(string valuePath, string value, string file)
         {
-            
-        }
-
-        public ImageTagMetadata(ApplicationEnvironmentImageSettings image, string file, string tag)
-        {
-            Image = image;
             File = file;
-            Tag = tag;
-        }
-
-        public static implicit operator ImageTagMetadata(ApplicationEnvironmentImageSettings image)
-        {
-            return new ImageTagMetadata(image, null, null);
+            Value = value;
+            ValuePath = valuePath;
         }
     }
     
@@ -57,14 +48,14 @@ namespace Shipbot.Controller.Core.DeploymentSources.Models
         }
     }
 
-    public class ImageTagSourceFileEqualityComparer : IEqualityComparer<ImageTagMetadata>
+    public class DeploymentSourceValuePathEqualityComparer : IEqualityComparer<DeploymentSourceValuePathMetadata>
     {
-        public ImageTagSourceFileEqualityComparer()
+        public DeploymentSourceValuePathEqualityComparer()
         {
             
         }
         
-        public bool Equals(ImageTagMetadata x, ImageTagMetadata y)
+        public bool Equals(DeploymentSourceValuePathMetadata x, DeploymentSourceValuePathMetadata y)
         {
             switch (x)
             {
@@ -76,12 +67,12 @@ namespace Shipbot.Controller.Core.DeploymentSources.Models
 
             if (y == null) return false;
 
-            return ReferenceEquals(x, y) || ApplicationEnvironmentImageSettings.EqualityComparer.Equals(x.Image, y.Image);
+            return ReferenceEquals(x, y) || x.ValuePath.Equals(y.ValuePath);
         }
 
-        public int GetHashCode(ImageTagMetadata obj)
+        public int GetHashCode(DeploymentSourceValuePathMetadata obj)
         {
-            return ApplicationEnvironmentImageSettings.EqualityComparer.GetHashCode(obj.Image);
+            return obj.ValuePath.GetHashCode();
         }
     }
 }

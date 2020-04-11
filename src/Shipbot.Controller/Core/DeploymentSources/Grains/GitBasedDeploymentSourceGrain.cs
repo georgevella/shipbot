@@ -12,9 +12,11 @@ using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.DeploymentSources.Exceptions;
+using Shipbot.Controller.Core.DeploymentSources.GrainState;
 using Shipbot.Controller.Core.DeploymentSources.Models;
 using Shipbot.Controller.Core.Git.Models;
 using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Utilities;
 
 namespace Shipbot.Controller.Core.DeploymentSources.Grains
 {
@@ -119,28 +121,23 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             State.ApplicationEnvironment = applicationEnvironmentKey;
         }
         
-        public Task<IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>> GetImageTags()
+        public Task<IReadOnlyDictionary<string, string>> GetImageTags()
         {
             return Task.FromResult(
-                (IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>)State.Metadata.ImageTags.ToDictionary(
-                    x => x.Image,
-                    x => x.Tag,
-                    ApplicationEnvironmentImageSettings.EqualityComparer
+                (IReadOnlyDictionary<string, string>)State.Metadata.ImageTags.ToDictionary(
+                    x => x.ValuePath,
+                    x => x.Value
                 )
             );
         }
 
-        public abstract Task ApplyDeploymentAction(DeploymentActionKey deploymentActionKey);
+        public abstract Task<DeploymentSourceChangeResult> ApplyDeploymentAction(DeploymentSourceChange deploymentSourceChange);
 
         public abstract Task Refresh();
         
         public async Task ReceiveReminder(string reminderName, TickStatus status)
         {
-            using (_log.BeginScope(new Dictionary<string, object>()
-            {
-                {"Application", _key.Application},
-                {"Environment", _key.Environment}
-            }))
+            using (_log.BeginShipbotLogScope(_key))
             {
                 await Refresh();
 
@@ -148,7 +145,11 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
                 foreach (var keyValuePair in State.Metadata.ImageTags)
                 {
-                    await environmentGrain.SetImageTag(keyValuePair.Image, keyValuePair.Tag);
+                    var currentTag = await environmentGrain.GetImageTag(keyValuePair.ValuePath);
+                    if (currentTag != keyValuePair.Value)
+                    {
+                        await environmentGrain.SetImageTag(keyValuePair.ValuePath, keyValuePair.Value);
+                    }
                 }   
             }
         }

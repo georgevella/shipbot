@@ -24,6 +24,9 @@ namespace Shipbot.Controller.Core.Apps.Grains
         Task<IEnumerable<ApplicationEnvironmentImageSettings>> GetImages();
         Task EnableAutoDeploy();
         Task DisableAutoDeploy();
+        Task SetImageTag(string imageTagValuePath, string newImageTag);
+        Task<string> GetImageTag(string imageTagValuePath);
+        
         Task SetImageTag(ApplicationEnvironmentImageSettings image, string newImageTag);
         Task<IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>> GetCurrentImageTags();
         Task Configure(ApplicationEnvironmentSettings applicationEnvironmentSettings);
@@ -266,6 +269,22 @@ namespace Shipbot.Controller.Core.Apps.Grains
         public Task<IEnumerable<string>> GetDeploymentPromotionSettings()
         {
             return Task.FromResult(State.PromotionEnvironments.ToArray().AsEnumerable());
+        }
+
+        public Task SetImageTag(string imageTagValuePath, string newImageTag)
+        {
+            var imageSettings = State.Images.First(
+                x => x.TagProperty.Path == imageTagValuePath
+            );
+            return SetImageTag(imageSettings, newImageTag);
+        }
+
+        public Task<string> GetImageTag(string imageTagValuePath)
+        {
+            var imageSettings = State.Images.First(
+                x => x.TagProperty.Path == imageTagValuePath
+            );
+            return Task.FromResult(imageSettings.Tag);
         }
 
         public Task SetImageTag(ApplicationEnvironmentImageSettings image, string newImageTag)

@@ -22,7 +22,7 @@ namespace Shipbot.Controller.Controllers
         {
             var deployment = _grainFactory.GetDeploymentGrain(deploymentQueueEntry.Id);
 
-            await deployment.Deploy();
+            await deployment.SubmitNextDeploymentAction();
             
             // generate deployment DTO
             
@@ -43,6 +43,14 @@ namespace Shipbot.Controller.Controllers
 
     public class DeploymentQueueEntryDto
     {
+        public DeploymentActionType Action { get; set; }
+        
         public string Id { get; set; }
+    }
+
+    public enum DeploymentActionType
+    {
+        Deploy,
+        Revert
     }
 }

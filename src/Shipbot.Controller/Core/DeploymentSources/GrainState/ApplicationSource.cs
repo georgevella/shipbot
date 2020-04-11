@@ -1,6 +1,7 @@
 using Shipbot.Controller.Core.Apps.Models;
+using Shipbot.Controller.Core.DeploymentSources.Models;
 
-namespace Shipbot.Controller.Core.DeploymentSources.Models
+namespace Shipbot.Controller.Core.DeploymentSources.GrainState
 {
     public abstract class ApplicationSource
     {

@@ -51,7 +51,11 @@ namespace Shipbot.Controller.Core.Apps.Models
         
         public ImageUpdatePolicy Policy { get; set; }
 
-        public ApplicationEnvironmentImageSettings(string repository, TagProperty tagProperty, ImageUpdatePolicy policy)
+        public ApplicationEnvironmentImageSettings(
+            string repository, 
+            TagProperty tagProperty, 
+            ImageUpdatePolicy policy
+            )
         {
             Repository = repository;
             TagProperty = tagProperty;

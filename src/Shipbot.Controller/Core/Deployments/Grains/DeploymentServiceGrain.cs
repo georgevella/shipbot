@@ -30,20 +30,18 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
         public override async Task OnActivateAsync()
         {
-            await SubscribeForEvents<DeploymentStatusChange>(HandleDeploymentStatusChange);
+            await SubscribeForEvents<DeploymentStatusChange>((change, token) =>
+            {
+                _log.Info("Deployment {deploymentKey} changed state {fromStatus}->{toStatus}", 
+                    change.DeploymentKey, 
+                    change.FromStatus,
+                    change.ToStatus
+                );
+                
+                return Task.CompletedTask;
+            });
 
             await base.OnActivateAsync();
-        }
-
-        private Task HandleDeploymentStatusChange(DeploymentStatusChange arg1, StreamSequenceToken arg2)
-        {
-            _log.Info("Deployment {deploymentKey} changed state {fromStatus}->{toStatus}", 
-                arg1.DeploymentKey, 
-                arg1.FromStatus,
-                arg1.ToStatus
-                );
-            
-            return Task.CompletedTask;
         }
 
         public async Task<DeploymentKey> CreateNewImageDeployment(
@@ -133,5 +131,29 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         {
             return Task.FromResult(State.Deployments.ToList().AsEnumerable());
         }
+    }
+    
+    public interface IDeploymentServiceGrain : IGrainWithStringKey
+    {
+        Task<DeploymentKey> CreateNewImageDeployment(string environment, ApplicationEnvironmentImageSettings image, string newTag);
+        
+        //Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status);
+
+//        /// <summary>
+//        ///     Returns the next deployment update in the queue.
+//        /// </summary>
+//        /// <returns>Returns the next deployment update in the queue, or <c>null</c> if there are no pending deployment updates.</returns>
+//        Task<DeploymentUpdate> GetNextPendingDeploymentUpdate(ApplicationEnvironmentKey applicationEnvironmentKey);
+//
+//        Task FinishDeploymentUpdate(
+//            DeploymentUpdate deploymentUpdate,
+//            DeploymentUpdateStatus finalStatus
+//        );
+//
+//        Task PromoteDeployment(DeploymentUpdate deploymentUpdate);
+//
+//        Task PromoteDeployment(Application application, string containerRepository, string targetTag,
+//            string sourceEnvironment);
+        Task<IEnumerable<DeploymentKey>>  GetAllDeploymentIds();
     }
 }

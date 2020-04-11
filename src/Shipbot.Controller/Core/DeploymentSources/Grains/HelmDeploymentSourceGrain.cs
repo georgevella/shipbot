@@ -13,8 +13,10 @@ using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.DeploymentSources.Exceptions;
+using Shipbot.Controller.Core.DeploymentSources.GrainState;
 using Shipbot.Controller.Core.DeploymentSources.Models;
 using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Utilities;
 using YamlDotNet.RepresentationModel;
 using ApplicationSourceRepository = Shipbot.Controller.Core.DeploymentSources.Models.ApplicationSourceRepository;
 
@@ -58,6 +60,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         
         public override async Task Refresh()
         {
+            using var logScope = _log.BeginShipbotLogScope();
+            
             var relativePath = State.Path;
             var applicationSourcePath = Path.Combine(this.CheckoutDirectory.FullName, relativePath);
             
@@ -68,7 +72,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
             var environmentGrain = GrainFactory.GetEnvironment(State.ApplicationEnvironment);
 
-            var imageMetadataFromFile = new Dictionary<ApplicationEnvironmentImageSettings, (FileInfo, string)>(ApplicationEnvironmentImageSettings.EqualityComparer);
+            var imageMetadataFromFile = new Dictionary<string, (FileInfo, string)>();
     
             foreach (var file in State.ValuesFiles)
             {
@@ -85,79 +89,90 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
                         if (tagInManifest == null)
                             continue;
 
-                        if (imageMetadataFromFile.ContainsKey(image))
+                        if (imageMetadataFromFile.ContainsKey(image.TagProperty.Path))
                         {
                             // TODO: handle situation where multiple files define the same image tag (ERROR and warn user)
                         }
 
-                        imageMetadataFromFile[image] = (new FileInfo(filePath), tagInManifest);
+                        imageMetadataFromFile[image.TagProperty.Path] = (new FileInfo(filePath), tagInManifest);
                     }
                 }
             }
 
             State.Metadata.ImageTags = imageMetadataFromFile.Select(
-                    x => new ImageTagMetadata(
-                        x.Key,
-                        x.Value.Item1.FullName,
-                        x.Value.Item2
+                    x => new DeploymentSourceValuePathMetadata(
+                        x.Key,            // valuepath
+                        x.Value.Item2,    // value
+                        x.Value.Item1.FullName // filename
                     )
                 )
-                .ToHashSet(new ImageTagSourceFileEqualityComparer());
+                .ToHashSet(new DeploymentSourceValuePathEqualityComparer());
 
             await WriteStateAsync();
             
             _log.LogInformation("Completing parsing value files defined in application source ...");
         }
 
-        public override async Task ApplyDeploymentAction(DeploymentActionKey deploymentActionKey)
+        public override async Task<DeploymentSourceChangeResult> ApplyDeploymentAction(DeploymentSourceChange deploymentSourceChange)
         {
             // var deploymentGrain = GrainFactory.GetDeploymentGrain(State.ApplicationEnvironment,
             //     deploymentUpdate.Image, deploymentUpdate.TargetTag);
-            var deploymentUpdateGrain = GrainFactory.GetDeploymentActionGrain(deploymentActionKey);
+            //var deploymentUpdateGrain = GrainFactory.GetDeploymentActionGrain(deploymentActionKey);
             var environmentGrain = GrainFactory.GetEnvironment(State.ApplicationEnvironment);
 
             var manifestsChanged = false;
 //            DeploymentUpdate deploymentUpdate = null;
 //            while ((deploymentUpdate = await _deploymentService.GetNextPendingDeploymentUpdate(application)) != null) 
+            _log.LogInformation("Executing pending deployment update ...");
+
+            // await deploymentUpdateGrain.SetStatus(
+            //     DeploymentActionStatus.UpdatingManifests
+            // );
+
+            //var image = await deploymentUpdateGrain.GetImage();
+
+            foreach (var deploymentSourceValuePathMetadata in State.Metadata.ImageTags)
             {
-                _log.LogInformation("Executing pending deployment update ...");
-                
-                await deploymentUpdateGrain.SetStatus(
-                    DeploymentActionStatus.UpdatingManifests
-                );
-
-                var image = await deploymentUpdateGrain.GetImage();
-
-                if (!State.Metadata.ImageTags.TryGetValue(image, out var tagSourceFile))
+                if (deploymentSourceValuePathMetadata.ValuePath.Equals(deploymentSourceChange.ValuePath))
                 {
-                    // TODO: warn that we have an image tag update but no corresponding file
-                    _log.LogWarning("Update to {Repository} cannot be applied since there isn't matching file.");
-                    return;
-                }
+                    var currentTags = await environmentGrain.GetCurrentImageTags();
+                    
+                    var pair = currentTags.First(x =>
+                        x.Key.TagProperty.Path.Equals(deploymentSourceChange.ValuePath));
 
-                var currentTags = await environmentGrain.GetCurrentImageTags();
-
-                if (!currentTags.TryGetValue(image, out string tag))
-                {
-                    tag = "n/a";
-                } 
-                
-                manifestsChanged = await UpdateDeploymentManifests(
-                    image,
-                    await deploymentUpdateGrain.GetTargetTag(),
-                    new FileInfo(tagSourceFile.File),
-                    tag
+                    manifestsChanged = await UpdateDeploymentManifests(
+                        pair.Key,
+                         deploymentSourceChange.NewValue,
+                        new FileInfo(deploymentSourceValuePathMetadata.File),
+                        pair.Value
                     );
 
-//                if (manifestsChanged)
-//                {
-//                    imageToTagInManifest[deploymentUpdate.Image] = deploymentUpdate.TargetTag;
-//                }
-
-// TODO: add ability to mark deployment updates as failed
-
-                await deploymentUpdateGrain.SetStatus(DeploymentActionStatus.Complete);
+                    break;
+                }
             }
+
+
+//             if (!State.Metadata.ImageTags.TryGetValue(deploymentSourceChange.ValuePath, out var tagSourceFile))
+//             {
+//                 // TODO: warn that we have an image tag update but no corresponding file
+//                 _log.LogWarning("Update to {Repository} cannot be applied since there isn't matching file.");
+//                 return;
+//             }
+//
+//             
+//             if (!currentTags.TryGetValue(image, out string tag))
+//             {
+//                 tag = "n/a";
+//             }
+//
+//
+//
+                // if (manifestsChanged)
+                // {
+                //     imageToTagInManifest[deploymentUpdate.Image] = deploymentUpdate.TargetTag;
+                // }
+                
+                return new DeploymentSourceChangeResult(true, deploymentSourceChange);
         }
         
         private async Task<bool> UpdateDeploymentManifests(

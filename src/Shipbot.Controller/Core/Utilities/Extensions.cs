@@ -32,21 +32,34 @@ namespace Shipbot.Controller.Core.Utilities
     
     public static class LoggerExtensions
     {
+        public static IDisposable BeginShipbotLogScope(this ILogger log, ApplicationEnvironmentKey applicationEnvironmentKey, [CallerMemberName] string? callerMemberName = null)
+        {
+            return InternalBeginShipbotLogScope(log, applicationEnvironmentKey.Application, applicationEnvironmentKey.Environment, callerMemberName ?? string.Empty);
+        }
+        
+        public static IDisposable BeginShipbotLogScope(this ILogger log, string? application = null, string? environment = null, [CallerMemberName] string? callerMemberName = null)
+        {
+            return InternalBeginShipbotLogScope(log, application ?? string.Empty, environment ?? string.Empty, callerMemberName ?? string.Empty);
+        }
+
+        
         public static IDisposable BeginShipbotLogScope<T>(this ILogger<T> log, ApplicationEnvironmentKey applicationEnvironmentKey, [CallerMemberName] string? callerMemberName = null)
         {
             return InternalBeginShipbotLogScope(log, applicationEnvironmentKey.Application, applicationEnvironmentKey.Environment, callerMemberName ?? string.Empty);
         }
         
-        public static IDisposable BeginShipbotLogScope<T>(this ILogger<T> log, string application, string? environment = null, [CallerMemberName] string? callerMemberName = null)
+        public static IDisposable BeginShipbotLogScope<T>(this ILogger<T> log, string? application = null, string? environment = null, [CallerMemberName] string? callerMemberName = null)
         {
-            return InternalBeginShipbotLogScope(log, application, environment ?? string.Empty, callerMemberName ?? string.Empty);
+            return InternalBeginShipbotLogScope(log, application ?? string.Empty, environment ?? string.Empty, callerMemberName ?? string.Empty);
         }
 
-        private static IDisposable InternalBeginShipbotLogScope<T>(ILogger<T> log, string application, string environment, string callerMemberName)
+        private static IDisposable InternalBeginShipbotLogScope(ILogger log, string application, string environment, string callerMemberName)
         {
-            var fields = new Dictionary<string, object>()
+            var fields = new Dictionary<string, object>();
+            
+            if (!string.IsNullOrWhiteSpace(application))
             {
-                {"Application", application},
+                fields.Add("Application", application);
             };
 
             if (!string.IsNullOrWhiteSpace(environment))
@@ -54,16 +67,16 @@ namespace Shipbot.Controller.Core.Utilities
                 fields.Add("Environment", environment);
             }
             
-            return new ShipbotLoggerScope<T>(log, fields, callerMemberName ?? string.Empty);
+            return new ShipbotLoggerScope(log, fields, callerMemberName ?? string.Empty);
         }
 
 
-        private class ShipbotLoggerScope<T> : IDisposable
+        private class ShipbotLoggerScope : IDisposable
         {
-            private readonly ILogger<T> _log;
+            private readonly ILogger _log;
             private readonly string _callSite;
             private readonly IDisposable _scope;
-            public ShipbotLoggerScope(ILogger<T> log, Dictionary<string, object> fields, string callSite)
+            public ShipbotLoggerScope(ILogger log, Dictionary<string, object> fields, string callSite)
             {
                 _log = log;
                 _callSite = callSite;
@@ -75,7 +88,7 @@ namespace Shipbot.Controller.Core.Utilities
                 }
             }
             
-            public ShipbotLoggerScope(ILogger<T> log, Dictionary<string, object> fields) : this (log, fields, string.Empty)
+            public ShipbotLoggerScope(ILogger log, Dictionary<string, object> fields) : this (log, fields, string.Empty)
             {
             }
 

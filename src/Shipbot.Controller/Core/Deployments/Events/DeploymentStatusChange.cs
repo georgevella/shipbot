@@ -35,4 +35,9 @@ namespace Shipbot.Controller.Core.Deployments.Events
         
         public DeploymentActionStatus ToStatus { get; }
     }
+
+    public class DeploymentQueueChange
+    {
+        
+    }
 }
