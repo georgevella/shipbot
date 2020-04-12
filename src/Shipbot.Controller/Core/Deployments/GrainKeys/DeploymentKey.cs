@@ -50,15 +50,12 @@ namespace Shipbot.Controller.Core.Deployments.Models
         //     
         // }
         
-        public static implicit operator string(DeploymentKey deploymentKey)
-        {
-            return $"{deploymentKey.Id:N}";
-        }
-        
-        public static implicit operator DeploymentKey(string deploymentKey)
-        {
-            return new DeploymentKey(Guid.Parse(deploymentKey));
-        }
+        public static implicit operator string(DeploymentKey deploymentKey) => $"{deploymentKey.Id:N}";
+
+        public static implicit operator Guid(DeploymentKey deploymentKey) => deploymentKey.Id;
+
+        public static implicit operator DeploymentKey(string deploymentKey) => new DeploymentKey(Guid.Parse(deploymentKey));
+        public static implicit operator DeploymentKey(Guid deploymentKey) => new DeploymentKey(deploymentKey);
     }
     // public class DeploymentKey
     // {

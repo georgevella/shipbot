@@ -69,8 +69,6 @@ namespace Shipbot.Controller.Controllers
 
     public class DeploymentQueueItemDto
     {
-        public string Application { get; set; }
-        
         public DeploymentActionType Action { get; set; }
         
         public string DeploymentId { get; set; }
@@ -78,6 +76,7 @@ namespace Shipbot.Controller.Controllers
 
     public class DetailedDeploymentQueueItemDto : DeploymentQueueItemDto
     {
+        public string Application { get; set; }
         public string Environment { get; set; }
         public DeploymentActionStatus Status { get; set; }
     }

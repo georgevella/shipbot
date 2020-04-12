@@ -6,6 +6,7 @@ using Shipbot.Controller.Core.Deployments.Grains;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.Core.Models;
+using Shipbot.Controller.Core.Utilities;
 
 // ReSharper disable once CheckNamespace
 namespace Orleans
@@ -34,7 +35,7 @@ namespace Orleans
         
         public static IDeploymentServiceGrain GetDeploymentServiceGrain(this IGrainFactory grainFactory, ApplicationKey applicationKey)
         {
-            return grainFactory.GetGrain<IDeploymentServiceGrain>(applicationKey);
+            return grainFactory.GetGrain<IDeploymentServiceGrain>(applicationKey.Name);
         }
     }
 }

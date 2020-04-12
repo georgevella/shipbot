@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Orleans;
+using Shipbot.Controller.Core.ContainerRegistry;
 using Shipbot.Controller.Core.ContainerRegistry.Models;
 using Shipbot.Controller.Core.Utilities;
 
@@ -10,7 +11,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
     {
         public Task SubmitNewImageTag(string tag)
         {
-            var streamProvider = GetStreamProvider(Constants.InternalMessageStreamProvider);
+            var streamProvider = GetStreamProvider(Constants.ContainerRegistryStreamProvider);
 
             var containerImageStream = this.GetPrimaryKeyString().CreateGuidFromString();
 

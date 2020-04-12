@@ -18,8 +18,8 @@ namespace Shipbot.Controller.Controllers
         [HttpPost]
         public async Task<ActionResult> SubmitNewImageTag(NewImageTagRequest newImageTagRequest)
         {
-            var containerImageGrain = _grainFactory.GetContainerImage(newImageTagRequest.Repository);
-            await containerImageGrain.SubmitNewImageTag(newImageTagRequest.Tag);
+            var imageRepositoryGrain = _grainFactory.GetImageRepositoryGrain(newImageTagRequest.Repository);
+            await imageRepositoryGrain.SubmitNewImageTag(newImageTagRequest.Tag);
 
             return Accepted();
         }

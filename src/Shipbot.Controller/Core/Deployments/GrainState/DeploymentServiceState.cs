@@ -21,19 +21,36 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
         /// <summary>
         ///     Map storing the planned deployment actions and their associated deployment keys.
         /// </summary>
-        public Dictionary<DeploymentAction, DeploymentKey> PlannedDeploymentActionsIndex { get; } 
-            = new Dictionary<DeploymentAction, DeploymentKey>( DeploymentAction.EqualityComparer );
-
-        /// <summary>
-        ///     Index of deployment IDs per environment
-        /// </summary>
-        public Dictionary<string, List<DeploymentKey>> EnvironmentalDeployments { get; } = new Dictionary<string, List<DeploymentKey>>();
-        
-        public HashSet<DeploymentActionKey> DeploymentActions { get; } = new HashSet<DeploymentActionKey>( DeploymentActionKey.EqualityComparer );
-
-        public LatestImageDeployments LatestImageDeployments { get; } = new LatestImageDeployments();
+        public Dictionary<(string environment, string imageRepository, string imageTagValuePath, string targetTag), DeploymentKey> PlannedDeploymentActionsIndex { get; } 
+            = new Dictionary<(string environment, string imageRepository, string imageTagValuePath, string targetTag), DeploymentKey>( new PlannedDeploymentActionsEqualityComparer() );
     }
-    
+
+    public class PlannedDeploymentActionsEqualityComparer : IEqualityComparer<(string environment, string imageRepository, string imageTagValuePath, string targetTag)>
+    {
+        public bool Equals(
+            (string environment, string imageRepository, string imageTagValuePath, string targetTag) x,
+            (string environment, string imageRepository, string imageTagValuePath, string targetTag) y
+            )
+        {
+            return x.environment == y.environment &&
+                   x.imageRepository == y.imageRepository &&
+                   x.imageTagValuePath == y.imageTagValuePath &&
+                   x.targetTag == y.targetTag;
+        }
+
+        public int GetHashCode((string environment, string imageRepository, string imageTagValuePath, string targetTag) obj)
+        {
+            var hashCode = 864;
+            
+            hashCode = (hashCode * 397) ^ (obj.environment != null ? obj.environment.GetHashCode() : 0);
+            hashCode = (hashCode * 397) ^ (obj.imageRepository != null ? obj.imageRepository.GetHashCode() : 0);
+            hashCode = (hashCode * 397) ^ (obj.imageTagValuePath != null ? obj.imageTagValuePath.GetHashCode() : 0);
+            hashCode = (hashCode * 397) ^ (obj.targetTag != null ? obj.targetTag.GetHashCode() : 0);
+
+            return hashCode;
+        }
+    }
+
     class DictionaryAsArrayResolver : DefaultContractResolver
     {
         protected override JsonContract CreateContract(Type objectType)

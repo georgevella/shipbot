@@ -7,6 +7,7 @@ using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Quartz.Util;
+using Shipbot.Controller.Core.Apps.GrainState;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Deployments.GrainKeys;
@@ -84,17 +85,17 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
                 {
                     foreach (var image in await environmentGrain.GetImages())
                     {
-                        var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
+                        var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.ImageTagValuePath, doc);
 
                         if (tagInManifest == null)
                             continue;
 
-                        if (imageMetadataFromFile.ContainsKey(image.TagProperty.Path))
+                        if (imageMetadataFromFile.ContainsKey(image.ImageTagValuePath))
                         {
                             // TODO: handle situation where multiple files define the same image tag (ERROR and warn user)
                         }
 
-                        imageMetadataFromFile[image.TagProperty.Path] = (new FileInfo(filePath), tagInManifest);
+                        imageMetadataFromFile[image.ImageTagValuePath] = (new FileInfo(filePath), tagInManifest);
                     }
                 }
             }
@@ -138,7 +139,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
                     var currentTags = await environmentGrain.GetCurrentImageTags();
                     
                     var pair = currentTags.First(x =>
-                        x.Key.TagProperty.Path.Equals(deploymentSourceChange.ValuePath));
+                        x.Key.ImageTagValuePath.Equals(deploymentSourceChange.ValuePath));
 
                     manifestsChanged = await UpdateDeploymentManifests(
                         pair.Key,
@@ -176,7 +177,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         }
         
         private async Task<bool> UpdateDeploymentManifests(
-            ApplicationEnvironmentImageSettings image,
+            ApplicationEnvironmentImageMetadata image,
             string targetTag,
             FileSystemInfo file,
             string currentImageTag)
@@ -205,7 +206,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
             foreach (var doc in yaml.Documents)
             {
-                var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
+                var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.ImageTagValuePath, doc);
                 if (tagInManifest == null) continue;
 
                 if (tagInManifest == targetTag)
@@ -216,7 +217,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
                 _log.LogInformation("Setting current-tag for {Repository} to {Tag}", image.Repository,
                     targetTag);
-                yamlUtilities.SetValueInDoc(image.TagProperty.Path, doc, targetTag);
+                yamlUtilities.SetValueInDoc(image.ImageTagValuePath, doc, targetTag);
 
                 doCommit = true;
             }

@@ -17,6 +17,7 @@ using Serilog.Formatting.Json;
 using Shipbot.Controller.Cmd;
 using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.Apps.Grains;
+using Shipbot.Controller.Core.ContainerRegistry;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Deployments.GrainState;
 using Shipbot.Controller.Core.Utilities.Eventing;
@@ -152,8 +153,16 @@ namespace Shipbot.Controller
                             options.ConnectionString =
                                 "User ID=postgres;Password=password123;Host=localhost;Database=shipbot;";
                         })
-                        .AddSimpleMessageStreamProvider(Constants.InternalMessageStreamProvider)
-                        .AddSimpleMessageStreamProvider(EventHandlingConstants.EventHandlingStreamProvider)
+                        .AddSimpleMessageStreamProvider(Constants.ContainerRegistryStreamProvider, 
+                            configurator =>
+                        {
+                            configurator.FireAndForgetDelivery = true;
+                        })
+                        .AddSimpleMessageStreamProvider(EventingStreamingConstants.EventHandlingStreamProvider,
+                            configurator =>
+                            {
+                                configurator.FireAndForgetDelivery = true;
+                            })
                         .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
                         .ConfigureApplicationParts(parts =>
                             parts.AddApplicationPart(typeof(IApplicationGrain).Assembly).WithReferences()
@@ -178,6 +187,10 @@ namespace Shipbot.Controller
                             .UseShutdownTimeout(TimeSpan.FromSeconds(10));
                     }
                 );
+    }
+
+    internal class GrainExtension
+    {
     }
 
     internal class TestGrainExtension

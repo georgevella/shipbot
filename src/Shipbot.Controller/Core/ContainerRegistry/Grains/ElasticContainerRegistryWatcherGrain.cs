@@ -47,7 +47,7 @@ namespace Shipbot.Controller.Core.ContainerRegistry.Grains
                 tags.ForEach( t => State.Tags.Add(t));
             }
             
-            var streamProvider = GetStreamProvider(Constants.InternalMessageStreamProvider);
+            var streamProvider = GetStreamProvider(Constants.ContainerRegistryStreamProvider);
 
             _stream = streamProvider.GetStream<ImageTag>(
                 imageRepository.CreateGuidFromString(),

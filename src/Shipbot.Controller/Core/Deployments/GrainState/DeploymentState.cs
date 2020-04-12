@@ -17,7 +17,7 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
 
         public DeploymentStatus Status { get; set; } = DeploymentStatus.Created;
 
-        public string? Application { get; set; }
+        public ApplicationKey Application { get; set; }
         public string? ImageRepository { get; set; }
         public string? TargetTag { get; set; }
     }

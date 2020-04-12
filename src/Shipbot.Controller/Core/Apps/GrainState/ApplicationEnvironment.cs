@@ -7,8 +7,8 @@ namespace Shipbot.Controller.Core.Apps.GrainState
 {
     public class ApplicationEnvironment
     {
-        public HashSet<ApplicationEnvironmentImageSettings> Images { get; set; } 
-            = new HashSet<ApplicationEnvironmentImageSettings>(ApplicationEnvironmentImageSettings.EqualityComparer);
+        public HashSet<ApplicationEnvironmentImageMetadata> Images { get; set; } 
+            = new HashSet<ApplicationEnvironmentImageMetadata>(ApplicationEnvironmentImageMetadata.EqualityComparer);
         public bool AutoDeploy { get; set; }
         public List<string> PromotionEnvironments { get; set; }
         public ApplicationSourceSettings ApplicationSourceSettings { get; set; }

@@ -4,9 +4,9 @@ using Shipbot.Controller.Core.Deployments.Models;
 
 namespace Shipbot.Controller.Core.Deployments.Events
 {
-    public class DeploymentStatusChange
+    public class DeploymentStatusChangeEvent
     {
-        public DeploymentStatusChange(DeploymentState fromStatus, DeploymentState status, DeploymentKey deploymentKey)
+        public DeploymentStatusChangeEvent(DeploymentState fromStatus, DeploymentState status, DeploymentKey deploymentKey)
         {
             FromStatus = fromStatus;
             ToStatus = status;
@@ -20,9 +20,9 @@ namespace Shipbot.Controller.Core.Deployments.Events
         public DeploymentState ToStatus { get; }
     }
 
-    public class DeploymentActionStatusChange
+    public class DeploymentActionStatusChangeEvent
     {
-        public DeploymentActionStatusChange(DeploymentActionKey actionKey, DeploymentActionStatus fromStatus, DeploymentActionStatus toStatus)
+        public DeploymentActionStatusChangeEvent(DeploymentActionKey actionKey, DeploymentActionStatus fromStatus, DeploymentActionStatus toStatus)
         {
             ActionKey = actionKey;
             FromStatus = fromStatus;

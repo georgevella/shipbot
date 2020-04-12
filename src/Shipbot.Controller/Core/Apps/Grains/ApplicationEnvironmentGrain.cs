@@ -10,25 +10,30 @@ using Orleans.Runtime;
 using Orleans.Streams;
 using Shipbot.Controller.Core.Apps.GrainState;
 using Shipbot.Controller.Core.Apps.Models;
-using Shipbot.Controller.Core.Apps.Streaming;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
+using Shipbot.Controller.Core.ContainerRegistry;
 using Shipbot.Controller.Core.ContainerRegistry.Models;
+using Shipbot.Controller.Core.Deployments;
+using Shipbot.Controller.Core.Deployments.Events;
 using Shipbot.Controller.Core.Models;
 using Shipbot.Controller.Core.Utilities;
+using Shipbot.Controller.Core.Utilities.Eventing;
 
 namespace Shipbot.Controller.Core.Apps.Grains
 {
     public interface IApplicationEnvironmentGrain : IGrainWithStringKey
     {
-        Task<IEnumerable<ApplicationEnvironmentImageSettings>> GetImages();
+        Task<IEnumerable<ApplicationEnvironmentImageMetadata>> GetImages();
         Task EnableAutoDeploy();
         Task DisableAutoDeploy();
-        Task SetImageTag(string imageTagValuePath, string newImageTag);
-        Task<string> GetImageTag(string imageTagValuePath);
         
-        Task SetImageTag(ApplicationEnvironmentImageSettings image, string newImageTag);
-        Task<IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>> GetCurrentImageTags();
+        Task<string> GetImageTag(string imageTagValuePath);
+        Task<string> GetImageTag(ApplicationEnvironmentImageMetadata image);
+        
+        Task SetImageTag(string imageTagValuePath, string newImageTag);
+        Task SetImageTag(ApplicationEnvironmentImageMetadata image, string newImageTag);
+        Task<IReadOnlyDictionary<ApplicationEnvironmentImageMetadata, string>> GetCurrentImageTags();
         Task Configure(ApplicationEnvironmentSettings applicationEnvironmentSettings);
         Task<IEnumerable<string>> GetDeploymentPromotionSettings();
         Task<bool> IsAutoDeployEnabled();
@@ -38,7 +43,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
     }
     
     [StorageProvider(ProviderName = ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME)]
-    public class ApplicationEnvironmentGrain : Grain<ApplicationEnvironment>, IApplicationEnvironmentGrain
+    public class ApplicationEnvironmentGrain : EventHandlingGrain<ApplicationEnvironment>, IApplicationEnvironmentGrain
     {
         private readonly Dictionary<Guid, StreamSubscriptionHandle<ImageTag>> _streamSubscriptionHandles = new Dictionary<Guid, StreamSubscriptionHandle<ImageTag>>();
 
@@ -46,7 +51,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
         private readonly IServiceProvider _serviceProvider;
         private readonly ILoggerFactory _loggerFactory;
         private ApplicationEnvironmentKey _key;
-        private IStreamProvider _streamProvider;
+        private IStreamProvider _containerRegistryStreamProvider;
+        private IStreamProvider _eventHandlingStreamProvider;
 
         public ApplicationEnvironmentGrain(
             ILogger<ApplicationEnvironmentGrain> log,
@@ -61,13 +67,16 @@ namespace Shipbot.Controller.Core.Apps.Grains
         
         public override async Task OnActivateAsync()
         {
-            if (State.PromotionEnvironments == null) State.PromotionEnvironments = new List<string>();
+            if (State.PromotionEnvironments == null) 
+                State.PromotionEnvironments = new List<string>();
+            
             //if (State.CurrentImageTags == null) State.CurrentImageTags = new List<(Image, string)>();
 
             var key = this.GetPrimaryKeyString();
             _key = ApplicationEnvironmentKey.Parse(key);
 
-            _streamProvider = GetStreamProvider(Constants.InternalMessageStreamProvider);
+            _containerRegistryStreamProvider = GetStreamProvider(Constants.ContainerRegistryStreamProvider);
+            _eventHandlingStreamProvider = GetStreamProvider(EventingStreamingConstants.EventHandlingStreamProvider);
             
             await StartListeningToImageTagUpdates();
 
@@ -85,43 +94,53 @@ namespace Shipbot.Controller.Core.Apps.Grains
         
         private async Task<StreamSubscriptionHandle<ImageTag>> GetStreamSubscriptionHandle(
             IAsyncStream<ImageTag> asyncStream, 
-            ApplicationEnvironmentImageSettings image
+            ApplicationEnvironmentImageMetadata image
         )
         {
             if (asyncStream == null) throw new ArgumentNullException(nameof(asyncStream));
                 
             var handles = await asyncStream.GetAllSubscriptionHandles();
-                
-            var imageUpdateSettings = State.Images
-                .First(x => ApplicationEnvironmentImageSettings.EqualityComparer.Equals(x, image));
-                    
-            var logger = _loggerFactory.CreateLogger<ContainerRegistryStreamObserver>();
-            var grainFactory = _serviceProvider.GetService<IGrainFactory>();
-                    
-            var streamObserver = new ContainerRegistryStreamObserver(
-                logger,
-                image,
-                _key,
-                grainFactory
-            );
 
             return handles.Any()
-                ? await handles.First().ResumeAsync(streamObserver)
-                : await asyncStream.SubscribeAsync(
-                    streamObserver,
-                    null,
-                    StreamFilterFunc);
+                ? await handles.First().ResumeAsync(OnNewImageTag)
+                : await asyncStream.SubscribeAsync(OnNewImageTag);
         }
 
+        private async Task OnNewImageTag(ImageTag item, StreamSequenceToken arg2)
+        {
+            using (_log.BeginShipbotLogScope(_key))
+            {
+                var currentTags = State.Images;
 
-        private async Task StartListeningToImageTagUpdates(ApplicationEnvironmentImageSettings image)
+                var image = State.Images.First(x => (item.Repository == x.Repository));
+
+                if (image.Policy.IsMatch(item.Tag))
+                {
+                    _log.Info("Received new image notification for {image}, with tag {tag}",
+                        image,
+                        item.Tag);
+
+                    var currentTag = image.CurrentTag;
+
+                    // handle the case where the current image tag does not match the policy specified (for example, manually updated or overridden)
+                    // TODO: maybe we don't want to do this and we may need to put a flag or a facility to force
+                    if ((!image.Policy.IsMatch(currentTag)) ||
+                        image.Policy.IsGreaterThen(item.Tag, currentTag))
+                    {
+                        await SendEvent(new NewDeploymentEvent(_key, image, item.Tag));
+                    }
+                }
+            }
+        }
+
+        private async Task StartListeningToImageTagUpdates(ApplicationEnvironmentImageMetadata image)
         {
 
             _log.LogInformation("Listening to image update events for {image}", image);
             
             var streamId = image.Repository.CreateGuidFromString();
             
-            var stream = _streamProvider.GetStream<ImageTag>(streamId,
+            var stream = _containerRegistryStreamProvider.GetStream<ImageTag>(streamId,
                 Constants.ContainerRegistryQueueNamespace);
             var streamHandle = await GetStreamSubscriptionHandle(stream, image);
 
@@ -178,12 +197,11 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 // update state
                 foreach (var imageSettings in applicationEnvironmentSettings.Images)
                 {
-                    var image = new ApplicationEnvironmentImageSettings(
+                    var image = new ApplicationEnvironmentImageMetadata(
                         imageSettings.Repository,
-                        new TagProperty(
-                            imageSettings.TagProperty.Path,
-                            imageSettings.TagProperty.ValueFormat
-                        ), 
+                        string.Empty,
+                        imageSettings.TagProperty.Path,
+                        imageSettings.TagProperty.ValueFormat, 
                         imageSettings.Policy switch
                         {
                             UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
@@ -245,17 +263,17 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 {
                     if (State.Images.TryGetValue(image, out var currentTag))
                     {
-                        if ((!imageUpdateSetting.Policy.IsMatch(currentTag.Tag)) ||
-                            imageUpdateSetting.Policy.IsGreaterThen(latestTag.Tag, currentTag.Tag))
+                        if ((!imageUpdateSetting.Policy.IsMatch(currentTag.CurrentTag)) ||
+                            imageUpdateSetting.Policy.IsGreaterThen(latestTag.Tag, currentTag.CurrentTag))
                         {
                             _log.Info(
                                 "Found newer image for {image} ({currentTag} -> {nextTag})",
                                 image.Repository,
-                                currentTag.Tag,
+                                currentTag.CurrentTag,
                                 latestTag.Tag
                             );
                             var streamId = image.Repository.CreateGuidFromString();
-                            var stream = _streamProvider.GetStream<ImageTag>(streamId,
+                            var stream = _containerRegistryStreamProvider.GetStream<ImageTag>(streamId,
                                 Constants.ContainerRegistryQueueNamespace);
                             await stream.OnNextAsync(latestTag);
                         }
@@ -271,10 +289,20 @@ namespace Shipbot.Controller.Core.Apps.Grains
             return Task.FromResult(State.PromotionEnvironments.ToArray().AsEnumerable());
         }
 
+        public Task<string> GetImageTag(ApplicationEnvironmentImageMetadata image)
+        {
+            if (State.Images.TryGetValue(image, out var imageSettings))
+            {
+                return Task.FromResult(imageSettings.CurrentTag);
+            }
+            
+            throw new InvalidOperationException();
+        }
+
         public Task SetImageTag(string imageTagValuePath, string newImageTag)
         {
             var imageSettings = State.Images.First(
-                x => x.TagProperty.Path == imageTagValuePath
+                x => x.ImageTagValuePath == imageTagValuePath
             );
             return SetImageTag(imageSettings, newImageTag);
         }
@@ -282,19 +310,19 @@ namespace Shipbot.Controller.Core.Apps.Grains
         public Task<string> GetImageTag(string imageTagValuePath)
         {
             var imageSettings = State.Images.First(
-                x => x.TagProperty.Path == imageTagValuePath
+                x => x.ImageTagValuePath == imageTagValuePath
             );
-            return Task.FromResult(imageSettings.Tag);
+            return Task.FromResult(imageSettings.CurrentTag);
         }
 
-        public Task SetImageTag(ApplicationEnvironmentImageSettings image, string newImageTag)
+        public Task SetImageTag(ApplicationEnvironmentImageMetadata image, string newImageTag)
         {
             using var _ = _log.BeginShipbotLogScope(_key);
 
             if (!State.Images.TryGetValue(image, out var deployedImageTag)) 
                 return Task.CompletedTask;
             
-            if (deployedImageTag.Tag == newImageTag)
+            if (deployedImageTag.CurrentTag == newImageTag)
                 return Task.CompletedTask;
             
             _log.LogInformation(
@@ -303,26 +331,26 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 _key.Environment,
                 image.Repository,
                 newImageTag,
-                deployedImageTag.Tag
+                deployedImageTag.CurrentTag
             );
-            deployedImageTag.Tag = newImageTag;
+            deployedImageTag.CurrentTag = newImageTag;
 
             return WriteStateAsync();
         }
 
-        public Task<IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>> GetCurrentImageTags()
+        public Task<IReadOnlyDictionary<ApplicationEnvironmentImageMetadata, string>> GetCurrentImageTags()
         {
             return Task.FromResult(
-                (IReadOnlyDictionary<ApplicationEnvironmentImageSettings, string>) State.Images
+                (IReadOnlyDictionary<ApplicationEnvironmentImageMetadata, string>) State.Images
                     .ToDictionary(
                         x => x, 
-                        x => x.Tag, 
-                        ApplicationEnvironmentImageSettings.EqualityComparer
+                        x => x.CurrentTag, 
+                        ApplicationEnvironmentImageMetadata.EqualityComparer
                     )
             );
         }
 
-        public Task<IEnumerable<ApplicationEnvironmentImageSettings>> GetImages()
+        public Task<IEnumerable<ApplicationEnvironmentImageMetadata>> GetImages()
         {
             return Task.FromResult(State.Images.ToList().AsEnumerable());
         }

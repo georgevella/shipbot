@@ -27,7 +27,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
         public override async Task OnActivateAsync()
         {
-            await SubscribeForEvents<DeploymentActionStatusChange>((change, token) =>
+            await SubscribeForEvents<DeploymentActionStatusChangeEvent>((change, token) =>
             {
                 State.PendingDeploymentActions.Remove(change.ActionKey);
 
@@ -101,7 +101,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                     var targetTag = await deploymentActionGrain.GetTargetTag();
                     var deploymentSourceChangeAction = new DeploymentSourceChange(
                         DeploymentSourceChangeAction.Replace,
-                        imageSettings.TagProperty.Path,
+                        imageSettings.ImageTagValuePath,
                         currentTag,
                         targetTag
                     );

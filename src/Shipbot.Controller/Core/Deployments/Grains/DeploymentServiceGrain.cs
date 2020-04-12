@@ -7,6 +7,7 @@ using Orleans;
 using Orleans.Providers;
 using Orleans.Runtime;
 using Orleans.Streams;
+using Shipbot.Controller.Core.Apps.GrainState;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Deployments.Events;
 using Shipbot.Controller.Core.Deployments.GrainState;
@@ -30,7 +31,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
         public override async Task OnActivateAsync()
         {
-            await SubscribeForEvents<DeploymentStatusChange>((change, token) =>
+            await SubscribeForEvents<DeploymentStatusChangeEvent>((change, token) =>
             {
                 _log.Info("Deployment {deploymentKey} changed state {fromStatus}->{toStatus}", 
                     change.DeploymentKey, 
@@ -41,91 +42,81 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 return Task.CompletedTask;
             });
 
+            await SubscribeForEvents<NewDeploymentEvent>(async (e, token) =>
+            {
+                using (_log.BeginShipbotLogScope(e.ApplicationEnvironment))
+                {
+                    if (e.ApplicationEnvironment.Application != this.GetPrimaryKeyString())
+                        return;
+
+                    var firstApplicationEnvironmentKey = e.ApplicationEnvironment;
+                    
+                    // start planning the first environment we are deploying to
+                    //var deploymentPlan = new List<DeploymentAction>();
+                    var targetEnvironments = new List<string>
+                    {
+                        e.ApplicationEnvironment.Environment
+                    };
+
+                    var deploymentKey = new DeploymentKey(Guid.NewGuid());
+                    var plannedActions =
+                        new List<(
+                            string environment, 
+                            string imageRepository, 
+                            string imageTagValuePath, 
+                            string targetTag
+                            )>();
+                    // determine if we have other environments we want to promote to.
+                    {
+                        var firstEnvironmentGrain = GrainFactory.GetEnvironment(firstApplicationEnvironmentKey);
+                        var promotionSettings = await firstEnvironmentGrain.GetDeploymentPromotionSettings();
+                        targetEnvironments.AddRange(promotionSettings);
+
+                        // generate image deployment (starting with the identifier)
+                        
+                        var currentTag = await firstEnvironmentGrain.GetImageTag(e.Image);
+
+                        // build deployment plan
+                        foreach (var env in targetEnvironments)
+                        {
+                            var plannedDeploymentAction = (
+                                env,
+                                e.Image.Repository,
+                                e.Image.ImageTagValuePath,
+                                e.TargetTag
+                            );
+
+                            // check if there is already an planned deployment action for this image
+                            if (State.PlannedDeploymentActionsIndex.ContainsKey(plannedDeploymentAction))
+                            {
+                                var otherDeploymentKey = State.PlannedDeploymentActionsIndex[plannedDeploymentAction];
+                                _log.LogWarning(
+                                    "A deployment action for {image} with tag {targetTag} is already planned and will be executed by ({deploymentKey}), skipping ...",
+                                    e.Image.Repository,
+                                    e.TargetTag,
+                                    otherDeploymentKey
+                                );
+
+                                return;
+                            }
+                            plannedActions.Add(plannedDeploymentAction);
+                        }
+                    }
+
+                    // start building deployment
+
+                    await SendMessage(deploymentKey.Id, e, DeploymentStreamingConstants.DeploymentsNamespace);
+                    
+                    // store reference to deployment
+                    State.Deployments.Add(deploymentKey);
+                    plannedActions.ForEach( x => State.PlannedDeploymentActionsIndex[x] = deploymentKey);
+                    await WriteStateAsync();
+                }
+            });
+
             await base.OnActivateAsync();
         }
 
-        public async Task<DeploymentKey> CreateNewImageDeployment(
-            string environment, 
-            ApplicationEnvironmentImageSettings image, 
-            string newTag
-            )
-        {
-            using (_log.BeginShipbotLogScope(this.GetPrimaryKeyString(), environment))
-            {
-                var firstApplicationEnvironmentKey = new ApplicationEnvironmentKey(this.GetPrimaryKeyString(), environment);
-                
-                // start planning the first environment we are deploying to
-                var deploymentPlan = new List<DeploymentAction>();
-                var targetEnvironments = new List<string>
-                {
-                    environment
-                };
-
-                // determine if we have other environments we want to promote to.
-                var firstEnvironmentGrain = GrainFactory.GetEnvironment(firstApplicationEnvironmentKey);
-                var promotionSettings = await firstEnvironmentGrain.GetDeploymentPromotionSettings();
-                targetEnvironments.AddRange(promotionSettings);
-
-                // generate image deployment (starting with the identifier)
-                var deploymentKey = new DeploymentKey(Guid.NewGuid());
-                
-                // build deployment plan
-                foreach (var env in targetEnvironments)
-                {
-                    var applicationEnvironmentKey = new ApplicationEnvironmentKey(this.GetPrimaryKeyString(), env);
-                    var environmentGrain = GrainFactory.GetEnvironment(applicationEnvironmentKey);
-
-//                    var imageUpdatePolicy = await environmentGrain.GetImageUpdatePolicy(image);
-                    var currentTags = await environmentGrain.GetCurrentImageTags();
-                    
-                    var plannedDeploymentAction = new DeploymentAction()
-                    {
-                        Image = image,
-                        ApplicationEnvironmentKey = applicationEnvironmentKey,
-                        CurrentTag = currentTags[image],
-                        TargetTag = newTag
-                    };
-                    
-                    // check if there is already an planned deployment action for this image
-                    if (State.PlannedDeploymentActionsIndex.ContainsKey(plannedDeploymentAction))
-                    {
-                        var otherDeploymentKey = State.PlannedDeploymentActionsIndex[plannedDeploymentAction];
-                        _log.LogWarning(
-                            "A deployment action for {image} with tag {newTag} is already planned and will be executed by ({deploymentKey}), skipping ...",
-                            image.Repository,
-                            newTag,
-                            otherDeploymentKey
-                        );
-                        
-                        return DeploymentKey.Empty;
-                    }
-                    
-                    deploymentPlan.Add(plannedDeploymentAction);
-                }
-
-                if (!deploymentPlan.Any())
-                {
-                    return DeploymentKey.Empty;
-                }
-
-                // start building deployment
-                var deploymentGrain = GrainFactory.GetDeploymentGrain(deploymentKey);
-                await deploymentGrain.Configure(this.GetPrimaryKeyString(), image, newTag);
-                deploymentPlan.ForEach( async x=>
-                {
-                    // store reference to the deployment that will execute this action
-                    State.PlannedDeploymentActionsIndex[x] = deploymentKey;
-                    await deploymentGrain.AddDeploymentAction(x);
-                });
-                
-                //await deploymentGrain.Configure(_key, image, newTag);
-                State.Deployments.Add(deploymentKey);
-                    
-                await WriteStateAsync();
-                return deploymentKey;
-            }
-
-        }
 
         public Task<IEnumerable<DeploymentKey>> GetAllDeploymentIds()
         {
@@ -135,25 +126,8 @@ namespace Shipbot.Controller.Core.Deployments.Grains
     
     public interface IDeploymentServiceGrain : IGrainWithStringKey
     {
-        Task<DeploymentKey> CreateNewImageDeployment(string environment, ApplicationEnvironmentImageSettings image, string newTag);
+        //Task<DeploymentKey> CreateNewImageDeployment(string environment, ApplicationEnvironmentImageMetadata image, string targetTag);
         
-        //Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status);
-
-//        /// <summary>
-//        ///     Returns the next deployment update in the queue.
-//        /// </summary>
-//        /// <returns>Returns the next deployment update in the queue, or <c>null</c> if there are no pending deployment updates.</returns>
-//        Task<DeploymentUpdate> GetNextPendingDeploymentUpdate(ApplicationEnvironmentKey applicationEnvironmentKey);
-//
-//        Task FinishDeploymentUpdate(
-//            DeploymentUpdate deploymentUpdate,
-//            DeploymentUpdateStatus finalStatus
-//        );
-//
-//        Task PromoteDeployment(DeploymentUpdate deploymentUpdate);
-//
-//        Task PromoteDeployment(Application application, string containerRepository, string targetTag,
-//            string sourceEnvironment);
         Task<IEnumerable<DeploymentKey>>  GetAllDeploymentIds();
     }
 }

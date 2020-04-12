@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using Shipbot.Controller.Core.Apps.GrainState;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Deployments.Events;
 using Shipbot.Controller.Core.Deployments.GrainKeys;
@@ -27,7 +28,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             return WriteStateAsync();
         }
 
-        public Task<ApplicationEnvironmentImageSettings> GetImage() => Task.FromResult(State.Action.Image);
+        public Task<ApplicationEnvironmentImageMetadata> GetImage() => Task.FromResult(State.Action.Image);
 
         public Task<string> GetTargetTag() => Task.FromResult(State.Action.TargetTag);
 
@@ -77,7 +78,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             var currentStatus = State.Action.Status;
             State.Action.Status = status;
             await WriteStateAsync();
-            await SendEvent(new DeploymentActionStatusChange(this.GetPrimaryKeyString(), currentStatus, status));
+            await SendEvent(new DeploymentActionStatusChangeEvent(this.GetPrimaryKeyString(), currentStatus, status));
         }
     }
     
@@ -89,7 +90,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
 
         Task SetParentDeploymentKey(DeploymentKey deploymentKey);
-        Task<ApplicationEnvironmentImageSettings> GetImage();
+        Task<ApplicationEnvironmentImageMetadata> GetImage();
         Task<string> GetTargetTag();
         Task<string> GetCurrentTag();
         Task<DeploymentAction> GetAction();
