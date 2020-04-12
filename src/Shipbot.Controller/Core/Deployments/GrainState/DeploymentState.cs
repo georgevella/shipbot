@@ -21,6 +21,8 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
         public ApplicationKey Application { get; set; }
         
         public IMessageHandle SlackMessageHandle { get; set; }
+        
+        public bool IsPromotable { get; set; }
         public string? ImageRepository { get; set; }
         public string? TargetTag { get; set; }
     }

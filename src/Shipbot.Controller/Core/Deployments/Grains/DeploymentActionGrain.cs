@@ -28,7 +28,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             return WriteStateAsync();
         }
 
-        public Task<ApplicationEnvironmentImageMetadata> GetImage() => Task.FromResult(State.Action.Image);
+        public Task<ApplicationEnvironmentImageKey> GetImage() => Task.FromResult(State.Action.Image);
 
         public Task<string> GetTargetTag() => Task.FromResult(State.Action.TargetTag);
 
@@ -90,7 +90,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
 
 
         Task SetParentDeploymentKey(DeploymentKey deploymentKey);
-        Task<ApplicationEnvironmentImageMetadata> GetImage();
+        Task<ApplicationEnvironmentImageKey> GetImage();
         Task<string> GetTargetTag();
         Task<string> GetCurrentTag();
         Task<DeploymentAction> GetAction();

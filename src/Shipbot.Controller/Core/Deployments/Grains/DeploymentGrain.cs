@@ -67,47 +67,35 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 DeploymentStreamingConstants.DeploymentsNamespace,
                 async (e, token) =>
                 {
-                    var firstApplicationEnvironment = e.ApplicationEnvironment;
-                    var image = e.Image;
-                    var targetTag = e.TargetTag;
-                    
-                    
-                    using var logScope = _log.BeginShipbotLogScope(firstApplicationEnvironment);
+                    using var logScope = _log.BeginShipbotLogScope();
                     
                     // TODO check for reconfiguration
             
-                    State.Application = firstApplicationEnvironment.Application;
-                    State.ImageRepository = image.Repository;
-                    State.TargetTag = targetTag;
-                    
-                    var targetEnvironments = new List<ApplicationEnvironmentKey>
-                    {
-                        firstApplicationEnvironment
-                    };
-                
+                    State.Application = e.ApplicationEnvironment.Application;
+                    State.ImageRepository = e.Image.Repository;
+                    State.TargetTag = e.TargetTag;
+                    State.IsPromotable = e.IsPromotable;
+
                     // determine if we have other environments we want to promote to.
-                    var firstEnvironmentGrain = GrainFactory.GetEnvironment(firstApplicationEnvironment);
-                    var promotionSettings = await firstEnvironmentGrain.GetDeploymentPromotionSettings();
-                     targetEnvironments.AddRange(
-                         promotionSettings.Select(
-                             promoteToEnv => new ApplicationEnvironmentKey(
-                                 State.Application,
-                                 promoteToEnv
-                             )
-                         )
-                     );
+                    var targetEnvironments = new List<ApplicationEnvironmentKey>()
+                    {
+                        e.ApplicationEnvironment
+                    };
                     
+                    targetEnvironments.AddRange(e.PromotableEnvironments
+                        .Select(x => new ApplicationEnvironmentKey(State.Application, x))
+                    );
+
                     foreach (var env in targetEnvironments) {
-                        var envGrain = GrainFactory.GetEnvironment(env);
-                        var currentTag = await envGrain.GetImageTag(image);
+                        var currentTag = e.CurrentTags[env];
 
                         // build deployment action metadata
                         var deploymentAction = new DeploymentAction()
                         {
-                            Image = image,
+                            Image = e.Image,
                             ApplicationEnvironmentKey = env,
                             CurrentTag = currentTag,
-                            TargetTag = targetTag
+                            TargetTag = e.TargetTag
                         };
                         
                         // create deployment key

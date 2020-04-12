@@ -29,7 +29,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
         Task DisableAutoDeploy();
         
         Task<string> GetImageTag(string imageTagValuePath);
-        Task<string> GetImageTag(ApplicationEnvironmentImageMetadata image);
+        Task<string> GetImageTag(ApplicationEnvironmentImageKey image);
         
         Task SetImageTag(string imageTagValuePath, string newImageTag);
         Task SetImageTag(ApplicationEnvironmentImageMetadata image, string newImageTag);
@@ -132,7 +132,17 @@ namespace Shipbot.Controller.Core.Apps.Grains
                     if ((!image.Policy.IsMatch(currentTag)) ||
                         image.Policy.IsGreaterThen(item.Tag, currentTag))
                     {
-                        await SendEvent(new NewDeploymentEvent(_key, image, item.Tag));
+                        var e = new NewDeploymentEvent(
+                            _key,
+                            image,
+                            currentTag,
+                            item.Tag,
+                            State.PromotionEnvironments.Any(),
+                            State.PromotionEnvironments
+                        );
+                        await SendEvent(
+                            e
+                        );
                     }
                 }
             }
@@ -275,13 +285,17 @@ namespace Shipbot.Controller.Core.Apps.Grains
             return Task.FromResult(State.PromotionEnvironments.ToArray().AsEnumerable());
         }
 
-        public Task<string> GetImageTag(ApplicationEnvironmentImageMetadata image)
+        public Task<string> GetImageTag(ApplicationEnvironmentImageKey image)
         {
-            if (State.Images.TryGetValue(image, out var imageSettings))
+            foreach (var imageMetadata in State.Images)
             {
-                return Task.FromResult(imageSettings.CurrentTag);
+                if (imageMetadata.Repository == image.Repository &&
+                    imageMetadata.ImageTagValuePath == image.ImageTagValuePath)
+                {
+                    return Task.FromResult(imageMetadata.CurrentTag);    
+                }
             }
-            
+
             throw new InvalidOperationException();
         }
 

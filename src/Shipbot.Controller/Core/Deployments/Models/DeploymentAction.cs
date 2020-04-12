@@ -17,7 +17,7 @@ namespace Shipbot.Controller.Core.Deployments.Models
                 if (x.GetType() != y.GetType()) return false;
                 return x.ApplicationEnvironmentKey.Application.Equals(y.ApplicationEnvironmentKey.Application) && 
                        x.ApplicationEnvironmentKey.Environment.Equals(y.ApplicationEnvironmentKey.Environment) &&
-                       ApplicationEnvironmentImageMetadata.EqualityComparer.Equals(x.Image, y.Image) 
+                       ApplicationEnvironmentImageKey.EqualityComparer.Equals(x.Image, y.Image) 
                        && x.CurrentTag == y.CurrentTag 
                        && x.TargetTag == y.TargetTag;
             }
@@ -28,7 +28,7 @@ namespace Shipbot.Controller.Core.Deployments.Models
                 {
                     var hashCode = obj.ApplicationEnvironmentKey.Application.GetHashCode();
                     hashCode = (hashCode * 397) ^ obj.ApplicationEnvironmentKey.Environment.GetHashCode();
-                    hashCode = (hashCode * 397) ^ ApplicationEnvironmentImageMetadata.EqualityComparer.GetHashCode(obj.Image);
+                    hashCode = (hashCode * 397) ^ ApplicationEnvironmentImageKey.EqualityComparer.GetHashCode(obj.Image);
                     hashCode = (hashCode * 397) ^ obj.CurrentTag.GetHashCode();
                     hashCode = (hashCode * 397) ^ obj.TargetTag.GetHashCode();
                     return hashCode;
@@ -43,7 +43,7 @@ namespace Shipbot.Controller.Core.Deployments.Models
         
         public DeploymentActionStatus Status { get; set; }
         
-        public ApplicationEnvironmentImageMetadata Image { get; set; }
+        public ApplicationEnvironmentImageKey Image { get; set; }
         
         public string CurrentTag { get; set; }
         

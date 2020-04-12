@@ -67,6 +67,11 @@ namespace Shipbot.Controller.Core.Apps.GrainState
         {
             return $"{Repository}<{ImageTagValuePath}>";
         }
+
+        public static implicit operator ApplicationEnvironmentImageKey(ApplicationEnvironmentImageMetadata metadata)
+        {
+            return new ApplicationEnvironmentImageKey(metadata.Repository, metadata.ImageTagValuePath);
+        } 
     }
 
     public enum TagPropertyValueFormat
