@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Octokit;
+using Orleans;
+using Orleans.Runtime;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
@@ -15,6 +18,7 @@ using Shipbot.Controller.Core.ContainerRegistry;
 using Shipbot.Controller.Core.ContainerRegistry.Clients;
 using Shipbot.Controller.Core.ContainerRegistry.Watcher;
 using Shipbot.Controller.Core.Jobs;
+using Shipbot.Controller.Core.Utilities;
 using IHostingEnvironment = Microsoft.AspNetCore.Hosting.IHostingEnvironment;
 
 namespace Shipbot.Controller
@@ -43,25 +47,9 @@ namespace Shipbot.Controller
 
             services.Configure<ShipbotConfiguration>(Configuration.GetSection("Shipbot"));
             services.Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
-
-//            services.AddSingleton<IApplicationService, ApplicationService>();
+            
             services.AddSingleton<RegistryClientPool>();
             
-//            // quartz
-//            services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
-//            services.AddSingleton<IScheduler, DependencyInjectionQuartzScheduler>();
-//            services.AddSingleton<IJobFactory, DependencyInjectionQuartzJobFactory>();
-
-//            services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
-//            services.AddTransient<RegistryWatcherJob>();
-//            services.AddSingleton<IRegistryWatcherStorage, RegistryWatcherStorage>();
-
-            
-            //services.AddTransient<IHostedService, OperatorStartup>();
-            
-            //services.AddTransient<IHostedService, SlackStartup>();
-            //services.AddSingleton<ISlackClient, SlackClient>();
-
             services.AddControllers();
             
             services.RegisterMediator(
