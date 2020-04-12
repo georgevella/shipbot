@@ -104,7 +104,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                     }
 
                     // start building deployment
-
+                    _log.Trace("Sending new deployment event to {deploymentKey}", deploymentKey);
                     await SendMessage(deploymentKey.Id, e, DeploymentStreamingConstants.DeploymentsNamespace);
                     
                     // store reference to deployment
@@ -118,6 +118,11 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         }
 
 
+        public Task Hello()
+        {
+            return Task.CompletedTask;
+        }
+
         public Task<IEnumerable<DeploymentKey>> GetAllDeploymentIds()
         {
             return Task.FromResult(State.Deployments.ToList().AsEnumerable());
@@ -127,6 +132,8 @@ namespace Shipbot.Controller.Core.Deployments.Grains
     public interface IDeploymentServiceGrain : IGrainWithStringKey
     {
         //Task<DeploymentKey> CreateNewImageDeployment(string environment, ApplicationEnvironmentImageMetadata image, string targetTag);
+
+        Task Hello();
         
         Task<IEnumerable<DeploymentKey>>  GetAllDeploymentIds();
     }

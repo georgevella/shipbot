@@ -75,6 +75,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
                     }
                 }
 
+                var deploymentServiceGrain = GrainFactory.GetDeploymentServiceGrain(this.GetPrimaryKeyString());
+                await deploymentServiceGrain.Hello();
                 await WriteStateAsync();
             }
         }
