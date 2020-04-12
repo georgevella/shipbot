@@ -57,8 +57,9 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             if (State.IsActive)
             {
                 await Checkout();
-                await Activate();
                 await Refresh();
+                
+                await SetupTimers();
             }
 
             await base.OnActivateAsync();
@@ -66,25 +67,24 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
         public async Task Activate()
         {
-            using var _ = _log.BeginShipbotLogScope();
-            
             State.IsActive = true;
-
             await base.WriteStateAsync();
+            await SetupTimers();
+        }
 
+        private async Task SetupTimers()
+        {
             // setup a reminder to refresh the git repository every one minute
             for (var i = 1; i <= 6; i++)
             {
                 var dueTime = (60 / 6) * i;
-                await RegisterOrUpdateReminder($"{ReminderPrefix}_{dueTime}", 
+                await RegisterOrUpdateReminder($"{ReminderPrefix}_{dueTime}",
                     TimeSpan.FromSeconds(dueTime),
                     TimeSpan.FromMinutes(1)
-                    );
+                );
             }
-            
-            // await RegisterOrUpdateReminder("GitRepoRefreshReminder", TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         }
-        
+
         public async Task Checkout()
         {
             using var _ = _log.BeginShipbotLogScope();

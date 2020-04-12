@@ -54,7 +54,8 @@ namespace Shipbot.Controller.Core.Deployments.Grains
             });
             
             // subscribe to new deployment events on the deployments namespace (these are sent by the deployment service)
-            await SubscribeToPrivateMessaging<NewDeploymentEvent>(this.GetPrimaryKey(),
+            await SubscribeToPrivateMessaging<NewDeploymentEvent>(
+                this.GetPrimaryKey(),
                 DeploymentStreamingConstants.DeploymentsNamespace,
                 async (e, token) =>
                 {

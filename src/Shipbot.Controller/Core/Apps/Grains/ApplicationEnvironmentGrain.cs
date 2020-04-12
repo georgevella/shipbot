@@ -61,15 +61,14 @@ namespace Shipbot.Controller.Core.Apps.Grains
         
         public override async Task OnActivateAsync()
         {
-            if (State.PromotionEnvironments == null) 
-                State.PromotionEnvironments = new List<string>();
+            State.PromotionEnvironments ??= new List<string>();
             
             //if (State.CurrentImageTags == null) State.CurrentImageTags = new List<(Image, string)>();
 
             var key = this.GetPrimaryKeyString();
             _key = ApplicationEnvironmentKey.Parse(key);
 
-            _containerRegistryStreamProvider = GetStreamProvider(Constants.ContainerRegistryStreamProvider);
+            _containerRegistryStreamProvider = GetStreamProvider(ContainerRegistryStreamingConstants.ContainerRegistryStreamProvider);
             _eventHandlingStreamProvider = GetStreamProvider(EventingStreamingConstants.EventHandlingStreamProvider);
             
             await StartListeningToImageTagUpdates();
@@ -84,6 +83,20 @@ namespace Shipbot.Controller.Core.Apps.Grains
             {
                 await StartListeningToImageTagUpdates(image);
             }
+        }
+
+        private async Task StartListeningToImageTagUpdates(ApplicationEnvironmentImageMetadata image)
+        {
+
+            _log.LogInformation("Listening to image update events for {image}", image);
+            
+            var streamId = image.Repository.CreateGuidFromString();
+            
+            var stream = _containerRegistryStreamProvider.GetStream<ImageTag>(streamId,
+                ContainerRegistryStreamingConstants.ContainerRegistryQueueNamespace);
+            var streamHandle = await GetStreamSubscriptionHandle(stream, image);
+
+            _streamSubscriptionHandles[streamId] = streamHandle;
         }
         
         private async Task<StreamSubscriptionHandle<ImageTag>> GetStreamSubscriptionHandle(
@@ -104,8 +117,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
         {
             using (_log.BeginShipbotLogScope(_key))
             {
-                var currentTags = State.Images;
-
                 var image = State.Images.First(x => (item.Repository == x.Repository));
 
                 if (image.Policy.IsMatch(item.Tag))
@@ -127,20 +138,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
             }
         }
 
-        private async Task StartListeningToImageTagUpdates(ApplicationEnvironmentImageMetadata image)
-        {
-
-            _log.LogInformation("Listening to image update events for {image}", image);
-            
-            var streamId = image.Repository.CreateGuidFromString();
-            
-            var stream = _containerRegistryStreamProvider.GetStream<ImageTag>(streamId,
-                Constants.ContainerRegistryQueueNamespace);
-            var streamHandle = await GetStreamSubscriptionHandle(stream, image);
-
-            _streamSubscriptionHandles[streamId] = streamHandle;
-        }
-
         public async Task StopListeningToImageTagUpdates()
         {
             using (_log.BeginShipbotLogScope(_key))
@@ -153,12 +150,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 _streamSubscriptionHandles.Clear();
             }
         }
-
-        public static bool StreamFilterFunc(IStreamIdentity stream, object filterdata, object item)
-        {
-            return true;
-        }
-
+        
         public Task<bool> IsAutoDeployEnabled()
         {
             return Task.FromResult(State.AutoDeploy);
@@ -268,7 +260,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                             );
                             var streamId = image.Repository.CreateGuidFromString();
                             var stream = _containerRegistryStreamProvider.GetStream<ImageTag>(streamId,
-                                Constants.ContainerRegistryQueueNamespace);
+                                ContainerRegistryStreamingConstants.ContainerRegistryQueueNamespace);
                             await stream.OnNextAsync(latestTag);
                         }
                     }

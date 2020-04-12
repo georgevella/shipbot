@@ -153,7 +153,7 @@ namespace Shipbot.Controller
                             options.ConnectionString =
                                 "User ID=postgres;Password=password123;Host=localhost;Database=shipbot;";
                         })
-                        .AddSimpleMessageStreamProvider(Constants.ContainerRegistryStreamProvider, 
+                        .AddSimpleMessageStreamProvider(ContainerRegistryStreamingConstants.ContainerRegistryStreamProvider, 
                             configurator =>
                         {
                             configurator.FireAndForgetDelivery = true;

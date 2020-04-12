@@ -21,10 +21,5 @@ namespace Orleans
         {
             return grainfactory.GetGrain<IApplicationEnvironmentGrain>(key);
         }
-
-        public static IImageRepositoryGrain GetImageRepositoryGrain(this IGrainFactory grainFactory, string repository)
-        {
-            return grainFactory.GetGrain<IImageRepositoryGrain>(repository);
-        }
     }
 }

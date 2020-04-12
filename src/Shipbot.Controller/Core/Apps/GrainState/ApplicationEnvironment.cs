@@ -10,7 +10,7 @@ namespace Shipbot.Controller.Core.Apps.GrainState
         public HashSet<ApplicationEnvironmentImageMetadata> Images { get; set; } 
             = new HashSet<ApplicationEnvironmentImageMetadata>(ApplicationEnvironmentImageMetadata.EqualityComparer);
         public bool AutoDeploy { get; set; }
-        public List<string> PromotionEnvironments { get; set; }
+        public List<string>? PromotionEnvironments { get; set; }
         public ApplicationSourceSettings ApplicationSourceSettings { get; set; }
 
     }

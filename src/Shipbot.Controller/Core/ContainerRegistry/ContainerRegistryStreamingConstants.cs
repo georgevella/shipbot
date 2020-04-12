@@ -1,6 +1,6 @@
 namespace Shipbot.Controller.Core.ContainerRegistry
 {
-    public static class Constants
+    public static class ContainerRegistryStreamingConstants
     {
         public const string ContainerRegistryStreamProvider = "ContainerRegistryStreamProvider";
 
