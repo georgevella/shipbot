@@ -7,19 +7,5 @@ using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Core.Slack
 {
-    public interface ISlackClient : IDisposable
-    {
-        Task Connect();
-        Task<IMessageHandle> SendMessage(string channel, string message);
 
-        Task<IMessageHandle> SendDeploymentUpdateNotification(
-            string channel, 
-            DeploymentKey deployment
-        );
-
-        Task<IMessageHandle> UpdateDeploymentUpdateNotification(
-            IMessageHandle handle, 
-            DeploymentKey deployment
-        );
-    }
 }

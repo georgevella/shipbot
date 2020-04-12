@@ -18,6 +18,7 @@ using Shipbot.Controller.Core.ContainerRegistry;
 using Shipbot.Controller.Core.ContainerRegistry.Clients;
 using Shipbot.Controller.Core.ContainerRegistry.Watcher;
 using Shipbot.Controller.Core.Jobs;
+using Shipbot.Controller.Core.Slack;
 using Shipbot.Controller.Core.Utilities;
 using IHostingEnvironment = Microsoft.AspNetCore.Hosting.IHostingEnvironment;
 
@@ -47,6 +48,8 @@ namespace Shipbot.Controller
 
             services.Configure<ShipbotConfiguration>(Configuration.GetSection("Shipbot"));
             services.Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
+
+            services.AddSingleton<ISlackClient, SlackClient>();
             
             services.AddSingleton<RegistryClientPool>();
             

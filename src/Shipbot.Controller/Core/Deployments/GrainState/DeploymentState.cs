@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Shipbot.Controller.Core.Apps.Models;
 using Shipbot.Controller.Core.Deployments.GrainKeys;
 using Shipbot.Controller.Core.Deployments.Models;
+using Shipbot.Controller.Core.Slack;
 
 namespace Shipbot.Controller.Core.Deployments.GrainState
 {
@@ -18,6 +19,8 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
         public DeploymentStatus Status { get; set; } = DeploymentStatus.Created;
 
         public ApplicationKey Application { get; set; }
+        
+        public IMessageHandle SlackMessageHandle { get; set; }
         public string? ImageRepository { get; set; }
         public string? TargetTag { get; set; }
     }

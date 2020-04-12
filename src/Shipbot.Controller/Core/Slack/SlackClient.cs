@@ -18,11 +18,21 @@ using SlackAPI;
 
 namespace Shipbot.Controller.Core.Slack
 {
+    public interface ISlackClient : IDisposable
+    {
+        Task Connect();
+        Task<IMessageHandle> SendMessage(string channel, string message);
+
+        Task<IMessageHandle> PostMessageAsync(string channelId, SlackMessage message);
+
+        Task<IMessageHandle> UpdateMessageAsync(IMessageHandle handle, SlackMessage message);
+    }
+    
     public class SlackClient : ISlackClient, IDisposable
     {
         private readonly ILogger<SlackClient> _log;
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
-        private SlackTaskClient _actualClient;
+        private readonly SlackTaskClient _actualClient;
         private int _timeout;
         private IGrainFactory _grainFactory;
 
@@ -35,13 +45,12 @@ namespace Shipbot.Controller.Core.Slack
             _log = log;
             _slackConfiguration = slackConfiguration;
             _grainFactory = clusterClient;
+            _actualClient = new SlackTaskClient(_slackConfiguration.Value.Token);
         }
 
         public async Task Connect()
         {
             _timeout = _slackConfiguration.Value.Timeout;
-            
-            _actualClient = new SlackTaskClient(_slackConfiguration.Value.Token);
             var loginResponse = await _actualClient.ConnectAsync();
 
             if (loginResponse.ok)
@@ -54,7 +63,7 @@ namespace Shipbot.Controller.Core.Slack
             }
         }
 
-        private async Task<SingleMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
+        public async Task<IMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
         {
             var messageResponse = await _actualClient.PostMessageAsync(
                 channelId,
@@ -109,17 +118,18 @@ namespace Shipbot.Controller.Core.Slack
             return _actualClient.APIRequestWithTokenAsync<UpdateResponse>(tupleList.ToArray());
         }
         
-        private async Task<SingleMessageHandle> UpdateMessageAsync(SingleMessageHandle handle, SlackMessage message)
+        public async Task<IMessageHandle> UpdateMessageAsync(IMessageHandle handle, SlackMessage message)
         {
+            var actualHandle = (SingleMessageHandle) handle;
             var tsc = new TaskCompletionSource<SingleMessageHandle>();
             
             var ct = new CancellationTokenSource(_timeout);
             ct.Token.Register(() => tsc.TrySetCanceled(), useSynchronizationContext: false);
             
-            _log.LogInformation($"Sending message update for [{handle.Timestamp}/${handle.ChannelId}]");
+            _log.LogInformation($"Sending message update for [{actualHandle.Timestamp}/${actualHandle.ChannelId}]");
             var response = await UpdateWithBlocksAsync(
-                handle.Timestamp,
-                handle.ChannelId,
+                actualHandle.Timestamp,
+                actualHandle.ChannelId,
                 message.Message,
                 blocks: message.Blocks 
                 );
@@ -134,176 +144,6 @@ namespace Shipbot.Controller.Core.Slack
             if (message == null) throw new ArgumentNullException(nameof(message));
             
             return await PostMessageAsync(channel, new SlackMessage(message));
-        }
-
-        private async Task<SlackMessage> BuildDeploymentUpdateMessage(DeploymentKey deploymentKey)
-        {
-            var deploymentGrain = _grainFactory.GetDeploymentGrain(deploymentKey);
-            var deployment = await deploymentGrain.GetDeploymentInformation();
-            
-            var blocks = new List<IBlock>()
-            {
-                new SectionBlock()
-                {
-                    text = new Text()
-                    {
-                        type = "mrkdwn",
-                        text =
-                            $"*{deployment.Application}*: A new image of *{deployment.ContainerRepository}* was detected with tag *{deployment.TargetTag}*."
-                    }
-                },
-                new DividerBlock()
-            };
-
-            var deploymentActionIds = await deploymentGrain.GetDeploymentActionIds();
-            
-            foreach (var deploymentActionId in deploymentActionIds)
-            {
-                var deploymentActionGrain = _grainFactory.GetDeploymentActionGrain(deploymentActionId);
-
-                var deploymentUpdate = await deploymentActionGrain.GetAction();
-
-                var slackMessageFields = new Text[]
-                {
-                    new Text()
-                    {
-                        text = $"*Current Tag*\n{deploymentUpdate.CurrentTag}",
-                        type = "mrkdwn"
-                    },
-                    new Text()
-                    {
-                        text = $"*Status*\n{deploymentUpdate.Status}",
-                        type = "mrkdwn"
-                    }
-                };
-                
-                // if (!deploymentUpdate.IsTriggeredByPromotion)
-                // {
-                //     blocks.Add(
-                //         new SectionBlock()
-                //         {
-                //             text = new Text()
-                //             {
-                //                 type = "mrkdwn",
-                //                 text =
-                //                     $"Scheduled deployment to environment *'{deploymentUpdate.Environment.Name}'*."
-                //             },
-                //             fields = slackMessageFields
-                //         }
-                //         );
-                // }
-                // else
-                // {
-                //     blocks.Add(
-                //         new SectionBlock()
-                //         {
-                //             text = new Text()
-                //             {
-                //                 type = "mrkdwn",
-                //                 text =
-                //                     $"Promoting deployment from environment *'{deploymentUpdate.SourceDeploymentUpdate.Environment.Name}'* to environment *'{deploymentUpdate.Environment.Name}'*."
-                //             },
-                //             fields = slackMessageFields
-                //         }
-                //     );
-                // }
-                //
-                // blocks.Add(
-                //         new DividerBlock()
-                // );
-                //
-                // if (deploymentUpdate.status == DeploymentActionStatus.Complete)
-                // {
-                //     if (deploymentUpdate.Environment.PromotionEnvironments.Count > 0)
-                //     {
-                //         var slackPromoteActionDetails = new SlackPromoteActionDetails()
-                //         {
-                //             Application = deploymentUpdate.Application.Name,
-                //             ContainerRepository = deploymentUpdate.Image.Repository,
-                //             SourceEnvironment = deploymentUpdate.Environment.Name,
-                //             TargetTag = deploymentUpdate.TargetTag
-                //         };
-                //         var buttons = deploymentUpdate.Environment.PromotionEnvironments.Select(x => new ButtonElement()
-                //         {
-                //             action_id = "promote",
-                //             text = new Text()
-                //             {
-                //                 type = "plain_text",
-                //                 text = $"Promote to '{x}'"
-                //             },
-                //             value = $"{JsonConvert.SerializeObject(slackPromoteActionDetails, Formatting.None)}",
-                //         }).ToList();
-                //         
-                //         buttons.Add(new ButtonElement()
-                //         {
-                //             action_id = "revert",
-                //             text = new Text()
-                //             {
-                //                 type = "plain_text",
-                //                 text = "Revert this deployment."
-                //             },
-                //             style = "danger",
-                //             value = "revert",
-                //         });
-                //
-                //         blocks.AddRange(
-                //             new IBlock[]
-                //             {
-                //                 new ActionsBlock()
-                //                 {
-                //                     elements = buttons.Cast<IElement>().ToArray()
-                //                 }
-                //             }
-                //         );           
-                //     }
-                // }
-            }
-
-            return new SlackMessage(
-                $"A new image of *{deployment.ContainerRepository}* was detected with tag *{deployment.TargetTag}*.",
-                blocks.ToArray()
-            );
-        }
-
-        public async Task<IMessageHandle> SendDeploymentUpdateNotification(
-            string channel, 
-            DeploymentKey deployment
-            )
-        {
-            if (channel == null) throw new ArgumentNullException(nameof(channel));
-            if (deployment == null) throw new ArgumentNullException(nameof(deployment));
-
-            return await PostMessageAsync(
-                channel,
-                await BuildDeploymentUpdateMessage(deployment)
-            );
-        }
-
-        public async Task<IMessageHandle> UpdateDeploymentUpdateNotification(
-            IMessageHandle handle, 
-            DeploymentKey deployment
-        )
-        {
-            if (handle == null) throw new ArgumentNullException(nameof(handle));
-            if (deployment == null) throw new ArgumentNullException(nameof(deployment));
-
-            return await UpdateMessageAsync(
-                handle as SingleMessageHandle, 
-                await BuildDeploymentUpdateMessage(deployment)
-            );
-        }
-
-        class SlackMessage
-        {
-            public string Message { get; }
-            
-            public IBlock[] Blocks { get; }
-
-            public SlackMessage(string message, IBlock[] blocks = null)
-            {
-                Message = message;
-                Blocks = blocks;
-            }
         }
 
         public void Dispose()

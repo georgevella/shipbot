@@ -10,7 +10,6 @@ namespace Shipbot.Controller.Core.Utilities.Eventing
 {
     public interface IHandleEvent<T> : IGrain
     {
-        
     }
 
     public abstract class EventHandlingGrain<TState> : Grain<TState>
