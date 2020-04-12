@@ -48,21 +48,15 @@ namespace Shipbot.Controller.Core.Apps.Grains
         private readonly Dictionary<Guid, StreamSubscriptionHandle<ImageTag>> _streamSubscriptionHandles = new Dictionary<Guid, StreamSubscriptionHandle<ImageTag>>();
 
         private readonly ILogger<ApplicationEnvironmentGrain> _log;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly ILoggerFactory _loggerFactory;
         private ApplicationEnvironmentKey _key;
         private IStreamProvider _containerRegistryStreamProvider;
         private IStreamProvider _eventHandlingStreamProvider;
 
         public ApplicationEnvironmentGrain(
-            ILogger<ApplicationEnvironmentGrain> log,
-            IServiceProvider serviceProvider,
-            ILoggerFactory loggerFactory
-            )
+            ILogger<ApplicationEnvironmentGrain> log
+        )
         {
             _log = log;
-            _serviceProvider = serviceProvider;
-            _loggerFactory = loggerFactory;
         }
         
         public override async Task OnActivateAsync()
