@@ -25,11 +25,15 @@ namespace Shipbot.Controller.Controllers
             var deployment = _grainFactory.GetDeploymentGrain(deploymentQueueItem.DeploymentId);
 
             await deployment.SubmitNextDeploymentAction();
-            
+            var deploymentInformation = await deployment.GetDeploymentInformation();
+
             // generate deployment DTO
             
             // TODO: extract this as an extension method
-            var deploymentDto = new DeploymentDto(deploymentQueueItem.DeploymentId);
+            var deploymentDto = new DeploymentDto(
+                deploymentQueueItem.DeploymentId,
+                deploymentInformation.ContainerRepository, deploymentInformation.TargetTag, deploymentInformation.Status
+                );
             var deploymentActionIds = await deployment.GetDeploymentActionIds();
 
             foreach (var deploymentActionId in deploymentActionIds)

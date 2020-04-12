@@ -21,7 +21,8 @@ using Shipbot.Controller.Core.Utilities.Eventing;
 namespace Shipbot.Controller.Core.Deployments.Grains
 {
     /// <summary>
-    ///     Describes an image deployment for an application.  
+    ///     Describes an image deployment for an application.  Instances of this grain are activated by the streaming
+    ///     processor. 
     /// </summary>
     [StorageProvider(ProviderName = ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME)]
     [ImplicitStreamSubscription(DeploymentStreamingConstants.DeploymentsNamespace)]
@@ -36,6 +37,7 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         
         public override async Task OnActivateAsync()
         {
+            // subscribe for deployment action status changes
             await SubscribeForEvents<DeploymentActionStatusChangeEvent>((change, token) =>
             {
                 // do we know about this deployment action
@@ -50,14 +52,66 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 
                 return Task.CompletedTask;
             });
-
-            var deploymentKey = new DeploymentKey(this.GetPrimaryKey());
-
-            await SubscribeToPrivateMessaging<NewDeploymentEvent>(deploymentKey.Id,
+            
+            // subscribe to new deployment events on the deployments namespace (these are sent by the deployment service)
+            await SubscribeToPrivateMessaging<NewDeploymentEvent>(this.GetPrimaryKey(),
                 DeploymentStreamingConstants.DeploymentsNamespace,
-                (e, token) =>
+                async (e, token) =>
                 {
-                    return Configure(e.ApplicationEnvironment, e.Image, e.TargetTag);
+                    var firstApplicationEnvironment = e.ApplicationEnvironment;
+                    var image = e.Image;
+                    var targetTag = e.TargetTag;
+                    
+                    
+                    using var logScope = _log.BeginShipbotLogScope(firstApplicationEnvironment);
+                    
+                    // TODO check for reconfiguration
+            
+                    State.Application = firstApplicationEnvironment.Application;
+                    State.ImageRepository = image.Repository;
+                    State.TargetTag = targetTag;
+                    
+                    var targetEnvironments = new List<ApplicationEnvironmentKey>
+                    {
+                        firstApplicationEnvironment
+                    };
+                
+                    // determine if we have other environments we want to promote to.
+                    var firstEnvironmentGrain = GrainFactory.GetEnvironment(firstApplicationEnvironment);
+                    var promotionSettings = await firstEnvironmentGrain.GetDeploymentPromotionSettings();
+                     targetEnvironments.AddRange(
+                         promotionSettings.Select(
+                             promoteToEnv => new ApplicationEnvironmentKey(
+                                 State.Application,
+                                 promoteToEnv
+                             )
+                         )
+                     );
+                    
+                    foreach (var env in targetEnvironments) {
+                        var envGrain = GrainFactory.GetEnvironment(env);
+                        var currentTag = await envGrain.GetImageTag(image);
+
+                        // build deployment action metadata
+                        var deploymentAction = new DeploymentAction()
+                        {
+                            Image = image,
+                            ApplicationEnvironmentKey = env,
+                            CurrentTag = currentTag,
+                            TargetTag = targetTag
+                        };
+                        
+                        // create deployment key
+                        var key = new DeploymentActionKey(Guid.NewGuid());
+                        State.DeploymentActions.Add(key);
+                        
+                        // configure deployment action
+                        var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(key);
+                        await deploymentActionGrain.Configure(deploymentAction);
+                        await deploymentActionGrain.SetParentDeploymentKey(new DeploymentKey(this.GetPrimaryKey()));
+                    }
+                    
+                    await WriteStateAsync();
                 });
             
             await base.OnActivateAsync();
@@ -68,61 +122,6 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                 (State.Application!.Name, State.ImageRepository!, State.TargetTag!, State.Status)
             );
 
-        public async Task Configure(
-            ApplicationEnvironmentKey firstApplicationEnvironment, 
-            ApplicationEnvironmentImageMetadata image, 
-            string targetTag)
-        {
-        
-            using var logScope = _log.BeginShipbotLogScope(firstApplicationEnvironment);
-            
-            State.Application = firstApplicationEnvironment.Application;
-            State.ImageRepository = image.Repository;
-            State.TargetTag = targetTag;
-            
-            var targetEnvironments = new List<ApplicationEnvironmentKey>
-            {
-                firstApplicationEnvironment
-            };
-        
-            // determine if we have other environments we want to promote to.
-            var firstEnvironmentGrain = GrainFactory.GetEnvironment(firstApplicationEnvironment);
-            var promotionSettings = await firstEnvironmentGrain.GetDeploymentPromotionSettings();
-             targetEnvironments.AddRange(
-                 promotionSettings.Select(
-                     promoteToEnv => new ApplicationEnvironmentKey(
-                         State.Application,
-                         promoteToEnv
-                     )
-                 )
-             );
-            
-            foreach (var env in targetEnvironments) {
-                var envGrain = GrainFactory.GetEnvironment(env);
-                var currentTag = await envGrain.GetImageTag(image);
-
-                // build deployment action metadata
-                var deploymentAction = new DeploymentAction()
-                {
-                    Image = image,
-                    ApplicationEnvironmentKey = env,
-                    CurrentTag = currentTag,
-                    TargetTag = targetTag
-                };
-                
-                // create deployment key
-                var key = new DeploymentActionKey(Guid.NewGuid());
-                State.DeploymentActions.Add(key);
-                
-                // configure deployment action
-                var deploymentActionGrain = GrainFactory.GetDeploymentActionGrain(key);
-                await deploymentActionGrain.Configure(deploymentAction);
-                await deploymentActionGrain.SetParentDeploymentKey(this.GetPrimaryKeyString());
-            }
-            
-            await WriteStateAsync();
-        }
-        
         public async Task SubmitNextDeploymentAction()
         {
             // TODO: handle multiple items in the deployment plan
@@ -151,6 +150,5 @@ namespace Shipbot.Controller.Core.Deployments.Grains
         Task<IEnumerable<DeploymentActionKey>> GetDeploymentActionIds();
         Task SubmitNextDeploymentAction();
         Task<(string Application, string ContainerRepository, string TargetTag, DeploymentStatus Status)> GetDeploymentInformation();
-        // Task Configure(ApplicationEnvironmentKey firstApplicationEnvironment, ApplicationEnvironmentImageMetadata image, string targetTag);
     }
 }

@@ -11,7 +11,7 @@ using Shipbot.Controller.RestApiDto;
 
 namespace Shipbot.Controller.Controllers
 { 
-    [Route("api/deployments/{application}")]
+    [Route("api/deployments/")]
     [ApiController]
     public class DeploymentsController : ControllerBase
     {
@@ -24,7 +24,16 @@ namespace Shipbot.Controller.Controllers
             _grainFactory = clusterClient;
         }
         
-        [HttpGet]
+        [HttpPost]
+        public async Task<ActionResult> SubmitNewImageTag(NewDeploymentDto newDeploymentDto)
+        {
+            var imageRepositoryGrain = _grainFactory.GetImageRepositoryGrain(newDeploymentDto.Repository);
+            await imageRepositoryGrain.SubmitNewImageTag(newDeploymentDto.Tag);
+
+            return Accepted();
+        }
+        
+        [HttpGet("{application}")]
         public async Task<ActionResult<IEnumerable<DeploymentDto>>> Get(string application)
         {
             var result = new List<DeploymentDto>();
@@ -37,9 +46,9 @@ namespace Shipbot.Controller.Controllers
             {
                 var deployment = _grainFactory.GetDeploymentGrain(deploymentKey);
                 var deploymentActionIds = await deployment.GetDeploymentActionIds();
+                var deploymentInformation = await deployment.GetDeploymentInformation();
                 
-                
-                var deploymentDto = new DeploymentDto(deploymentKey);
+                var deploymentDto = new DeploymentDto(deploymentKey, deploymentInformation.ContainerRepository, deploymentInformation.TargetTag, deploymentInformation.Status );
                 foreach (var deploymentActionId in deploymentActionIds)
                 {
                     var deploymentActionGrain = _grainFactory.GetDeploymentActionGrain(deploymentActionId);

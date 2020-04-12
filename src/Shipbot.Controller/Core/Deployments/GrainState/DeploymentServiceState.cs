@@ -17,12 +17,35 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
         /// </summary>
         public HashSet<DeploymentKey> Deployments { get; } = new HashSet<DeploymentKey>(DeploymentKey.EqualityComparer);
         
+        public Dictionary<(string imageRepository, string imageTagValuePath), ApplicationEnvironmentKey> TrackedImageRepositories { get; } 
+            = new Dictionary<(string imageRepository, string imageTagValuePath), ApplicationEnvironmentKey>( new TrackedImageRepositoryEqualityComparer());
         
         /// <summary>
         ///     Map storing the planned deployment actions and their associated deployment keys.
         /// </summary>
         public Dictionary<(string environment, string imageRepository, string imageTagValuePath, string targetTag), DeploymentKey> PlannedDeploymentActionsIndex { get; } 
             = new Dictionary<(string environment, string imageRepository, string imageTagValuePath, string targetTag), DeploymentKey>( new PlannedDeploymentActionsEqualityComparer() );
+    }
+
+    public class TrackedImageRepositoryEqualityComparer : 
+        IEqualityComparer<(string imageRepository, string imageTagValuePath)>
+    {
+        public bool Equals((string imageRepository, string imageTagValuePath) x,
+            (string imageRepository, string imageTagValuePath) y)
+        {
+            return x.imageRepository == y.imageRepository &&
+                   x.imageTagValuePath == y.imageTagValuePath;
+        }
+
+        public int GetHashCode((string imageRepository, string imageTagValuePath) obj)
+        {
+            var hashCode = 864;
+            
+            hashCode = (hashCode * 397) ^ (obj.imageRepository != null ? obj.imageRepository.GetHashCode() : 0);
+            hashCode = (hashCode * 397) ^ (obj.imageTagValuePath != null ? obj.imageTagValuePath.GetHashCode() : 0);
+
+            return hashCode;
+        }
     }
 
     public class PlannedDeploymentActionsEqualityComparer : IEqualityComparer<(string environment, string imageRepository, string imageTagValuePath, string targetTag)>
