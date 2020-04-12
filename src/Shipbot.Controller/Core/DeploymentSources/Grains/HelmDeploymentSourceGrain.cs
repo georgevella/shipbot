@@ -39,8 +39,6 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             if (State.SecretFiles == null) State.SecretFiles = new List<string>();
             if (State.ValuesFiles == null) State.ValuesFiles = new List<string>();
             if (State.Repository == null) State.Repository = new ApplicationSourceRepository();
-            
-            // TODO: checkout and update state if active
 
             return base.OnActivateAsync();
         }

@@ -26,6 +26,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         private readonly ILogger _log;
         private DirectoryInfo _checkoutDirectory;
         private ApplicationEnvironmentKey _key;
+        
+        private const string ReminderPrefix = "GitRepoRefreshReminder";
 
         protected GitBasedDeploymentSourceGrain(
             ILogger log
@@ -36,8 +38,10 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
         protected DirectoryInfo CheckoutDirectory => _checkoutDirectory;
 
-        public override Task OnActivateAsync()
+        public override async Task OnActivateAsync()
         {
+            using var _ = _log.BeginShipbotLogScope();
+            
             var invalids = Path.GetInvalidFileNameChars();
             var name = string.Join(
                     "_",
@@ -50,21 +54,41 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             var key = this.GetPrimaryKeyString();
             _key = ApplicationEnvironmentKey.Parse(key);
 
-            return base.OnActivateAsync();
+            if (State.IsActive)
+            {
+                await Checkout();
+                await Activate();
+                await Refresh();
+            }
+
+            await base.OnActivateAsync();
         }
 
         public async Task Activate()
         {
+            using var _ = _log.BeginShipbotLogScope();
+            
             State.IsActive = true;
 
             await base.WriteStateAsync();
 
             // setup a reminder to refresh the git repository every one minute
-            await RegisterOrUpdateReminder("GitRepoRefreshReminder", TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+            for (var i = 1; i <= 6; i++)
+            {
+                var dueTime = (60 / 6) * i;
+                await RegisterOrUpdateReminder($"{ReminderPrefix}_{dueTime}", 
+                    TimeSpan.FromSeconds(dueTime),
+                    TimeSpan.FromMinutes(1)
+                    );
+            }
+            
+            // await RegisterOrUpdateReminder("GitRepoRefreshReminder", TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         }
         
         public async Task Checkout()
         {
+            using var _ = _log.BeginShipbotLogScope();
+            
             _log.Info("Cloning {Repository} into {Path}",
                 State.Repository.Uri,
                 CheckoutDirectory.FullName);
