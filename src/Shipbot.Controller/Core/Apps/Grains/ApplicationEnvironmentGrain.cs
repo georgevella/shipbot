@@ -48,9 +48,9 @@ namespace Shipbot.Controller.Core.Apps.Grains
         private readonly Dictionary<Guid, StreamSubscriptionHandle<ImageTag>> _streamSubscriptionHandles = new Dictionary<Guid, StreamSubscriptionHandle<ImageTag>>();
 
         private readonly ILogger<ApplicationEnvironmentGrain> _log;
-        private ApplicationEnvironmentKey _key;
-        private IStreamProvider _containerRegistryStreamProvider;
-        private IStreamProvider _eventHandlingStreamProvider;
+        private ApplicationEnvironmentKey? _key;
+        private IStreamProvider? _containerRegistryStreamProvider;
+        private IStreamProvider? _eventHandlingStreamProvider;
 
         public ApplicationEnvironmentGrain(
             ILogger<ApplicationEnvironmentGrain> log
@@ -62,12 +62,14 @@ namespace Shipbot.Controller.Core.Apps.Grains
         public override async Task OnActivateAsync()
         {
             State.PromotionEnvironments ??= new List<string>();
-            
-            //if (State.CurrentImageTags == null) State.CurrentImageTags = new List<(Image, string)>();
 
             var key = this.GetPrimaryKeyString();
             _key = ApplicationEnvironmentKey.Parse(key);
-
+            
+            // register our-self with application 
+            var applicationGrain = GrainFactory.GetApplication(_key.Application);
+            await applicationGrain.RegisterEnvironment(_key);
+            
             _containerRegistryStreamProvider = GetStreamProvider(ContainerRegistryStreamingConstants.ContainerRegistryStreamProvider);
             _eventHandlingStreamProvider = GetStreamProvider(EventingStreamingConstants.EventHandlingStreamProvider);
             

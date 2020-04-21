@@ -89,7 +89,7 @@ namespace Shipbot.Controller.Core
             // register applications
             foreach (var applicationDefinition in conf.Applications)
             {
-                var grain = _grainFactory.GetApplication(applicationDefinition.Name);
+                var grain = _grainFactory.GetApplicationConfigurationGrain();
                 await grain.Configure(applicationDefinition);
             }
             
