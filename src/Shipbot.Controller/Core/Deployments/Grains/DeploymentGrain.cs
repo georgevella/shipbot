@@ -125,8 +125,9 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                     text = new Text()
                     {
                         type = "mrkdwn",
-                        text =
-                            $"*{deployment.Application}*: A new image of *{deployment.ContainerRepository}* was detected with tag *{deployment.TargetTag}*."
+                        text = $"A new image for *{deployment.Application}* was created on the container registry.\n" +
+                               $"Image Repository: {deployment.ContainerRepository}\n" +
+                               $"Tag: *{deployment.TargetTag}*."
                     }
                 },
                 new DividerBlock()
