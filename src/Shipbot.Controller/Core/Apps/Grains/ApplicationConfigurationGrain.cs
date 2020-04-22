@@ -19,7 +19,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
         
         public async Task Configure(ApplicationDefinition applicationDefinition)
         {
-            using (_log.BeginShipbotLogScope(this.GetPrimaryKeyString()))
+            using (_log.BeginShipbotLogScope(applicationDefinition.Name))
             {
                 // setup application
                 var applicationGrain = GrainFactory.GetApplication(applicationDefinition.Name);
@@ -27,7 +27,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 // setup environments
                 foreach (var applicationDefinitionEnvironment in applicationDefinition.Environments)
                 {
-                    using (_log.BeginShipbotLogScope(this.GetPrimaryKeyString(), applicationDefinitionEnvironment.Key))
+                    using (_log.BeginShipbotLogScope(applicationDefinition.Name, applicationDefinitionEnvironment.Key))
                     {
                         // setup application environment
                         var environmentGrain = GrainFactory.GetEnvironment(applicationDefinition.Name,
@@ -46,7 +46,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 
                 foreach (var applicationDefinitionEnvironment in applicationDefinition.Environments)
                 {
-                    using (_log.BeginShipbotLogScope(this.GetPrimaryKeyString(), applicationDefinitionEnvironment.Key))
+                    using (_log.BeginShipbotLogScope(applicationDefinition.Name, applicationDefinitionEnvironment.Key))
                     {
                         // setup application environment
                         var environmentGrain = GrainFactory.GetEnvironment(applicationDefinition.Name,
@@ -61,7 +61,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 }
 
                 // setup deployment service
-                var deploymentServiceGrain = GrainFactory.GetDeploymentServiceGrain(this.GetPrimaryKeyString());
+                var deploymentServiceGrain = GrainFactory.GetDeploymentServiceGrain(applicationDefinition.Name);
                 await deploymentServiceGrain.Hello();
                 // await WriteStateAsync();
             }
