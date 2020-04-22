@@ -89,6 +89,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         private async Task StartListeningToImageTagUpdates(ApplicationEnvironmentImageMetadata image)
         {
+            using var _ = _log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString()));
 
             _log.LogInformation("Listening to image update events for {image}", image);
             
