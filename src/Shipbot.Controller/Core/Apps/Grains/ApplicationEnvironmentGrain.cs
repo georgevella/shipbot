@@ -142,7 +142,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
                         currentTag,
                         item.Tag,
                         State.PromotionEnvironments.Any(),
-                        State.PromotionEnvironments
+                        State.PromotionEnvironments,
+                        !State.AutoDeploy 
                     );
                     await SendEvent(e);
                 }

@@ -41,7 +41,7 @@ namespace Shipbot.Controller.Core.Apps.Models
 
         public override bool IsGreaterThen(string tag, string currentTag)
         {
-            return tag?.CompareTo(currentTag) < 0;
+            return tag?.CompareTo(currentTag) > 0;
         }
     }
 }

@@ -25,5 +25,6 @@ namespace Shipbot.Controller.Core.Deployments.GrainState
         public bool IsPromotable { get; set; }
         public string? ImageRepository { get; set; }
         public string? TargetTag { get; set; }
+        public bool IsManuallyStarted { get; set; }
     }
 }

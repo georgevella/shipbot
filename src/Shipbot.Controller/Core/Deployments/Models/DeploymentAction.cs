@@ -59,8 +59,6 @@ namespace Shipbot.Controller.Core.Deployments.Models
         Synchronizing,
         Synchronized,
         Complete,
-        Promoting,
-        Promoted,
         Failed
     }
 }

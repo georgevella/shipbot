@@ -92,7 +92,7 @@ namespace Shipbot.Controller.Core
                 var grain = _grainFactory.GetApplicationConfigurationGrain();
                 await grain.Configure(applicationDefinition);
             }
-            
+            //
 
             
             

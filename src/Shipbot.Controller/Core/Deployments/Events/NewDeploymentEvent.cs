@@ -15,17 +15,20 @@ namespace Shipbot.Controller.Core.Deployments.Events
             string currentTag,
             string targetTag,
             bool isPromotable,
-            IEnumerable<string> promoteEnvironmentSequence
-            )
+            IEnumerable<string> promoteEnvironmentSequence, 
+            bool isManuallyStarted)
         {
             ApplicationEnvironment = applicationEnvironment;
             Image = image;
             TargetTag = targetTag;
             IsPromotable = isPromotable;
+            IsManuallyStarted = isManuallyStarted;
 
             PromotableEnvironments = promoteEnvironmentSequence.ToArray();
             CurrentTags[applicationEnvironment] = currentTag;
         }
+        
+        public bool IsManuallyStarted { get; }
         
         public bool IsPromotable { get; }
         

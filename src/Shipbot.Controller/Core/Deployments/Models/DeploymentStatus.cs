@@ -22,6 +22,7 @@ namespace Shipbot.Controller.Core.Deployments.Models
         /// <summary>
         ///     The deployment is completed.
         /// </summary>
-        Completed
+        Completed,
+        Failed
     }
 }
