@@ -25,6 +25,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 var applicationGrain = GrainFactory.GetApplication(applicationDefinition.Name);
 
                 // setup environments
+                _log.LogTrace("Configuring environments ...");
                 foreach (var applicationDefinitionEnvironment in applicationDefinition.Environments)
                 {
                     using (_log.BeginShipbotLogScope(applicationDefinition.Name, applicationDefinitionEnvironment.Key))
@@ -35,7 +36,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                         await environmentGrain.Configure(applicationDefinitionEnvironment.Value);   
                     }
                 }
-
+                _log.LogTrace("Configuring environments ... done");
                 // State.Notifications = new NotificationSettings()
                 // {
                 //     Channels =
@@ -44,6 +45,7 @@ namespace Shipbot.Controller.Core.Apps.Grains
                 //     }
                 // };
                 
+                _log.LogTrace("Refreshing environment state ...");
                 foreach (var applicationDefinitionEnvironment in applicationDefinition.Environments)
                 {
                     using (_log.BeginShipbotLogScope(applicationDefinition.Name, applicationDefinitionEnvironment.Key))
@@ -51,14 +53,18 @@ namespace Shipbot.Controller.Core.Apps.Grains
                         // setup application environment
                         var environmentGrain = GrainFactory.GetEnvironment(applicationDefinition.Name,
                             applicationDefinitionEnvironment.Key);
+                        
+                        _log.LogTrace("Start listening to image tag updates");
 
                         // start listening to image tag notifications
                         await environmentGrain.StartListeningToImageTagUpdates();
 
                         // check if we missed any tags and make sure all
+                        _log.LogTrace("Check for misssing tags");
                         await environmentGrain.CheckForMissedImageTags();
                     }
                 }
+                _log.LogTrace("Refreshing environment state ... done");
 
                 // setup deployment service
                 var deploymentServiceGrain = GrainFactory.GetDeploymentServiceGrain(applicationDefinition.Name);

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Providers;
@@ -14,9 +13,7 @@ using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.ContainerRegistry;
 using Shipbot.Controller.Core.ContainerRegistry.Models;
-using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Deployments.Events;
-using Shipbot.Controller.Core.Models;
 using Shipbot.Controller.Core.Utilities;
 using Shipbot.Controller.Core.Utilities.Eventing;
 
@@ -48,7 +45,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
         private readonly Dictionary<Guid, StreamSubscriptionHandle<ImageTag>> _streamSubscriptionHandles = new Dictionary<Guid, StreamSubscriptionHandle<ImageTag>>();
 
         private readonly ILogger<ApplicationEnvironmentGrain> _log;
-        private ApplicationEnvironmentKey? _key;
         private IStreamProvider? _containerRegistryStreamProvider;
         private IStreamProvider? _eventHandlingStreamProvider;
 
@@ -61,14 +57,15 @@ namespace Shipbot.Controller.Core.Apps.Grains
         
         public override async Task OnActivateAsync()
         {
+            var key = ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString());
+            
             State.PromotionEnvironments ??= new List<string>();
 
-            var key = this.GetPrimaryKeyString();
-            _key = ApplicationEnvironmentKey.Parse(key);
-            
+            using var _ = _log.BeginShipbotLogScope(key);
+
             // register our-self with application 
-            var applicationGrain = GrainFactory.GetApplication(_key.Application);
-            await applicationGrain.RegisterEnvironment(_key);
+            var applicationGrain = GrainFactory.GetApplication(key.Application);
+            await applicationGrain.RegisterEnvironment(key);
             
             _containerRegistryStreamProvider = GetStreamProvider(ContainerRegistryStreamingConstants.ContainerRegistryStreamProvider);
             _eventHandlingStreamProvider = GetStreamProvider(EventingStreamingConstants.EventHandlingStreamProvider);
@@ -80,6 +77,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         public async Task StartListeningToImageTagUpdates()
         {
+            using var _ = _log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString()));
+            
             // register for image updates
             foreach (var image in State.Images)
             {
@@ -118,42 +117,41 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         private async Task OnNewImageTag(ImageTag item, StreamSequenceToken arg2)
         {
-            using (_log.BeginShipbotLogScope(_key))
+            var key = ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString());
+            
+            using var _ = _log.BeginShipbotLogScope(key);
+            
+            var image = State.Images.First(x => (item.Repository == x.Repository));
+
+            if (image.Policy.IsMatch(item.Tag))
             {
-                var image = State.Images.First(x => (item.Repository == x.Repository));
+                _log.Info("Received new image notification for {image}, with tag {tag}",
+                    image,
+                    item.Tag);
 
-                if (image.Policy.IsMatch(item.Tag))
+                var currentTag = image.CurrentTag;
+
+                // handle the case where the current image tag does not match the policy specified (for example, manually updated or overridden)
+                // TODO: maybe we don't want to do this and we may need to put a flag or a facility to force
+                if ((!image.Policy.IsMatch(currentTag)) ||
+                    image.Policy.IsGreaterThen(item.Tag, currentTag))
                 {
-                    _log.Info("Received new image notification for {image}, with tag {tag}",
+                    var e = new NewDeploymentEvent(
+                        key,
                         image,
-                        item.Tag);
-
-                    var currentTag = image.CurrentTag;
-
-                    // handle the case where the current image tag does not match the policy specified (for example, manually updated or overridden)
-                    // TODO: maybe we don't want to do this and we may need to put a flag or a facility to force
-                    if ((!image.Policy.IsMatch(currentTag)) ||
-                        image.Policy.IsGreaterThen(item.Tag, currentTag))
-                    {
-                        var e = new NewDeploymentEvent(
-                            _key,
-                            image,
-                            currentTag,
-                            item.Tag,
-                            State.PromotionEnvironments.Any(),
-                            State.PromotionEnvironments
-                        );
-                        await SendEvent(
-                            e
-                        );
-                    }
+                        currentTag,
+                        item.Tag,
+                        State.PromotionEnvironments.Any(),
+                        State.PromotionEnvironments
+                    );
+                    await SendEvent(e);
                 }
             }
         }
 
         public async Task StopListeningToImageTagUpdates()
         {
-            using (_log.BeginShipbotLogScope(_key))
+            using (_log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString())))
             {
                 foreach (var streamSubscriptionHandle in _streamSubscriptionHandles)
                 {
@@ -183,65 +181,65 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         public async Task Configure(ApplicationEnvironmentSettings applicationEnvironmentSettings)
         {
-            using (_log.BeginShipbotLogScope(_key))
+            var key = ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString());
+            using var _ = _log.BeginShipbotLogScope(key);
+
+            _log.LogInformation(
+                "Starting application environment configuration"
+            );
+
+            // clear
+            await StopListeningToImageTagUpdates();
+            State.PromotionEnvironments.Clear();
+
+            // update state
+            foreach (var imageSettings in applicationEnvironmentSettings.Images)
             {
-                _log.LogInformation(
-                    "Starting application environment configuration"
+                var image = new ApplicationEnvironmentImageMetadata(
+                    imageSettings.Repository,
+                    string.Empty,
+                    imageSettings.TagProperty.Path,
+                    imageSettings.TagProperty.ValueFormat,
+                    imageSettings.Policy switch
+                    {
+                        UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
+                            imageSettings.Pattern),
+                        UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
+                        _ => throw new NotImplementedException()
+                    }
                 );
 
-                // clear
-                await StopListeningToImageTagUpdates();
-                State.PromotionEnvironments.Clear();
-                
-                // update state
-                foreach (var imageSettings in applicationEnvironmentSettings.Images)
-                {
-                    var image = new ApplicationEnvironmentImageMetadata(
-                        imageSettings.Repository,
-                        string.Empty,
-                        imageSettings.TagProperty.Path,
-                        imageSettings.TagProperty.ValueFormat, 
-                        imageSettings.Policy switch
-                        {
-                            UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
-                                imageSettings.Pattern),
-                            UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
-                            _ => throw new NotImplementedException()
-                        }
-                    );
-
-                    State.Images.Add(image);
-                }
-
-                State.ApplicationSourceSettings = applicationEnvironmentSettings.Source;
-                State.AutoDeploy = applicationEnvironmentSettings.AutoDeploy;
-
-                State.PromotionEnvironments.AddRange(applicationEnvironmentSettings.PromoteTargets);
-
-                await WriteStateAsync();
-                
-                // fetch current deployment sources, current image tags and apply them
-                var deploymentSourceGrain = State.ApplicationSourceSettings.Type switch
-                {
-                    ApplicationSourceType.Helm => GrainFactory.GetHelmDeploymentSourceGrain(_key),
-                    _ => throw new InvalidOperationException()
-                };
-                await deploymentSourceGrain.Configure(
-                    State.ApplicationSourceSettings,
-                    _key
-                );
-                
-                await deploymentSourceGrain.Checkout();
-                await deploymentSourceGrain.Refresh();
-                var currentTags = await deploymentSourceGrain.GetImageTags();
-                foreach (var keyValuePair in currentTags)
-                {
-                    await SetImageTag(keyValuePair.Key, keyValuePair.Value);
-                }
-
-                // activate the helm deployment repo watcher and updater.
-                await deploymentSourceGrain.Activate();
+                State.Images.Add(image);
             }
+
+            State.ApplicationSourceSettings = applicationEnvironmentSettings.Source;
+            State.AutoDeploy = applicationEnvironmentSettings.AutoDeploy;
+
+            State.PromotionEnvironments.AddRange(applicationEnvironmentSettings.PromoteTargets);
+
+            await WriteStateAsync();
+
+            // fetch current deployment sources, current image tags and apply them
+            var deploymentSourceGrain = State.ApplicationSourceSettings.Type switch
+            {
+                ApplicationSourceType.Helm => GrainFactory.GetHelmDeploymentSourceGrain(key),
+                _ => throw new InvalidOperationException()
+            };
+            await deploymentSourceGrain.Configure(
+                State.ApplicationSourceSettings,
+                key
+            );
+
+            await deploymentSourceGrain.Checkout();
+            await deploymentSourceGrain.Refresh();
+            var currentTags = await deploymentSourceGrain.GetImageTags();
+            foreach (var keyValuePair in currentTags)
+            {
+                await SetImageTag(keyValuePair.Key, keyValuePair.Value);
+            }
+
+            // activate the helm deployment repo watcher and updater.
+            await deploymentSourceGrain.Activate();
         }
 
         public async Task CheckForMissedImageTags()
@@ -320,7 +318,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
 
         public Task SetImageTag(ApplicationEnvironmentImageMetadata image, string newImageTag)
         {
-            using var _ = _log.BeginShipbotLogScope(_key);
+            var key = ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString());
+            using var _ = _log.BeginShipbotLogScope(key);;
 
             if (!State.Images.TryGetValue(image, out var deployedImageTag)) 
                 return Task.CompletedTask;
@@ -330,8 +329,8 @@ namespace Shipbot.Controller.Core.Apps.Grains
             
             _log.LogInformation(
                 "Setting tag for '{Repository}' to '{Tag}' from {CurrentTag}",
-                _key.Application,
-                _key.Environment,
+                key.Application,
+                key.Environment,
                 image.Repository,
                 newImageTag,
                 deployedImageTag.CurrentTag

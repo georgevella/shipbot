@@ -36,6 +36,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
         public override Task OnActivateAsync()
         {
+            using var _ = _log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString()));
+            
             if (State.SecretFiles == null) State.SecretFiles = new List<string>();
             if (State.ValuesFiles == null) State.ValuesFiles = new List<string>();
             if (State.Repository == null) State.Repository = new ApplicationSourceRepository();
@@ -49,6 +51,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             ApplicationEnvironmentKey applicationEnvironmentKey
         )
         {
+            using var _ = _log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString()));
+            
             if (applicationSourceSettings == null) throw new ArgumentNullException(nameof(applicationSourceSettings));
             
             await base.Configure(applicationSourceSettings, applicationEnvironmentKey);
@@ -59,7 +63,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         
         public override async Task Refresh()
         {
-            using var logScope = _log.BeginShipbotLogScope();
+            using var logScope = _log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString()));
             
             var relativePath = State.Path;
             var applicationSourcePath = Path.Combine(this.CheckoutDirectory.FullName, relativePath);
@@ -114,6 +118,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 
         public override async Task<DeploymentSourceChangeResult> ApplyDeploymentAction(DeploymentSourceChange deploymentSourceChange)
         {
+            using var logScope = _log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString()));
+            
             // var deploymentGrain = GrainFactory.GetDeploymentGrain(State.ApplicationEnvironment,
             //     deploymentUpdate.Image, deploymentUpdate.TargetTag);
             //var deploymentUpdateGrain = GrainFactory.GetDeploymentActionGrain(deploymentActionKey);
@@ -180,6 +186,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             FileSystemInfo file,
             string currentImageTag)
         {
+            using var logScope = _log.BeginShipbotLogScope(ApplicationEnvironmentKey.Parse(this.GetPrimaryKeyString()));
+            
 //            if (!imageToFilenameMap.TryGetValue(deploymentUpdate.Image, out FileInfo file))
 //            {
 //                // TODO: warn that we have an image tag update but no corresponding file
