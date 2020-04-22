@@ -109,6 +109,8 @@ namespace Shipbot.Controller.Core.Deployments.Grains
                     }
 
                     await WriteStateAsync();
+                    
+                    await PostOrUpdateSlackMessage();
                 });
             
             await base.OnActivateAsync();
