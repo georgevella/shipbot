@@ -26,7 +26,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         private readonly ILogger _log;
         private DirectoryInfo _checkoutDirectory;
         private ApplicationEnvironmentKey _key;
-        
+        private string? _checkoutDirectoryPath;
+
         private const string ReminderPrefix = "GitRepoRefreshReminder";
 
         protected GitBasedDeploymentSourceGrain(
@@ -36,7 +37,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             _log = log;
         }
 
-        protected DirectoryInfo CheckoutDirectory => _checkoutDirectory;
+        protected DirectoryInfo CheckoutDirectory => new DirectoryInfo(_checkoutDirectoryPath);
 
         public override async Task OnActivateAsync()
         {
@@ -48,8 +49,8 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
                     this.GetPrimaryKeyString().Split(invalids, StringSplitOptions.RemoveEmptyEntries)
                 )
                 .TrimEnd('.');
-            var checkoutDirectoryPath = Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid():D}");
-            _checkoutDirectory = new DirectoryInfo(checkoutDirectoryPath);
+            _checkoutDirectoryPath = Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid():D}");
+            
             
             var key = this.GetPrimaryKeyString();
             _key = ApplicationEnvironmentKey.Parse(key);
@@ -65,11 +66,18 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
             await base.OnActivateAsync();
         }
 
-        public async Task Activate()
+        public async Task StartTracking()
         {
             State.IsActive = true;
             await base.WriteStateAsync();
             await SetupTimers();
+        }
+        
+        public async Task StopTracking()
+        {
+            State.IsActive = false;
+            await base.WriteStateAsync();
+            await StopTimers();
         }
 
         private async Task SetupTimers()
@@ -82,6 +90,18 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
                     TimeSpan.FromSeconds(dueTime),
                     TimeSpan.FromMinutes(1)
                 );
+            }
+        }
+        
+        private async Task StopTimers()
+        {
+            // setup a reminder to refresh the git repository every one minute
+
+            var reminders = await GetReminders();
+            
+            foreach (var grainReminder in reminders)
+            {
+                await UnregisterReminder(grainReminder);
             }
         }
 

@@ -13,7 +13,7 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
 {
     public interface IDeploymentSourceGrain : IGrainWithStringKey
     {
-        Task Activate();
+        Task StartTracking();
         Task Checkout();
 
         Task Configure(
@@ -25,5 +25,6 @@ namespace Shipbot.Controller.Core.DeploymentSources.Grains
         Task<IReadOnlyDictionary<string, string>> GetImageTags();
             
         Task<DeploymentSourceChangeResult> ApplyDeploymentAction(DeploymentSourceChange deploymentSourceChange);
+        Task StopTracking();
     }
 }
