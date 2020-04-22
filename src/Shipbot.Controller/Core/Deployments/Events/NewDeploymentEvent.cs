@@ -34,7 +34,8 @@ namespace Shipbot.Controller.Core.Deployments.Events
         public ApplicationEnvironmentKey ApplicationEnvironment { get; }
         public ApplicationEnvironmentImageKey Image { get; }
         public string TargetTag { get; }
-        
-        public Dictionary<ApplicationEnvironmentKey, string> CurrentTags { get; } = new Dictionary<ApplicationEnvironmentKey, string>();
+
+        public Dictionary<ApplicationEnvironmentKey, string> CurrentTags { get; } =
+            new Dictionary<ApplicationEnvironmentKey, string>(ApplicationEnvironmentKey.EqualityComparer);
     }
 }

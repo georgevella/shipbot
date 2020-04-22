@@ -39,7 +39,12 @@ namespace Shipbot.Controller.Core.Apps.Models
 
         public static implicit operator string(ApplicationEnvironmentKey key)
         {
-            return $"{key.Application}:{key.Environment}";
+            return key.ToString();
+        }
+        
+        public static implicit operator ApplicationEnvironmentKey(string raw)
+        {
+            return Parse(raw);
         }
 
         public static implicit operator ApplicationKey(ApplicationEnvironmentKey key)
@@ -55,6 +60,11 @@ namespace Shipbot.Controller.Core.Apps.Models
 
             var parts = key.Split(':');
             return new ApplicationEnvironmentKey(parts[0], parts[1]);
+        }
+
+        public override string ToString()
+        {
+            return $"{Application}:{Environment}";
         }
     }
 }
