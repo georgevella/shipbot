@@ -218,28 +218,6 @@ namespace Shipbot.Controller.Core.Apps.Grains
             State.PromotionEnvironments.AddRange(applicationEnvironmentSettings.PromoteTargets);
 
             await WriteStateAsync();
-
-            // fetch current deployment sources, current image tags and apply them
-            var deploymentSourceGrain = State.ApplicationSourceSettings.Type switch
-            {
-                ApplicationSourceType.Helm => GrainFactory.GetHelmDeploymentSourceGrain(key),
-                _ => throw new InvalidOperationException()
-            };
-            await deploymentSourceGrain.Configure(
-                State.ApplicationSourceSettings,
-                key
-            );
-
-            await deploymentSourceGrain.Checkout();
-            await deploymentSourceGrain.Refresh();
-            var currentTags = await deploymentSourceGrain.GetImageTags();
-            foreach (var keyValuePair in currentTags)
-            {
-                await SetImageTag(keyValuePair.Key, keyValuePair.Value);
-            }
-
-            // activate the helm deployment repo watcher and updater.
-            await deploymentSourceGrain.Activate();
         }
 
         public async Task CheckForMissedImageTags()
