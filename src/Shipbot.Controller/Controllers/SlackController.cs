@@ -4,9 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Orleans;
-using Shipbot.Controller.Core.Apps;
-using Shipbot.Controller.Core.Deployments;
-using Shipbot.Controller.Core.Slack.Models;
 using Shipbot.Controller.Models.Slack;
 
 namespace Shipbot.Controller.Controllers
