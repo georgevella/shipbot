@@ -384,9 +384,9 @@ namespace Shipbot.Controller.Core.ApplicationSources
             _log.LogInformation("Adding {Path} to repository staging", filePath);
             var gitFilePath = Path.Combine(relativePath, file);
             Commands.Stage(gitRepository, gitFilePath);
-
+            
             gitRepository.Commit(
-                $"Updated deployment for {image.Repository} to version with tag {deploymentUpdate.TargetTag}",
+                $"[{deploymentUpdate.Application}] Updated deployment for {image.RepositoryName}; {deploymentUpdate.CurrentTag} to {deploymentUpdate.TargetTag}",
                 new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now),
                 new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now)
             );
