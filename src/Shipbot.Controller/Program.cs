@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using CommandLine;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Serilog.Formatting.Json;
@@ -15,17 +17,39 @@ namespace Shipbot.Controller
         public static void Main(string[] args)
         {
             var builder = CreateWebHostBuilder(args);
-            
+
             CommandLine.Parser.Default.ParseArguments<CommandLineOptions>(args)
                 .WithParsed<CommandLineOptions>(opts =>
                 {
-                    if (opts.ConfigFilePath != null)
+                    builder.ConfigureAppConfiguration((hostingContext, config) =>
                     {
-                        builder.UseConfiguration(new ConfigurationBuilder()
-                            .AddJsonFile(opts.ConfigFilePath, false, true).Build());
-                    }
+                        if (opts.ConfigFilePath != null)
+                        {
+                            config.AddJsonFile(opts.ConfigFilePath, false, true);
+                        }
+
+                        if (opts.ApplicationsFilePath?.Any() == true)
+                        {
+                            foreach (var path in opts.ApplicationsFilePath)
+                            {
+                                foreach (var file in Directory.GetFiles(Path.GetDirectoryName(path),
+                                    Path.GetFileName(path)))
+                                {
+                                    switch (Path.GetExtension(file))
+                                    {
+                                        case ".yaml":
+                                            config.AddYamlFile(file, true, true);
+                                            break;
+                                        case ".json":
+                                            config.AddJsonFile(file, true, true);
+                                            break;
+                                    }
+                                }
+                            }
+                        }
+                    });
                 });
-            
+
             builder.Build().Run();
         }
 

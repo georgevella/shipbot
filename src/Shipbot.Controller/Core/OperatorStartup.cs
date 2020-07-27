@@ -69,7 +69,7 @@ namespace Shipbot.Controller.Core
             } );
             
             // register applications
-            var trackedApplications = conf.Applications.Select(applicationDefinition => _applicationService.AddApplication( applicationDefinition ));
+            var trackedApplications = conf.Applications.Select(applicationDefinition => _applicationService.AddApplication( applicationDefinition.Value ));
 
             foreach (var trackedApplication in trackedApplications)
             {
