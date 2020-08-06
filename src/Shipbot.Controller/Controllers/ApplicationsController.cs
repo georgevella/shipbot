@@ -5,13 +5,13 @@ using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Controllers
 {
-    [Route("api/applications/[controller]")]
+    [Route("api/applications")]
     [ApiController]
-    public class ValuesController : ControllerBase
+    public class ApplicationsController : ControllerBase
     {
         private readonly IApplicationService _applicationService;
 
-        public ValuesController(IApplicationService applicationService)
+        public ApplicationsController(IApplicationService applicationService)
         {
             _applicationService = applicationService;
         }
