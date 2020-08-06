@@ -386,7 +386,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             Commands.Stage(gitRepository, gitFilePath);
             
             gitRepository.Commit(
-                $"[{deploymentUpdate.Application}] Updated deployment for {image.RepositoryName}; {deploymentUpdate.CurrentTag} to {deploymentUpdate.TargetTag}",
+                $"[{deploymentUpdate.Application}] Updated deployment for {image.ShortRepository}; {deploymentUpdate.CurrentTag} to {deploymentUpdate.TargetTag}",
                 new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now),
                 new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now)
             );

@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Linq;
 
 namespace Shipbot.Controller.Core.Models
 {
@@ -46,7 +48,7 @@ namespace Shipbot.Controller.Core.Models
 
         public ImageUpdatePolicy Policy { get; }
 
-        public string RepositoryName => new Uri(Repository, UriKind.Absolute).LocalPath.TrimStart('/');
+        public string ShortRepository => Repository.Any() ? Repository.Substring(Repository.IndexOf('/') + 1) : string.Empty; 
     }
 
     public class TagProperty
