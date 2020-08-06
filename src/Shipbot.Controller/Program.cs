@@ -1,13 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using CommandLine;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Formatting.Json;
-using Serilog.Sinks.SystemConsole.Themes;
 using Shipbot.Controller.Cmd;
 
 namespace Shipbot.Controller
