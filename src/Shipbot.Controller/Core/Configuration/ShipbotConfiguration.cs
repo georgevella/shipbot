@@ -12,7 +12,7 @@ namespace Shipbot.Controller.Core.Configuration
         
         public List<ContainerRegistrySettings> Registries { get; set; } = new List<ContainerRegistrySettings>();
         
-        public IDictionary<string, ApplicationDefinition> Applications { get; set; } = new Dictionary<string, ApplicationDefinition>();
+        public Dictionary<string, ApplicationDefinition> Applications { get; } = new Dictionary<string, ApplicationDefinition>();
         
         public List<GitCredentialSettings> GitCredentials { get; set; } = new List<GitCredentialSettings>();
     }

@@ -21,33 +21,35 @@ namespace Shipbot.Controller
             CommandLine.Parser.Default.ParseArguments<CommandLineOptions>(args)
                 .WithParsed<CommandLineOptions>(opts =>
                 {
-                    builder.ConfigureAppConfiguration((hostingContext, config) =>
-                    {
-                        if (opts.ConfigFilePath != null)
+                    builder.ConfigureAppConfiguration(
+                        (hostingContext, config) =>
                         {
-                            config.AddJsonFile(opts.ConfigFilePath, false, true);
-                        }
-
-                        if (opts.ApplicationsFilePath?.Any() == true)
-                        {
-                            foreach (var path in opts.ApplicationsFilePath)
+                            if (opts.ConfigFilePath != null)
                             {
-                                foreach (var file in Directory.GetFiles(Path.GetDirectoryName(path),
-                                    Path.GetFileName(path)))
+                                config.AddJsonFile(opts.ConfigFilePath, false, true);
+                            }
+
+                            if (opts.ApplicationsFilePath?.Any() == true)
+                            {
+                                foreach (var path in opts.ApplicationsFilePath)
                                 {
-                                    switch (Path.GetExtension(file))
+                                    foreach (var file in Directory.GetFiles(Path.GetDirectoryName(path),
+                                        Path.GetFileName(path)))
                                     {
-                                        case ".yaml":
-                                            config.AddYamlFile(file, true, true);
-                                            break;
-                                        case ".json":
-                                            config.AddJsonFile(file, true, true);
-                                            break;
+                                        switch (Path.GetExtension(file))
+                                        {
+                                            case ".yaml":
+                                                config.AddYamlFile(file, true, true);
+                                                break;
+                                            case ".json":
+                                                config.AddJsonFile(file, true, true);
+                                                break;
+                                        }
                                     }
                                 }
                             }
                         }
-                    });
+                    );
                 });
 
             builder.Build().Run();
