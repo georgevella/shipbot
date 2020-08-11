@@ -57,30 +57,37 @@ namespace Shipbot.Controller.Core.Registry.Watcher
                 }
                 else
                 {
-                    var currentTag = currentTags[image];
-
-                    _log.LogInformation("Fetching tags for {imagerepository}", imageRepository);
-                    var client = await _registryClientPool.GetRegistryClientForRepository(imageRepository);
-
-                    var tags = await client.GetRepositoryTags(imageRepository);
-
-                    var matchingTags = tags.Where(tagDetails => image.Policy.IsMatch(tagDetails.tag))
-                        .ToDictionary(x => x.tag);
-
-                    var latestTag = matchingTags.Values
-                        .OrderBy(tuple => tuple.createdAt, Comparer<DateTime>.Default)
-                        .Last();
-
-                    if (latestTag.tag == currentTag)
+                    try
                     {
-                        _log.LogInformation("Latest image tag is applied to the deployment specs");
+                        var currentTag = currentTags[image];
+
+                        _log.LogInformation("Fetching tags for {imagerepository}", imageRepository);
+                        var client = await _registryClientPool.GetRegistryClientForRepository(imageRepository);
+
+                        var tags = await client.GetRepositoryTags(imageRepository);
+
+                        var matchingTags = tags.Where(tagDetails => image.Policy.IsMatch(tagDetails.tag))
+                            .ToDictionary(x => x.tag);
+
+                        var latestTag = matchingTags.Values
+                            .OrderBy(tuple => tuple.createdAt, Comparer<DateTime>.Default)
+                            .Last();
+
+                        if (latestTag.tag == currentTag)
+                        {
+                            _log.LogInformation("Latest image tag is applied to the deployment specs");
+                        }
+                        else
+                        {
+                            _log.LogInformation(
+                                "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
+                                latestTag.tag, image.Repository, application.Name, currentTag);
+                            await _deploymentService.AddDeploymentUpdate(application, image, latestTag.tag);
+                        }
                     }
-                    else
+                    catch (Exception e)
                     {
-                        _log.LogInformation(
-                            "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
-                            latestTag.tag, image.Repository, application.Name, currentTag);
-                        await _deploymentService.AddDeploymentUpdate(application, image, latestTag.tag);
+                        _log.LogWarning(e, "An error occured when fetching the latest image tags from the registry.");
                     }
                 }
             }
