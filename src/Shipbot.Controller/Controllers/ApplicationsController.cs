@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Models;
@@ -16,36 +17,28 @@ namespace Shipbot.Controller.Controllers
             _applicationService = applicationService;
         }
         
-        // GET api/values
         [HttpGet]
         public ActionResult<IEnumerable<Application>> Get()
         {
             return Ok(_applicationService.GetApplications());
         }
-
-        // GET api/values/5
+        
         [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
+        public ActionResult<Application> Get(string id)
         {
-            return "value";
+            return Ok(_applicationService.GetApplication(id));
         }
-
-        // POST api/values
-        [HttpPost]
-        public void Post([FromBody] string value)
+        
+        [HttpGet("{id}/current-tags")]
+        public ActionResult<Dictionary<string, string>> GetCurrentImageTags(string id)
         {
-        }
-
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            var application = _applicationService.GetApplication(id);
+            var result = _applicationService.GetCurrentImageTags(application)
+                .ToDictionary(
+                    x => x.Key.TagProperty.Path, 
+                    x => x.Key.TagProperty.ValueFormat == TagPropertyValueFormat.TagOnly ? $"{x.Key.Repository}:{x.Value}" : $"{x.Value}"
+                    );
+            return Ok(result);
         }
     }
 }
