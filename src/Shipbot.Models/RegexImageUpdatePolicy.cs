@@ -1,6 +1,6 @@
 namespace Shipbot.Controller.Core.Models
 {
-    class RegexImageUpdatePolicy : ImageUpdatePolicy
+    public class RegexImageUpdatePolicy : ImageUpdatePolicy
     {
         public RegexImageUpdatePolicy(string pattern)
         {

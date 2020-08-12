@@ -11,7 +11,7 @@ using Shipbot.Controller.Core.Deployments;
 namespace Shipbot.Controller.Core.Registry.Watcher
 {
     [DisallowConcurrentExecution]
-    class RegistryWatcherJob : IJob
+    public class RegistryWatcherJob : IJob
     {
         private readonly ILogger<RegistryWatcherJob> _log;
         private readonly RegistryClientPool _registryClientPool;

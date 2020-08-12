@@ -31,6 +31,18 @@
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Core\Configuration" />
+    <Folder Include="Core\Models" />
+    <Folder Include="Core\Registry" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
+    <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
+    <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
+  </ItemGroup>
+
 <!--  <ItemGroup>-->
 <!--    <ProjectReference Include="..\OperatorSdk\OperatorSdk.csproj" />-->
 <!--  </ItemGroup>-->

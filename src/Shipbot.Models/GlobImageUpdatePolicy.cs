@@ -2,7 +2,7 @@ using DotNet.Globbing;
 
 namespace Shipbot.Controller.Core.Models
 {
-    class GlobImageUpdatePolicy : ImageUpdatePolicy
+    public class GlobImageUpdatePolicy : ImageUpdatePolicy
     {
         private readonly Glob _pattern;
 
