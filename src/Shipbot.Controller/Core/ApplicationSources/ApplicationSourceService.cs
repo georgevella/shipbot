@@ -63,10 +63,4 @@ namespace Shipbot.Controller.Core.ApplicationSources
             await _scheduler.TriggerJob(jobkey, data, CancellationToken.None);
         }
     }
-
-    public interface IApplicationSourceService
-    {
-        Task AddApplicationSource(Application application);
-        Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate);
-    }
 }

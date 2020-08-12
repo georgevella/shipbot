@@ -32,12 +32,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Core\Apps" />
     <Folder Include="Core\Configuration" />
     <Folder Include="Core\Models" />
     <Folder Include="Core\Registry" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Shipbot.Applications\Shipbot.Applications.csproj" />
     <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
     <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />

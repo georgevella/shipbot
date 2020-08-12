@@ -25,9 +25,4 @@ namespace Shipbot.Controller.Core.Slack
         
         public string ChannelId { get; }
     }
-
-    public interface IMessageHandle
-    {
-        
-    }
 }
