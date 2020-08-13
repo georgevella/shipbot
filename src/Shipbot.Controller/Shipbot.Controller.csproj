@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Core\ApplicationSources" />
     <Folder Include="Core\Apps" />
     <Folder Include="Core\Configuration" />
     <Folder Include="Core\Deployments" />
@@ -44,6 +45,7 @@
     <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
     <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
+    <ProjectReference Include="..\Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj" />
     <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
   </ItemGroup>
 
