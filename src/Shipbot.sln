@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.DbMigrations", "Shi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.DeploymentSources", "Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj", "{B8E9C5D8-C05E-4618-BEDA-F41D075CA67C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.JobScheduling", "Shipbot.JobScheduling\Shipbot.JobScheduling.csproj", "{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -198,5 +200,17 @@ Global
 		{B8E9C5D8-C05E-4618-BEDA-F41D075CA67C}.Release|x64.Build.0 = Release|Any CPU
 		{B8E9C5D8-C05E-4618-BEDA-F41D075CA67C}.Release|x86.ActiveCfg = Release|Any CPU
 		{B8E9C5D8-C05E-4618-BEDA-F41D075CA67C}.Release|x86.Build.0 = Release|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Debug|x64.Build.0 = Debug|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Debug|x86.Build.0 = Debug|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Release|x64.ActiveCfg = Release|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Release|x64.Build.0 = Release|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Release|x86.ActiveCfg = Release|Any CPU
+		{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
