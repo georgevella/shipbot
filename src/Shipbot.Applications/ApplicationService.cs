@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Shipbot.Contracts;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
@@ -20,37 +21,20 @@ namespace Shipbot.Controller.Core.Apps
 {
     public class ApplicationService : IApplicationService
     {
-        private readonly ConcurrentDictionary<string, ApplicationContextData> _applications = new ConcurrentDictionary<string, ApplicationContextData>();
-
         private readonly ILogger<ApplicationService> _log;
         private readonly IApplicationSourceService _applicationSourceService;
         private readonly IRegistryWatcher _registryWatcher;
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly ISlackClient _slackClient;
-
-        class ApplicationContextData
-        {
-            public object Lock = new object();
-            
-            public Application Application { get; set; }
-            
-            public ApplicationSyncState State { get; set; }
-            
-            public ConcurrentDictionary<Image, string> CurrentTags { get; } = new ConcurrentDictionary<Image, string>();
-            
-            public ApplicationContextData(Application application)
-            {
-                Application = application;
-                State = ApplicationSyncState.Unknown;
-            }
-        }
+        private readonly IApplicationStore _applicationStore;
 
         public ApplicationService(
             ILogger<ApplicationService> log,
             IApplicationSourceService applicationSourceService,
             IRegistryWatcher registryWatcher,
             IOptions<ShipbotConfiguration> configuration,
-            ISlackClient slackClient
+            ISlackClient slackClient,
+            IApplicationStore applicationStore
         )
         {
             _log = log;
@@ -58,6 +42,7 @@ namespace Shipbot.Controller.Core.Apps
             _registryWatcher = registryWatcher;
             _configuration = configuration;
             _slackClient = slackClient;
+            _applicationStore = applicationStore;
         }
 
         public Application AddApplication(ApplicationDefinition applicationDefinition)
@@ -94,19 +79,21 @@ namespace Shipbot.Controller.Core.Apps
                 new NotificationSettings(applicationDefinition.SlackChannel)
             );
 
-            _applications[application.Name] = new ApplicationContextData(application);
+            _applicationStore.AddApplication(application);
 
             return application;
         }
 
-        public IEnumerable<Application> GetApplications()
-        {
-            return _applications.Values.ToArray().Select( x=>x.Application ).ToArray();
-        }
+        public IEnumerable<Application> GetApplications() => _applicationStore.GetAllApplications();
 
         public Application GetApplication(string id)
         {
-            return _applications[id].Application;
+            if (_applicationStore.ApplicationExists(id))
+            {
+                return _applicationStore.GetApplication(id);
+            }
+            
+            throw new KeyNotFoundException(id);
         }
 
         public async Task StartTrackingApplication(Application application)
@@ -115,34 +102,16 @@ namespace Shipbot.Controller.Core.Apps
             await _registryWatcher.StartWatchingImageRepository(application);
         }
 
+        [Obsolete]
         public IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application)
         {
-            return _applications[application.Name].CurrentTags;
+            return _applicationStore.GetCurrentImageTags(application);
         }
 
+        [Obsolete]
         public void SetCurrentImageTag(Application application, Image image, string tag)
         {
-            var ctx = _applications[application.Name];
-            ctx.CurrentTags.AddOrUpdate(image,
-                (x, y) =>
-                {
-                    _log.LogInformation("Adding '{Repository}' to application {Application} with tag {Tag}",
-                        x.Repository, y.application.Name, y.tag);
-                    return y.tag;
-                },  
-                (x, current, y) =>
-                {
-                    if (current == y.tag) 
-                        return current;
-                    
-                    _log.LogInformation(
-                        "Updating '{Repository}' with tag {Tag} for application {Application} with new tag {NewTag}",
-                        x.Repository, current, y.application.Name, y.tag);
-                    return y.tag;
-
-                },
-                (application, tag)
-            );
+            _applicationStore.SetCurrentImageTag(application, image, tag);
         }
     }
 }

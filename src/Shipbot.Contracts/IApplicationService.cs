@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shipbot.Controller.Core.Configuration.Apps;
@@ -12,7 +13,9 @@ namespace Shipbot.Controller.Core.Apps
         IEnumerable<Application> GetApplications();
         Application GetApplication(string id);
 
+        [Obsolete]
         void SetCurrentImageTag(Application application, Image image, string tag);
+        [Obsolete]
         IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application);
     }
 }

@@ -4,12 +4,14 @@ using Mediator.Net.MicrosoftDependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
+using Shipbot.Contracts;
 using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Apps;
@@ -45,25 +47,39 @@ namespace Shipbot.Controller
             services.Configure<ShipbotConfiguration>(Configuration.GetSection("Shipbot"));
             services.Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
 
+            // application sources
             services.AddSingleton<IApplicationSourceService, ApplicationSourceService>();
             services.AddTransient<GitRepositorySyncJob>();
             services.AddTransient<GitRepositoryCheckoutJob>();
             
-            services.AddSingleton<IApplicationService, ApplicationService>();
-            services.AddSingleton<RegistryClientPool>();
-            
+            // applications
+            services.AddSingleton<IApplicationStore, InMemoryApplicationStore>();
+            services.AddScoped<IApplicationService, ApplicationService>();
+
             // quartz
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
             services.AddSingleton<IScheduler, DependencyInjectionQuartzScheduler>();
             services.AddSingleton<IJobFactory, DependencyInjectionQuartzJobFactory>();
 
+            // container registry
+            services.AddSingleton<RegistryClientPool>();
             services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
             services.AddTransient<RegistryWatcherJob>();
 
-            services.AddSingleton<IDeploymentService, DeploymentService>();
+            // deployment
+            services.AddSingleton<IDeploymentQueueService, DeploymentQueueService>();
+            services.AddSingleton<IDeploymentNotificationService, DeploymentNotificationService>();
+            services.AddScoped<IDeploymentService, DeploymentService>();
+            services.AddDbContext<DeploymentsDbContext>(
+                builder => builder.UseNpgsql(
+                    "Host=localhost;Database=postgres;Username=postgres;Password=password123", 
+                    b => b.MigrationsAssembly(typeof(Program).Assembly.FullName)
+                )
+            );
 
             services.AddTransient<IHostedService, OperatorStartup>();
             
+            // slack handling
             services.AddTransient<IHostedService, SlackStartup>();
             services.AddSingleton<ISlackClient, SlackClient>();
 

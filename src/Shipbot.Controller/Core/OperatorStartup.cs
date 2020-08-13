@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,7 +27,6 @@ namespace Shipbot.Controller.Core
         private readonly ILogger<OperatorStartup> _log;
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly RegistryClientPool _registryClientPool;
-        private readonly IApplicationService _applicationService;
         private readonly IServiceProvider _serviceProvider;
         private readonly ConcurrentBag<Task> _watcherJobs = new ConcurrentBag<Task>();
         private readonly CancellationTokenSource _cancelSource;
@@ -35,14 +35,12 @@ namespace Shipbot.Controller.Core
             ILogger<OperatorStartup> log, 
             IOptions<ShipbotConfiguration> configuration,
             RegistryClientPool registryClientPool,
-            IApplicationService applicationService,
             IServiceProvider serviceProvider
             )
         {
             _log = log;
             _configuration = configuration;
             _registryClientPool = registryClientPool;
-            _applicationService = applicationService;
             _serviceProvider = serviceProvider;
 
             _cancelSource = new CancellationTokenSource();
@@ -68,16 +66,21 @@ namespace Shipbot.Controller.Core
                 }
             } );
             
+            
             // register applications
-            var trackedApplications = conf.Applications.Select(applicationDefinition => _applicationService.AddApplication( applicationDefinition.Value ));
+            using var scope = _serviceProvider.CreateScope();
+            
+            var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
+                
+            var trackedApplications = conf.Applications.Select(applicationDefinition => applicationService.AddApplication( applicationDefinition.Value ));
 
             foreach (var trackedApplication in trackedApplications)
             {
-                await _applicationService.StartTrackingApplication(trackedApplication);
+                await applicationService.StartTrackingApplication(trackedApplication);
             }
 
 
-//            // start watching argo applications
+            //            // start watching argo applications
 //            foreach (var connectionDetails in conf.Kubernetes)
 //            {
 //                var client = _clientPool.GetConnection(connectionDetails);
