@@ -25,8 +25,8 @@ namespace Shipbot.Controller.Core.Jobs
             var wrapperType = typeof(JobWrapper<>).MakeGenericType(jobType);
             
             var scope = _container.CreateScope();
-            var job = _container.GetService(jobType) as IJob;
-            var logger = _container.GetService(loggerType);
+            var job = scope.ServiceProvider.GetService(jobType) as IJob;
+            var logger = scope.ServiceProvider.GetService(loggerType);
 
             if (job == null)
             {
