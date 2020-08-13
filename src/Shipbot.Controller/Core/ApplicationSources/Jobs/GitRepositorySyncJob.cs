@@ -21,16 +21,19 @@ namespace Shipbot.Controller.Core.ApplicationSources
         private readonly ILogger<GitRepositorySyncJob> _log;
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
+        private readonly IDeploymentQueueService _deploymentQueueService;
 
         public GitRepositorySyncJob(
             ILogger<GitRepositorySyncJob> log,
             IApplicationService applicationService,
-            IDeploymentService deploymentService
+            IDeploymentService deploymentService,
+            IDeploymentQueueService deploymentQueueService
         )
         {
             _log = log;
             _applicationService = applicationService;
             _deploymentService = deploymentService;
+            _deploymentQueueService = deploymentQueueService;
         }
 
         public async Task Execute(IJobExecutionContext jobExecutionContext)
@@ -287,8 +290,10 @@ namespace Shipbot.Controller.Core.ApplicationSources
             // start updating files
             var manifestsChanged = false;
             DeploymentUpdate deploymentUpdate = null;
-            while ((deploymentUpdate = await _deploymentService.GetNextPendingDeploymentUpdate(application)) != null) 
+            while ((deploymentUpdate = await _deploymentQueueService.GetNextPendingDeploymentUpdate(application)) != null)
             {
+                await _deploymentService.ChangeDeploymentUpdateStatus(deploymentUpdate,
+                    DeploymentUpdateStatus.Starting);
                 _log.LogInformation("Executing pending deployment update ...");
                 
                 await _deploymentService.ChangeDeploymentUpdateStatus(

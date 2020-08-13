@@ -2,8 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shipbot.Controller.Core.Apps;
+using Shipbot.Controller.Core.Deployments.Dao;
 using Shipbot.Controller.Core.Models;
 using Shipbot.Controller.Core.Slack;
 
@@ -11,29 +13,43 @@ namespace Shipbot.Controller.Core.Deployments
 {
     public class DeploymentService : IDeploymentService
     {
-        private readonly ConcurrentDictionary<DeploymentUpdate, DeploymentUpdateStatus> _deploymentUpdates = new ConcurrentDictionary<DeploymentUpdate, DeploymentUpdateStatus>();
         
-        private readonly ConcurrentDictionary<Application, ConcurrentQueue<DeploymentUpdate>> _pendingDeploymentUpdates = new ConcurrentDictionary<Application, ConcurrentQueue<DeploymentUpdate>>();
-        
-        private readonly ConcurrentDictionary<DeploymentUpdate, IMessageHandle> _notificationHandles = new ConcurrentDictionary<DeploymentUpdate, IMessageHandle>();
         
         private readonly IApplicationService _applicationService;
 
         private readonly ILogger _log;
         
         private readonly ISlackClient _slackClient;
+        private readonly IDeploymentQueueService _deploymentQueueService;
+        private readonly IDeploymentNotificationService _deploymentNotificationService;
+        private readonly DeploymentsDbContext _deploymentsDbContext;
 
         public DeploymentService(
             ILogger<DeploymentService> log,
             IApplicationService applicationService,
-            ISlackClient slackClient
+            ISlackClient slackClient,
+            IDeploymentQueueService deploymentQueueService,
+            IDeploymentNotificationService deploymentNotificationService,
+            DeploymentsDbContext deploymentsDbContext
         )
         {
             _log = log;
             _applicationService = applicationService;
             _slackClient = slackClient;
+            _deploymentQueueService = deploymentQueueService;
+            _deploymentNotificationService = deploymentNotificationService;
+            _deploymentsDbContext = deploymentsDbContext;
         }
-        
+
+        protected Task<Dao.Deployment> GetDeploymentDao(DeploymentUpdate deploymentUpdate) =>
+            _deploymentsDbContext.Deployments.FirstAsync(x =>
+                x.ApplicationId == deploymentUpdate.Application.Name &&
+                x.ImageRepository == deploymentUpdate.Image.Repository &&
+                x.UpdatePath == deploymentUpdate.Image.TagProperty.Path &&
+                x.CurrentImageTag == deploymentUpdate.CurrentTag &&
+                x.TargetImageTag == deploymentUpdate.TargetTag
+            );
+
         public async Task AddDeploymentUpdate(Application application, Image image, string newTag)
         {
             var currentTags = _applicationService.GetCurrentImageTags(application);
@@ -42,10 +58,17 @@ namespace Shipbot.Controller.Core.Deployments
             {
                 currentTag = "<new image>";
             }
-            
-            var deploymentUpdate = new DeploymentUpdate(application, image, currentTag, newTag);
 
-            if (!_deploymentUpdates.TryAdd(deploymentUpdate, DeploymentUpdateStatus.Pending))
+            var deploymentExists = _deploymentsDbContext.Deployments.Any(
+                x =>
+                    x.ApplicationId == application.Name &&
+                    x.ImageRepository == image.Repository &&
+                    x.UpdatePath == image.TagProperty.Path &&
+                    x.CurrentImageTag == currentTag &&
+                    x.TargetImageTag == newTag
+                    );
+
+            if (deploymentExists)
             {
                 _log.LogInformation(
                     "Image tag update operation already in queue for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
@@ -57,7 +80,29 @@ namespace Shipbot.Controller.Core.Deployments
 
                 return;
             }
-
+            
+            
+            await _deploymentsDbContext.Deployments.AddAsync(new Deployment()
+            {
+                Id = Guid.NewGuid(),
+                ApplicationId = application.Name,
+                CreationDateTime = DateTime.Now,
+                DeploymentDateTime = null,
+                Status = DeploymentStatus.Pending,
+                ImageRepository = image.Repository,
+                UpdatePath = image.TagProperty.Path,
+                CurrentImageTag = currentTag,
+                TargetImageTag = newTag,
+                IsAutomaticDeployment = true
+            });
+            
+            var deploymentUpdate = new DeploymentUpdate(
+                application, 
+                image, 
+                currentTag, 
+                newTag
+                );
+            
             _log.LogInformation(
                 "Adding image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
                 image.Repository, 
@@ -65,67 +110,23 @@ namespace Shipbot.Controller.Core.Deployments
                 application.Name,
                 newTag
             );
-            var queue = _pendingDeploymentUpdates.GetOrAdd(application, key => new ConcurrentQueue<DeploymentUpdate>());
-            queue.Enqueue( deploymentUpdate );
 
-            var channel = application.Notifications.Channels.FirstOrDefault();
-            if (channel != null)
-            {
-                _log.LogInformation(
-                    "Sending notification about image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
-                    image.Repository,
-                    currentTags[image],
-                    application.Name,
-                    newTag
-                );
-                try
-                {
-                    var handle = await _slackClient.SendDeploymentUpdateNotification(channel, deploymentUpdate, DeploymentUpdateStatus.Pending);
-                    _notificationHandles.TryAdd(deploymentUpdate, handle);
-                }
-                catch (Exception e)
-                {
-                    _log.LogError(e, "Failed to send deployment update notification to slack");
-                }
-            }
+            await _deploymentQueueService.AddDeployment(application, deploymentUpdate);
+            await _deploymentNotificationService.CreateNotification(deploymentUpdate);
+
+            await _deploymentsDbContext.SaveChangesAsync();
         }
         
         public async Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
         {
-            _deploymentUpdates[deploymentUpdate] = status;
+            var deployment = await GetDeploymentDao(deploymentUpdate);
+            deployment.Status = (DeploymentStatus)status;
 
-            if (_notificationHandles.TryGetValue(deploymentUpdate, out var handle))
-            {
-                try
-                {
-                    _log.LogInformation("Submitting {@DeploymentUpdate} notification change to slack {@MessageHandle}. ", deploymentUpdate, handle);
-                    var newHandle = await _slackClient.UpdateDeploymentUpdateNotification(handle, deploymentUpdate, status);
-                    _notificationHandles.TryUpdate(deploymentUpdate, newHandle, handle);
-                }
-                catch (Exception e)
-                {
-                    _log.LogError(e, "Failed to submit {@DeploymentUpdate} notification {@MessageHandle}", deploymentUpdate, handle);
-                }    
-            }
-        }
-        
-        /// <summary>
-        ///     Returns the next deployment update in the queue.
-        /// </summary>
-        /// <returns>Returns the next deployment update in the queue, or <c>null</c> if there are no pending deployment updates.</returns>
-        public async Task<DeploymentUpdate> GetNextPendingDeploymentUpdate(Application application)
-        {
-            // are there any pending deployments
-            if (_pendingDeploymentUpdates.TryGetValue(application, out var queue))
-            {
-                if (queue.TryDequeue(out var deploymentUpdate))
-                {
-                    await ChangeDeploymentUpdateStatus(deploymentUpdate, DeploymentUpdateStatus.Starting);
-                    return deploymentUpdate;
-                }
-            }
+            if (status == DeploymentUpdateStatus.Complete)
+                deployment.DeploymentDateTime = DateTime.Now;
 
-            return null;
+            await _deploymentNotificationService.UpdateNotification(deploymentUpdate, status);
+            await _deploymentsDbContext.SaveChangesAsync();
         }
 
         public async Task FinishDeploymentUpdate(
