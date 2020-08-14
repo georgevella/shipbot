@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Slack;
 using Shipbot.Models;
+using Deployment = Shipbot.Models.Deployments.Deployment;
 
 namespace Shipbot.Controller.Core.Deployments
 {
@@ -80,7 +81,7 @@ namespace Shipbot.Controller.Core.Deployments
                 return;
             }
             
-            await _deploymentsDbContext.Deployments.AddAsync(new Dao.Deployment()
+            var entity = await _deploymentsDbContext.Deployments.AddAsync(new Dao.Deployment()
             {
                 Id = Guid.NewGuid(),
                 ApplicationId = application.Name,
@@ -95,6 +96,7 @@ namespace Shipbot.Controller.Core.Deployments
             });
             
             var deploymentUpdate = new DeploymentUpdate(
+                entity.Entity.Id,
                 application, 
                 image, 
                 currentTag, 
@@ -114,7 +116,7 @@ namespace Shipbot.Controller.Core.Deployments
             await _deploymentsDbContext.SaveChangesAsync();
         }
 
-        public Task<IEnumerable<Models.DeploymentUpdate>> GetDeployments(Application application)
+        public Task<IEnumerable<Deployment>> GetDeployments(Application application)
         {
             var applicationDeploymentDaos = _deploymentsDbContext.Deployments
                 .Where(x => x.ApplicationId == application.Name).ToList();
@@ -123,17 +125,19 @@ namespace Shipbot.Controller.Core.Deployments
                 x => $"{x.Repository}-{x.TagProperty.Path}"
             );
 
-            var result = new List<Models.DeploymentUpdate>();
+            var result = new List<Deployment>();
 
             foreach (var deploymentDao in applicationDeploymentDaos)
             {
                 var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
                 result.Add(
-                    new DeploymentUpdate(
-                        application, 
-                        image, 
+                    new Deployment(
+                        deploymentDao.Id,
+                        deploymentDao.ImageRepository,
+                        deploymentDao.UpdatePath,
                         deploymentDao.CurrentImageTag,
-                        deploymentDao.TargetImageTag
+                        deploymentDao.TargetImageTag,
+                        (Models.Deployments.DeploymentStatus)deploymentDao.Status
                         )
                 );
             }

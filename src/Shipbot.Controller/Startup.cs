@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.Json.Serialization;
 using Mediator.Net;
 using Mediator.Net.MicrosoftDependencyInjection;
 using Microsoft.AspNetCore.Builder;
@@ -40,8 +41,13 @@ namespace Shipbot.Controller
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
-            
+            services.AddControllers()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
+
             services.AddHealthChecks();
 
             services.Configure<ShipbotConfiguration>(Configuration.GetSection("Shipbot"));

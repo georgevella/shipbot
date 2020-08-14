@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Shipbot.Models.Deployments;
 
 namespace Shipbot.Controller.Core.Deployments.Dao
 {
@@ -43,9 +44,9 @@ namespace Shipbot.Controller.Core.Deployments.Dao
         
         public DeploymentStatus Status { get; set; }
     }
-
+    
     public enum DeploymentStatus
-    {
+    {    
         Pending,
         Starting,
         UpdatingManifests,

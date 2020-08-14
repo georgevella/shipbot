@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shipbot.Models;
+using Shipbot.Models.Deployments;
 
 namespace Shipbot.Controller.Core.Deployments
 {
@@ -14,7 +15,7 @@ namespace Shipbot.Controller.Core.Deployments
             DeploymentUpdateStatus finalStatus
         );
 
-        Task<IEnumerable<Models.DeploymentUpdate>> GetDeployments(Application application);
+        Task<IEnumerable<Deployment>> GetDeployments(Application application);
     }
 
     public interface IDeploymentQueueService

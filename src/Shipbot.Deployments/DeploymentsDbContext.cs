@@ -1,5 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
+using Shipbot.Models.Deployments;
 
 namespace Shipbot.Controller.Core.Deployments
 {

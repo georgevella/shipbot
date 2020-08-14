@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Deployments;
+using Shipbot.Controller.DTOs;
+using Shipbot.Models.Deployments;
 
 namespace Shipbot.Controller.Controllers
 {
@@ -24,33 +26,6 @@ namespace Shipbot.Controller.Controllers
             _applicationService = applicationService;
             _deploymentService = deploymentService;
         }
-        
-        [HttpPost]
-        public async Task<ActionResult> Post([FromBody] NewDeploymentDto newDeploymentDto)
-        {
-            var applications = _applicationService.GetApplications();
-            var allApplicationsTrackingThisRepository = applications
-                .SelectMany(
-                    x => x.Images,
-                    (app, img) =>
-                        new
-                        {
-                            Image = img,
-                            Application = app
-                        }
-                )
-                .Where(x =>
-                    x.Image.Repository.Equals(newDeploymentDto.Repository) &&
-                    x.Image.Policy.IsMatch(newDeploymentDto.Tag)
-                );
-
-            foreach (var item in allApplicationsTrackingThisRepository)
-            {
-                await _deploymentService.AddDeploymentUpdate(item.Application, item.Image, newDeploymentDto.Tag);    
-            }
-            
-            return StatusCode(StatusCodes.Status201Created);
-        }
 
         [HttpGet("{application}")]
         public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments(string application)
@@ -60,30 +35,15 @@ namespace Shipbot.Controller.Controllers
 
             var result = deployments.Select(x => new ApplicationDeploymentDto()
             {
-                Repository = x.Image.Repository,
+                Id = x.Id,
+                Repository = x.ImageRepository,
                 CurrentTag = x.CurrentTag,
                 Tag = x.TargetTag,
-                UpdatePath = x.Image.TagProperty.Path
+                UpdatePath = x.UpdatePath,
+                Status = (DeploymentStatusDto)x.Status
             }).ToList();
 
             return Ok(result.AsEnumerable());
         }
-    }
-
-    public class NewDeploymentDto
-    {
-        public string Repository { get; set; }
-        public string Tag { get; set; }
-    }
-
-    /// <summary>
-    ///     Describes an appliation's deployment information
-    /// </summary>
-    public class ApplicationDeploymentDto : NewDeploymentDto
-    {
-        
-        public string CurrentTag { get; set; }
-        
-        public string UpdatePath { get; set; }
     }
 }
