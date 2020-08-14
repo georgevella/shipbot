@@ -52,11 +52,39 @@ namespace Shipbot.Controller.Controllers
             
             return StatusCode(StatusCodes.Status201Created);
         }
+
+        [HttpGet("{application}")]
+        public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments(string application)
+        {
+            var appModel = _applicationService.GetApplication(application);
+            var deployments = await _deploymentService.GetDeployments(appModel);
+
+            var result = deployments.Select(x => new ApplicationDeploymentDto()
+            {
+                Repository = x.Image.Repository,
+                CurrentTag = x.CurrentTag,
+                Tag = x.TargetTag,
+                UpdatePath = x.Image.TagProperty.Path
+            }).ToList();
+
+            return Ok(result.AsEnumerable());
+        }
     }
 
     public class NewDeploymentDto
     {
         public string Repository { get; set; }
         public string Tag { get; set; }
+    }
+
+    /// <summary>
+    ///     Describes an appliation's deployment information
+    /// </summary>
+    public class ApplicationDeploymentDto : NewDeploymentDto
+    {
+        
+        public string CurrentTag { get; set; }
+        
+        public string UpdatePath { get; set; }
     }
 }

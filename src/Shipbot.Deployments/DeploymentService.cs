@@ -1,11 +1,10 @@
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shipbot.Controller.Core.Apps;
-using Shipbot.Controller.Core.Deployments.Dao;
 using Shipbot.Controller.Core.Models;
 using Shipbot.Controller.Core.Slack;
 
@@ -81,14 +80,13 @@ namespace Shipbot.Controller.Core.Deployments
                 return;
             }
             
-            
-            await _deploymentsDbContext.Deployments.AddAsync(new Deployment()
+            await _deploymentsDbContext.Deployments.AddAsync(new Dao.Deployment()
             {
                 Id = Guid.NewGuid(),
                 ApplicationId = application.Name,
                 CreationDateTime = DateTime.Now,
                 DeploymentDateTime = null,
-                Status = DeploymentStatus.Pending,
+                Status = Dao.DeploymentStatus.Pending,
                 ImageRepository = image.Repository,
                 UpdatePath = image.TagProperty.Path,
                 CurrentImageTag = currentTag,
@@ -113,14 +111,40 @@ namespace Shipbot.Controller.Core.Deployments
 
             await _deploymentQueueService.AddDeployment(application, deploymentUpdate);
             await _deploymentNotificationService.CreateNotification(deploymentUpdate);
-
             await _deploymentsDbContext.SaveChangesAsync();
         }
-        
+
+        public Task<IEnumerable<Models.DeploymentUpdate>> GetDeployments(Application application)
+        {
+            var applicationDeploymentDaos = _deploymentsDbContext.Deployments
+                .Where(x => x.ApplicationId == application.Name).ToList();
+
+            var imageMap = application.Images.ToDictionary(
+                x => $"{x.Repository}-{x.TagProperty.Path}"
+            );
+
+            var result = new List<Models.DeploymentUpdate>();
+
+            foreach (var deploymentDao in applicationDeploymentDaos)
+            {
+                var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
+                result.Add(
+                    new DeploymentUpdate(
+                        application, 
+                        image, 
+                        deploymentDao.CurrentImageTag,
+                        deploymentDao.TargetImageTag
+                        )
+                );
+            }
+
+            return Task.FromResult(result.AsEnumerable());
+        }
+
         public async Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
         {
             var deployment = await GetDeploymentDao(deploymentUpdate);
-            deployment.Status = (DeploymentStatus)status;
+            deployment.Status = (Dao.DeploymentStatus)status;
 
             if (status == DeploymentUpdateStatus.Complete)
                 deployment.DeploymentDateTime = DateTime.Now;
