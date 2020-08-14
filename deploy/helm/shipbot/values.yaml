@@ -32,8 +32,8 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-# slack:
-#   authToken: 
+slack:
+  authToken: setme
 
 shipbot:
   registries: []
