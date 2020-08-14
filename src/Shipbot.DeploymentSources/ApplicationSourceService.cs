@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {

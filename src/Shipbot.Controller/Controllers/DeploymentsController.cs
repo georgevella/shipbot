@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Deployments;
-using Shipbot.Controller.Core.Models;
 
 namespace Shipbot.Controller.Controllers
 {

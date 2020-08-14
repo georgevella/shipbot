@@ -12,10 +12,10 @@ using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
-using Shipbot.Controller.Core.Models;
 using Shipbot.Controller.Core.Registry.Watcher;
 using Shipbot.Controller.Core.Slack;
-using ApplicationSourceRepository = Shipbot.Controller.Core.Models.ApplicationSourceRepository;
+using Shipbot.Models;
+using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
 
 namespace Shipbot.Controller.Core.Apps
 {

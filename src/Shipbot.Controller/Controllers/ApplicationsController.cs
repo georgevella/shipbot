@@ -2,7 +2,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Controller.Core.Apps;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Controllers
 {

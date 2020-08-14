@@ -1,4 +1,5 @@
 using Shipbot.Controller.Core.Configuration.Git;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {

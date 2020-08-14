@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Shipbot.Controller.Core.Configuration;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 using SlackAPI;
 
 namespace Shipbot.Controller.Core.Slack

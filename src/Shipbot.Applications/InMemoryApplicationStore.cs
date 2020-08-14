@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shipbot.Contracts;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.Apps
 {

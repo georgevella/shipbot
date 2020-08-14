@@ -1,7 +1,6 @@
 using System;
-using Shipbot.Controller.Core.ApplicationSources;
 
-namespace Shipbot.Controller.Core.Models
+namespace Shipbot.Models
 {
     public class ApplicationSourceRepository
     {

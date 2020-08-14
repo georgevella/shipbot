@@ -1,4 +1,4 @@
-namespace Shipbot.Controller.Core.Slack
+namespace Shipbot.Models
 {
     public interface IMessageHandle
     {

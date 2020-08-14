@@ -5,7 +5,7 @@ using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Deployments;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 using Xunit;
 
 namespace Shipbot.Tests

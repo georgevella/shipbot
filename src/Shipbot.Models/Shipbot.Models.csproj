@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <RootNamespace>Shipbot.Controller.Core.Models</RootNamespace>
     <LangVersion>8</LangVersion>
   </PropertyGroup>
 

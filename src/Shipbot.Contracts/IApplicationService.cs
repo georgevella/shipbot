@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shipbot.Controller.Core.Configuration.Apps;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.Apps
 {

@@ -1,8 +1,6 @@
-using System;
-using System.IO;
 using System.Linq;
 
-namespace Shipbot.Controller.Core.Models
+namespace Shipbot.Models
 {
     public class Image
     {

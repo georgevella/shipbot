@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Contracts
 {

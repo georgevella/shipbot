@@ -1,5 +1,5 @@
 using System;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.Configuration.Apps
 {

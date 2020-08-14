@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.Deployments
 {

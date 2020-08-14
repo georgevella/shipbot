@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Shipbot.Models;
 using SlackAPI;
 
 namespace Shipbot.Controller.Core.Slack

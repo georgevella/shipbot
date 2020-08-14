@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Shipbot.Controller.Core.Models
+namespace Shipbot.Models
 {
     public class HelmApplicationSource : ApplicationSource
     {

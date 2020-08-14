@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.IO;
-using Shipbot.Controller.Core.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shipbot.Controller.Core.Models;
-using Image = Shipbot.Controller.Core.Models.Image;
+using Shipbot.Models;
+using Image = Shipbot.Models.Image;
 
 namespace Shipbot.Controller.Core.Registry.Watcher
 {
