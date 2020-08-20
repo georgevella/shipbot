@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
     <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
+    <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
   </ItemGroup>
   
   <ItemGroup>

@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
+    <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
     <ProjectReference Include="..\Shipbot.Models\Shipbot.Models.csproj" />
   </ItemGroup>
 

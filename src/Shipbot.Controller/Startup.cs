@@ -72,16 +72,8 @@ namespace Shipbot.Controller
             services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
             services.AddTransient<RegistryWatcherJob>();
 
-            // deployment
-            services.AddSingleton<IDeploymentQueueService, DeploymentQueueService>();
-            services.AddSingleton<IDeploymentNotificationService, DeploymentNotificationService>();
-            services.AddScoped<IDeploymentService, DeploymentService>();
-            services.AddDbContext<DeploymentsDbContext>(
-                builder => builder.UseNpgsql(
-                    "Host=localhost;Database=postgres;Username=postgres;Password=password123", 
-                    b => b.MigrationsAssembly(typeof(Program).Assembly.FullName)
-                )
-            );
+
+            services.RegisterShipbotDeploymentComponents();
 
             services.AddTransient<IHostedService, OperatorStartup>();
             
@@ -117,6 +109,4 @@ namespace Shipbot.Controller
             });
         }
     }
-    
-    
 }
