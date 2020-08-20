@@ -8,7 +8,6 @@ namespace Shipbot.Controller.Core.Apps
 {
     public interface IApplicationService
     {
-        Task StartTrackingApplication(Application application);
         Application AddApplication(ApplicationDefinition applicationDefinition);
         IEnumerable<Application> GetApplications();
         Application GetApplication(string id);

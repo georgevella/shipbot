@@ -16,6 +16,7 @@ using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Registry;
 using Shipbot.Controller.Core.Registry;
 using Shipbot.Controller.Core.Registry.Ecr;
+using Shipbot.Controller.Core.Registry.Watcher;
 //using ArgoAutoDeploy.Core.K8s;
 //using k8s;
 using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
@@ -28,6 +29,8 @@ namespace Shipbot.Controller.Core
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly RegistryClientPool _registryClientPool;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IApplicationSourceService _applicationSourceService;
+        private readonly IRegistryWatcher _registryWatcher;
         private readonly ConcurrentBag<Task> _watcherJobs = new ConcurrentBag<Task>();
         private readonly CancellationTokenSource _cancelSource;
 
@@ -35,13 +38,17 @@ namespace Shipbot.Controller.Core
             ILogger<OperatorStartup> log, 
             IOptions<ShipbotConfiguration> configuration,
             RegistryClientPool registryClientPool,
-            IServiceProvider serviceProvider
+            IServiceProvider serviceProvider,
+            IApplicationSourceService applicationSourceService,
+            IRegistryWatcher registryWatcher
             )
         {
             _log = log;
             _configuration = configuration;
             _registryClientPool = registryClientPool;
             _serviceProvider = serviceProvider;
+            _applicationSourceService = applicationSourceService;
+            _registryWatcher = registryWatcher;
 
             _cancelSource = new CancellationTokenSource();
         }
@@ -76,7 +83,8 @@ namespace Shipbot.Controller.Core
 
             foreach (var trackedApplication in trackedApplications)
             {
-                await applicationService.StartTrackingApplication(trackedApplication);
+                await _applicationSourceService.AddApplicationSource(trackedApplication);
+                await _registryWatcher.StartWatchingImageRepository(trackedApplication);
             }
 
 

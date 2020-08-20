@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shipbot.Contracts;
@@ -12,8 +9,6 @@ using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
-using Shipbot.Controller.Core.Registry.Watcher;
-using Shipbot.Controller.Core.Slack;
 using Shipbot.Models;
 using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
 
@@ -22,26 +17,17 @@ namespace Shipbot.Controller.Core.Apps
     public class ApplicationService : IApplicationService
     {
         private readonly ILogger<ApplicationService> _log;
-        private readonly IApplicationSourceService _applicationSourceService;
-        private readonly IRegistryWatcher _registryWatcher;
         private readonly IOptions<ShipbotConfiguration> _configuration;
-        private readonly ISlackClient _slackClient;
         private readonly IApplicationStore _applicationStore;
 
         public ApplicationService(
             ILogger<ApplicationService> log,
-            IApplicationSourceService applicationSourceService,
-            IRegistryWatcher registryWatcher,
             IOptions<ShipbotConfiguration> configuration,
-            ISlackClient slackClient,
             IApplicationStore applicationStore
         )
         {
             _log = log;
-            _applicationSourceService = applicationSourceService;
-            _registryWatcher = registryWatcher;
             _configuration = configuration;
-            _slackClient = slackClient;
             _applicationStore = applicationStore;
         }
 
@@ -94,12 +80,6 @@ namespace Shipbot.Controller.Core.Apps
             }
             
             throw new KeyNotFoundException(id);
-        }
-
-        public async Task StartTrackingApplication(Application application)
-        {
-            await _applicationSourceService.AddApplicationSource(application);
-            await _registryWatcher.StartWatchingImageRepository(application);
         }
 
         [Obsolete]
