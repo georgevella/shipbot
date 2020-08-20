@@ -4,15 +4,13 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shipbot.Contracts;
-using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
 using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
 
-namespace Shipbot.Controller.Core.Apps
+namespace Shipbot.Applications
 {
     public class ApplicationService : IApplicationService
     {
@@ -34,8 +32,11 @@ namespace Shipbot.Controller.Core.Apps
         public Application AddApplication(ApplicationDefinition applicationDefinition)
         {
             var conf = _configuration.Value;
-            
-            // TODO: check for unique name
+
+            if (_applicationStore.Contains(applicationDefinition.Name))
+            {
+                throw new Exception($"An application with the name '{applicationDefinition.Name}' already exists.");
+            }
 
             var applicationSource = applicationDefinition.Source.Type switch {
                 ApplicationSourceType.Helm => (ApplicationSource) new HelmApplicationSource()
@@ -43,7 +44,7 @@ namespace Shipbot.Controller.Core.Apps
                     Repository = new ApplicationSourceRepository()
                     {
                         // TODO: handle config changes
-                        Credentials = conf.GitCredentials.FirstOrDefault(
+                        Credentials = conf.GitCredentials.First(
                             x =>
                                 x.Name.Equals(applicationDefinition.Source.Repository.Credentials)
                         ).ConvertToGitCredentials(),
@@ -74,12 +75,12 @@ namespace Shipbot.Controller.Core.Apps
 
         public Application GetApplication(string id)
         {
-            if (_applicationStore.ApplicationExists(id))
+            if (_applicationStore.Contains(id))
             {
                 return _applicationStore.GetApplication(id);
             }
             
-            throw new KeyNotFoundException(id);
+            throw new Exception($"Application '{id}' not found in store");
         }
 
         [Obsolete]

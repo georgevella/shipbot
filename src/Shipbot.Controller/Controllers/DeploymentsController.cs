@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Shipbot.Controller.Core.Apps;
+using Shipbot.Applications;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.DTOs;
 using Shipbot.Models.Deployments;
@@ -30,20 +31,27 @@ namespace Shipbot.Controller.Controllers
         [HttpGet("{application}")]
         public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments(string application)
         {
-            var appModel = _applicationService.GetApplication(application);
-            var deployments = await _deploymentService.GetDeployments(appModel);
-
-            var result = deployments.Select(x => new ApplicationDeploymentDto()
+            try
             {
-                Id = x.Id,
-                Repository = x.ImageRepository,
-                CurrentTag = x.CurrentTag,
-                Tag = x.TargetTag,
-                UpdatePath = x.UpdatePath,
-                Status = (DeploymentStatusDto)x.Status
-            }).ToList();
+                var appModel = _applicationService.GetApplication(application);
+                var deployments = await _deploymentService.GetDeployments(appModel);
 
-            return Ok(result.AsEnumerable());
+                var result = deployments.Select(x => new ApplicationDeploymentDto()
+                {
+                    Id = x.Id,
+                    Repository = x.ImageRepository,
+                    CurrentTag = x.CurrentTag,
+                    Tag = x.TargetTag,
+                    UpdatePath = x.UpdatePath,
+                    Status = (DeploymentStatusDto)x.Status
+                }).ToList();
+
+                return Ok(result.AsEnumerable());
+            }
+            catch (Exception e)
+            {
+                return NotFound();
+            }
         }
     }
 }

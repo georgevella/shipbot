@@ -7,13 +7,12 @@ using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Util;
-using Shipbot.Controller.Core.Apps;
+using Shipbot.Applications;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Models;
 using YamlDotNet.RepresentationModel;
-using YamlDotNet.Serialization;
 
-namespace Shipbot.Controller.Core.ApplicationSources
+namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
     public class GitRepositorySyncJob : IJob

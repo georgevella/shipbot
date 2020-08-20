@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Apps
+namespace Shipbot.Applications
 {
     public interface IApplicationService
     {

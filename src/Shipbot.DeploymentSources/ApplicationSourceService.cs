@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shipbot.Contracts;
+using Shipbot.Controller.Core.ApplicationSources.Jobs;
 using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.ApplicationSources

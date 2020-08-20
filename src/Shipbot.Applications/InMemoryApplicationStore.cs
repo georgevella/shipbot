@@ -3,10 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Shipbot.Contracts;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Apps
+namespace Shipbot.Applications
 {
     public class InMemoryApplicationStore : IApplicationStore
     {
@@ -42,7 +41,7 @@ namespace Shipbot.Controller.Core.Apps
 
         public IEnumerable<Application> GetAllApplications() => _applications.Values.ToArray().Select( x=>x.Application ).ToArray();
 
-        public bool ApplicationExists(string name) => _applications.ContainsKey(name);
+        public bool Contains(string name) => _applications.ContainsKey(name);
 
         public Application GetApplication(string name) => _applications[name].Application;
 

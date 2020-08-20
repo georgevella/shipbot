@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace ArgoAutoDeploy.Core.Argo.Crd
+namespace AutoDeploy.ArgoSupport.Crd
 {
     public class Helm
     {

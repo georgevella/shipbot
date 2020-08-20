@@ -2,7 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Shipbot.Controller.Core.Apps;
+using Shipbot.Applications;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.DTOs;
 

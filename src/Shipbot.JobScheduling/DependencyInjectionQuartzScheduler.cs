@@ -6,7 +6,7 @@ using Quartz;
 using Quartz.Impl.Matchers;
 using Quartz.Spi;
 
-namespace Shipbot.Controller.Core.Jobs
+namespace Shipbot.JobScheduling
 {
     public class DependencyInjectionQuartzScheduler : IScheduler
     {

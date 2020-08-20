@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Deployments
+namespace Shipbot.Contracts
 {
     public interface IDeploymentNotificationService
     {

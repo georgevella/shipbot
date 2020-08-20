@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Shipbot.Controller.Core.Apps;
+using Shipbot.Applications;
 using Shipbot.Models;
 
 namespace Shipbot.Controller.Controllers
@@ -26,7 +27,14 @@ namespace Shipbot.Controller.Controllers
         [HttpGet("{id}")]
         public ActionResult<Application> Get(string id)
         {
-            return Ok(_applicationService.GetApplication(id));
+            try
+            {
+                return Ok(_applicationService.GetApplication(id));
+            }
+            catch (Exception e)
+            {
+                return NotFound();
+            }
         }
         
         [HttpGet("{id}/current-tags")]

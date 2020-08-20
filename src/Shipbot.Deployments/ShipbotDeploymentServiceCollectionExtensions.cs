@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shipbot.Contracts;
 
 namespace Shipbot.Controller.Core.Deployments
 {

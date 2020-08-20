@@ -1,10 +1,8 @@
-using System.IO;
 using System.Threading.Tasks;
-using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Quartz;
 
-namespace Shipbot.Controller.Core.ApplicationSources
+namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
     public class GitRepositoryCheckoutJob : IJob

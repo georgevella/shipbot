@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Registry.Watcher
+namespace Shipbot.Contracts
 {
     public interface IRegistryWatcher
     {

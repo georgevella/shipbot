@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Shipbot.Contracts;
 using Shipbot.Controller.Core.Configuration;
 
 namespace Shipbot.Controller.Core.Slack

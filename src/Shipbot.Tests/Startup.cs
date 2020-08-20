@@ -1,8 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Shipbot.Applications;
+using Shipbot.Contracts;
 using Shipbot.Controller.Core.ApplicationSources;
-using Shipbot.Controller.Core.Apps;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Registry.Watcher;
 using Shipbot.Controller.Core.Slack;

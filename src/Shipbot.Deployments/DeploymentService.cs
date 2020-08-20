@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Shipbot.Controller.Core.Apps;
-using Shipbot.Controller.Core.Slack;
+using Shipbot.Applications;
+using Shipbot.Contracts;
 using Shipbot.Models;
 using Deployment = Shipbot.Models.Deployments.Deployment;
 

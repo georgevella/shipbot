@@ -1,4 +1,4 @@
-namespace ArgoAutoDeploy.Core.Argo.Crd
+namespace AutoDeploy.ArgoSupport.Crd
 {
     public class ApplicationHistoryItem
     {

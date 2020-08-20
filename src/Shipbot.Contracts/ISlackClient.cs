@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Slack
+namespace Shipbot.Contracts
 {
     public interface ISlackClient : IDisposable
     {

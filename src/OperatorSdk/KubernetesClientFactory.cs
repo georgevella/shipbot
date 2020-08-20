@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using ArgoAutoDeploy.Core.Configuration.K8s;
 using k8s;
 using k8s.KubeConfigModels;
 using Newtonsoft.Json;
+using OperatorSdk.Configuration;
 
 namespace OperatorSdk
 {

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Spi;
 
-namespace Shipbot.Controller.Core.Jobs
+namespace Shipbot.JobScheduling
 {
     public class DependencyInjectionQuartzJobFactory : IJobFactory
     {
