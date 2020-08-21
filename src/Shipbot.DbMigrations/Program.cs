@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shipbot.Controller.Core.Deployments;
+using Shipbot.SlackIntegration;
 
 namespace Shipbot.DbMigrations
 {
@@ -17,12 +18,16 @@ namespace Shipbot.DbMigrations
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((context, collection) =>
                 {
-                    collection.AddDbContext<DeploymentsDbContext>(
-                        builder => builder.UseNpgsql(
-                            "Host=localhost;Database=postgres;Username=postgres;Password=password123", 
-                            b => b.MigrationsAssembly(typeof(Program).Assembly.FullName)
-                            )
-                    );
+                    collection.AddDbContext<DeploymentsDbContext>(Setup);
+                    collection.AddDbContext<SlackIntegrationDbContext>(Setup);
                 });
+
+        private static void Setup(DbContextOptionsBuilder builder)
+        {
+            builder.UseNpgsql(
+                "Host=localhost;Database=postgres;Username=postgres;Password=password123",
+                b => b.MigrationsAssembly(typeof(Program).Assembly.FullName)
+            );
+        }
     }
 }

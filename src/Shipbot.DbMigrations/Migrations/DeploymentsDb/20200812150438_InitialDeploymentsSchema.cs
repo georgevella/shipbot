@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Shipbot.DbMigrations.Migrations
+namespace Shipbot.DbMigrations.Migrations.DeploymentsDb
 {
     public partial class InitialDeploymentsSchema : Migration
     {
