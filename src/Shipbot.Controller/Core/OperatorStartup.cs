@@ -30,8 +30,6 @@ namespace Shipbot.Controller.Core
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly RegistryClientPool _registryClientPool;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IApplicationSourceService _applicationSourceService;
-        private readonly IRegistryWatcher _registryWatcher;
         private readonly ConcurrentBag<Task> _watcherJobs = new ConcurrentBag<Task>();
         private readonly CancellationTokenSource _cancelSource;
 
@@ -39,56 +37,20 @@ namespace Shipbot.Controller.Core
             ILogger<OperatorStartup> log, 
             IOptions<ShipbotConfiguration> configuration,
             RegistryClientPool registryClientPool,
-            IServiceProvider serviceProvider,
-            IApplicationSourceService applicationSourceService,
-            IRegistryWatcher registryWatcher
-            )
+            IServiceProvider serviceProvider
+        )
         {
             _log = log;
             _configuration = configuration;
             _registryClientPool = registryClientPool;
             _serviceProvider = serviceProvider;
-            _applicationSourceService = applicationSourceService;
-            _registryWatcher = registryWatcher;
 
             _cancelSource = new CancellationTokenSource();
         }
         
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            var conf = _configuration.Value;
             
-            // register image repositories
-            conf.Registries.ForEach(settings =>
-            {
-                switch (settings.Type)
-                {
-                    case ContainerRegistryType.DockerRegistry:
-                        break;
-                    
-                    case ContainerRegistryType.Ecr:
-                        _registryClientPool.AddClient(
-                            new EcrClientFactory(_serviceProvider).BuildClient(settings)
-                        );
-                        break;
-                }
-            } );
-            
-            
-            // register applications
-            using var scope = _serviceProvider.CreateScope();
-            
-            var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
-                
-            var trackedApplications = conf.Applications.Select(applicationDefinition => applicationService.AddApplication( applicationDefinition.Value ));
-
-            foreach (var trackedApplication in trackedApplications)
-            {
-                await _applicationSourceService.AddApplicationSource(trackedApplication);
-                await _registryWatcher.StartWatchingImageRepository(trackedApplication);
-            }
-
-
             //            // start watching argo applications
 //            foreach (var connectionDetails in conf.Kubernetes)
 //            {
