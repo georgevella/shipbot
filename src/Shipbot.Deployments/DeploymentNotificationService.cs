@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shipbot.Contracts;
 using Shipbot.Models;
+using Shipbot.SlackIntegration;
 
 namespace Shipbot.Controller.Core.Deployments
 {

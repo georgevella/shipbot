@@ -1,24 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Shipbot.Contracts;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Models;
 using SlackAPI;
 
-namespace Shipbot.Controller.Core.Slack
+namespace Shipbot.SlackIntegration
 {
     public class SlackClient : ISlackClient, IDisposable
     {
         private readonly ILogger<SlackClient> _log;
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
-        private SlackTaskClient _actualClient;
+        private readonly SlackTaskClient _actualClient;
         private int _timeout;
 
         public SlackClient(
@@ -28,13 +25,12 @@ namespace Shipbot.Controller.Core.Slack
         {
             _log = log;
             _slackConfiguration = slackConfiguration;
+            _actualClient = new SlackTaskClient(_slackConfiguration.Value.Token);
         }
 
         public async Task Connect()
         {
             _timeout = _slackConfiguration.Value.Timeout;
-            
-            _actualClient = new SlackTaskClient(_slackConfiguration.Value.Token);
             var loginResponse = await _actualClient.ConnectAsync();
 
             if (loginResponse.ok)
@@ -45,20 +41,6 @@ namespace Shipbot.Controller.Core.Slack
             {
                 throw new InvalidOperationException(loginResponse.error);
             }
-            
-//            _actualClient.OnHello += () => { _log.LogInformation("Slack -- hello"); };
-//            
-//            _actualClient.OnMessageReceived += message =>
-//            {
-//                _log.LogDebug("Slack message received: {slackMessage}", message);
-//            };
-//
-//            _actualClient.OnReactionAdded += added =>
-//            {
-//                _log.LogDebug("Slack message received: {slackReaction}", added);
-//            };
-//
-//            _actualClient.OnPongReceived += pong => { _log.LogDebug("Slack pong received: {pong}", pong); };
         }
 
 //        private Task<IEnumerable<Channel>> GetPublicChannels()
@@ -126,7 +108,7 @@ namespace Shipbot.Controller.Core.Slack
 //            return privateChannels.Concat(publicChannels).ToArray();
 //        }
 
-        private async Task<SingleMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
+        public async Task<IMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
         {
             var messageResponse = await _actualClient.PostMessageAsync(
                 channelId,
@@ -302,19 +284,6 @@ namespace Shipbot.Controller.Core.Slack
                 handle as SingleMessageHandle, 
                 BuildDeploymentUpdateMessage(deploymentUpdate, status)
             );
-        }
-
-        class SlackMessage
-        {
-            public string Message { get; }
-            
-            public IBlock[] Blocks { get; }
-
-            public SlackMessage(string message, IBlock[] blocks = null)
-            {
-                Message = message;
-                Blocks = blocks;
-            }
         }
 
         public void Dispose()

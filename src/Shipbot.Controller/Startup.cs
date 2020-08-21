@@ -21,12 +21,8 @@ using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Registry;
 using Shipbot.Controller.Core.Registry.Watcher;
-using Shipbot.Controller.Core.Slack;
 using Shipbot.JobScheduling;
-//using ArgoAutoDeploy.Core.Argo;
-//using ArgoAutoDeploy.Core.Argo.Crd;
-//using ArgoAutoDeploy.Core.K8s;
-using IHostingEnvironment = Microsoft.AspNetCore.Hosting.IHostingEnvironment;
+using Shipbot.SlackIntegration;
 
 namespace Shipbot.Controller
 {

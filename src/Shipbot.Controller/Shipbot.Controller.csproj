@@ -27,7 +27,6 @@
     <PackageReference Include="Serilog.Exceptions" Version="5.6.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-    <PackageReference Include="SlackAPI" Version="1.1.7" />
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
   </ItemGroup>
 
@@ -39,6 +38,11 @@
     <ProjectReference Include="..\Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj" />
     <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
     <ProjectReference Include="..\Shipbot.JobScheduling\Shipbot.JobScheduling.csproj" />
+    <ProjectReference Include="..\Shipbot.SlackIntegration\Shipbot.SlackIntegration.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Core\Slack" />
   </ItemGroup>
 
 <!--  <ItemGroup>-->

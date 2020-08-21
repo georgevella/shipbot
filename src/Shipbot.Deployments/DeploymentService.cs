@@ -7,19 +7,16 @@ using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
 using Shipbot.Contracts;
 using Shipbot.Models;
+using Shipbot.SlackIntegration;
 using Deployment = Shipbot.Models.Deployments.Deployment;
 
 namespace Shipbot.Controller.Core.Deployments
 {
     public class DeploymentService : IDeploymentService
     {
-        
-        
         private readonly IApplicationService _applicationService;
 
         private readonly ILogger _log;
-        
-        private readonly ISlackClient _slackClient;
         private readonly IDeploymentQueueService _deploymentQueueService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly DeploymentsDbContext _deploymentsDbContext;
@@ -27,7 +24,6 @@ namespace Shipbot.Controller.Core.Deployments
         public DeploymentService(
             ILogger<DeploymentService> log,
             IApplicationService applicationService,
-            ISlackClient slackClient,
             IDeploymentQueueService deploymentQueueService,
             IDeploymentNotificationService deploymentNotificationService,
             DeploymentsDbContext deploymentsDbContext
@@ -35,7 +31,6 @@ namespace Shipbot.Controller.Core.Deployments
         {
             _log = log;
             _applicationService = applicationService;
-            _slackClient = slackClient;
             _deploymentQueueService = deploymentQueueService;
             _deploymentNotificationService = deploymentNotificationService;
             _deploymentsDbContext = deploymentsDbContext;
@@ -147,14 +142,22 @@ namespace Shipbot.Controller.Core.Deployments
 
         public async Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
         {
-            var deployment = await GetDeploymentDao(deploymentUpdate);
-            deployment.Status = (Dao.DeploymentStatus)status;
+            try
+            {
+                var deployment = await GetDeploymentDao(deploymentUpdate);
+                deployment.Status = (Dao.DeploymentStatus) status;
 
-            if (status == DeploymentUpdateStatus.Complete)
-                deployment.DeploymentDateTime = DateTime.Now;
+                if (status == DeploymentUpdateStatus.Complete)
+                    deployment.DeploymentDateTime = DateTime.Now;
 
-            await _deploymentNotificationService.UpdateNotification(deploymentUpdate, status);
-            await _deploymentsDbContext.SaveChangesAsync();
+                await _deploymentNotificationService.UpdateNotification(deploymentUpdate, status);
+                await _deploymentsDbContext.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                _log.LogError("Failed to update deployment information", e);
+                throw;
+            }
         }
 
         public async Task FinishDeploymentUpdate(

@@ -2,10 +2,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Shipbot.Contracts;
 using Shipbot.Controller.Core.Configuration;
 
-namespace Shipbot.Controller.Core.Slack
+namespace Shipbot.SlackIntegration
 {
     public class SlackStartup : IHostedService
     {
@@ -23,12 +22,14 @@ namespace Shipbot.Controller.Core.Slack
         
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _slackClient.Connect();
+            await _slackClient.Connect();
         }
 
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
             _slackClient.Dispose();
+
+            return Task.CompletedTask;
         }
     }
 }

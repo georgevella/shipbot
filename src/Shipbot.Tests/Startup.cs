@@ -6,7 +6,7 @@ using Shipbot.Contracts;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Registry.Watcher;
-using Shipbot.Controller.Core.Slack;
+using Shipbot.SlackIntegration;
 using Xunit.DependencyInjection;
 using Xunit.DependencyInjection.Logging;
 

@@ -1,8 +1,6 @@
-using System.Collections.Generic;
-using Shipbot.Models;
 using SlackAPI;
 
-namespace Shipbot.Controller.Core.Slack
+namespace Shipbot.SlackIntegration
 {
     internal class SingleMessageHandle : IMessageHandle
     {
