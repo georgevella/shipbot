@@ -1,26 +1,30 @@
 using System.Collections.Concurrent;
 using System.IO;
+using Shipbot.Controller.Core.ApplicationSources.Models;
+using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Models;
+using ApplicationSourceRepository = Shipbot.Controller.Core.ApplicationSources.Models.ApplicationSourceRepository;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {
     public class ApplicationSourceTrackingContext
     {
-        public Application Application { get; }
+        public string ApplicationName { get; }
         
-        //public ConcurrentDictionary<Image, string> CurrentTags { get; }
+        public ApplicationSource ApplicationSource { get; set; }
+
+        public bool AutoDeploy { get; set; } = true;
 
         public string GitRepositoryPath { get; }
 
         public string GitSyncJobId { get; } 
 
-        public ApplicationSourceTrackingContext(Application application)
+        public ApplicationSourceTrackingContext(string applicationName, ApplicationSource applicationSource)
         {
-            GitRepositoryPath = Path.Combine(Path.GetTempPath(), $"{application.Name}__{application.Source.Repository.Ref}");
-            Application = application;
-            GitSyncJobId = $"{Application.Name}-gitsync-job";
-            
-            //CurrentTags = new ConcurrentDictionary<Image, string>();
+            GitRepositoryPath = Path.Combine(Path.GetTempPath(), $"{applicationName}__{applicationSource.Repository.Ref}");
+            ApplicationName = applicationName;
+            ApplicationSource = applicationSource;
+            GitSyncJobId = $"{ApplicationName}-gitsync-job";
         }
     }
 }

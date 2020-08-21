@@ -27,5 +27,6 @@ namespace Shipbot.Controller.Core.Deployments
         Task<DeploymentUpdate?> GetNextPendingDeploymentUpdate(Application application);
 
         Task AddDeployment(Application application, DeploymentUpdate deploymentUpdate);
+        Task<IEnumerable<DeploymentUpdate>> GetPendingDeployments();
     }
 }

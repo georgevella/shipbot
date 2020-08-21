@@ -8,7 +8,7 @@ using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
-using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
+// using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
 
 namespace Shipbot.Applications
 {
@@ -38,30 +38,10 @@ namespace Shipbot.Applications
                 throw new Exception($"An application with the name '{applicationDefinition.Name}' already exists.");
             }
 
-            var applicationSource = applicationDefinition.Source.Type switch {
-                ApplicationSourceType.Helm => (ApplicationSource) new HelmApplicationSource()
-                {
-                    Repository = new ApplicationSourceRepository()
-                    {
-                        // TODO: handle config changes
-                        Credentials = conf.GitCredentials.First(
-                            x =>
-                                x.Name.Equals(applicationDefinition.Source.Repository.Credentials)
-                        ).ConvertToGitCredentials(),
-                        Ref = applicationDefinition.Source.Repository.Ref,
-                        Uri = new Uri(applicationDefinition.Source.Repository.Uri)
-                    },
-                    Path = applicationDefinition.Source.Path,
-                    ValuesFiles = applicationDefinition.Source.Helm.ValueFiles,
-                    Secrets = applicationDefinition.Source.Helm.Secrets,
-                },
-                _ => throw new InvalidOperationException() 
-            };
-
             var application = new Application(
                 applicationDefinition.Name,
                 applicationDefinition.Images.Select(imageSettings => (Image) imageSettings).ToImmutableList(),
-                applicationSource,
+                // applicationSource,
                 applicationDefinition.AutoDeploy,
                 new NotificationSettings(applicationDefinition.SlackChannel)
             );

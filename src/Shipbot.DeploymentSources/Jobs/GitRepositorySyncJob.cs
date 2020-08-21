@@ -8,14 +8,16 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Util;
 using Shipbot.Applications;
+using Shipbot.Controller.Core.ApplicationSources.Models;
 using Shipbot.Controller.Core.Deployments;
+using Shipbot.JobScheduling;
 using Shipbot.Models;
 using YamlDotNet.RepresentationModel;
 
 namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
-    public class GitRepositorySyncJob : IJob
+    public class GitRepositorySyncJob : BaseJobWithData<ApplicationSourceTrackingContext>
     {
         private readonly ILogger<GitRepositorySyncJob> _log;
         private readonly IApplicationService _applicationService;
@@ -35,21 +37,16 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _deploymentQueueService = deploymentQueueService;
         }
 
-        public async Task Execute(IJobExecutionContext jobExecutionContext)
+        protected override async Task Execute(ApplicationSourceTrackingContext context)
         {
-            // TODO: report failures to Application model
-
-            var data = jobExecutionContext.MergedJobDataMap;
-            var context = (ApplicationSourceTrackingContext) data["Context"];
-
             using (_log.BeginScope(new Dictionary<string, object>
             {
-                {"Application", context.Application.Name},
-                {"Ref", context.Application.Source.Repository.Ref},
-                {"Path", context.Application.Source.Path}
+                {"Application", context.ApplicationName},
+                {"Ref", context.ApplicationSource.Repository.Ref},
+                {"Path", context.ApplicationSource.Path}
             }))
             {
-                var repository = context.Application.Source.Repository;
+                var repository = context.ApplicationSource.Repository;
 
                 // TODO: improve this to not have passwords in memory / use SecureStrings
                 var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
@@ -86,16 +83,16 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 
                 // TODO: handle scenario when we are tracking a git commit or a tag
 
-                if (context.Application.Source is HelmApplicationSource helmApplicationSource)
+                if (context.ApplicationSource is HelmApplicationSource helmApplicationSource)
                 {
                     if (await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
-                        context.Application.AutoDeploy)
+                        context.AutoDeploy)
                     {
                         int attempt = 3;
 
                         while (attempt > 0)
                         {
-                            _log.LogInformation("Pushing repository changes for {application}", context.Application);
+                            _log.LogInformation("Pushing repository changes for {application}", context.ApplicationName);
                         
                             try
                             {
@@ -249,7 +246,8 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             var relativePath = helmApplicationSource.Path;
             var applicationSourcePath = Path.Combine(context.GitRepositoryPath, relativePath);
 
-            var application = context.Application;
+
+            var application = _applicationService.GetApplication(context.ApplicationName);
             var yamlUtilities = new YamlUtilities();
 
             // build map of images -> yaml file that defines them and image -> current tag
@@ -266,7 +264,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
                 foreach (var doc in yaml.Documents)
                 {
-                    foreach (var image in context.Application.Images)
+                    foreach (var image in application.Images)
                     {
                         var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
 

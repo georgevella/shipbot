@@ -1,11 +1,12 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shipbot.JobScheduling;
 
 namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
-    public class GitRepositoryCheckoutJob : IJob
+    public class GitRepositoryCheckoutJob : BaseJobWithData<ApplicationSourceTrackingContext>
     {
         private readonly ILogger<GitRepositoryCheckoutJob> _log;
         private readonly IScheduler _scheduler;
@@ -17,59 +18,25 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _log = log;
             _scheduler = scheduler;
         }
-        
-        public async Task Execute(IJobExecutionContext jobExecutionContext)
+
+        protected override async Task Execute(ApplicationSourceTrackingContext data)
         {
-            var data = jobExecutionContext.JobDetail.JobDataMap;
-            var context = (ApplicationSourceTrackingContext) data["Context"];
+            var repository = data.ApplicationSource.Repository;
 
-            var repository = context.Application.Source.Repository;
-
-            // TODO: improve this to not have passwords in memory / use SecureStrings
-//            var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
-
-//             if (Directory.Exists(context.GitRepositoryPath))
-//             {
-// //                if (!Directory.Exists(Path.Combine(context.GitRepositoryPath, ".git/")))
-// //                {
-// //                    
-// //                }
-//                 Directory.Delete(context.GitRepositoryPath, true);
-//             }
-//
-//             _log.LogInformation("Cloning {Repository} into {Path}",
-//                 repository.Uri,
-//                 context.GitRepositoryPath);
-//
-//             await Task.Run(() =>
-//             {
-//                 LibGit2Sharp.Repository.Clone(
-//                     repository.Uri.ToString(),
-//                     context.GitRepositoryPath,
-//                     new CloneOptions()
-//                     {
-//                         CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
-//                         {
-//                             Username = credentials.Username,
-//                             Password = credentials.Password
-//                         }
-//                     });
-//             });
-
+            
             _log.LogInformation("Starting sync-job for {Repository} in {Path}",
                 repository.Uri,
-                context.GitRepositoryPath
+                data.GitRepositoryPath
             );
-            
-            // start sync job
-            var jobData = jobExecutionContext.MergedJobDataMap;
-            var job = JobBuilder.Create<GitRepositorySyncJob>()
-                .WithIdentity($"gitwatch-{context.Application.Name}", "gitrepowatcher")
-                .UsingJobData(jobData)
-                .Build();
+
+            var job = JobFactory.BuildJobWithData<GitRepositorySyncJob, ApplicationSourceTrackingContext>(
+                $"gitwatch-{data.ApplicationName}", 
+                Constants.SchedulerGroup, 
+                data
+                );
 
             var trigger = TriggerBuilder.Create()
-                .WithIdentity($"gitwatch-trig-{context.Application.Name}", "gitrepowatcher")
+                .WithIdentity($"gitwatch-trig-{data.ApplicationName}", Constants.SchedulerGroup)
                 .StartNow()
                 .WithSimpleSchedule(x => x
                     .WithIntervalInSeconds(10)

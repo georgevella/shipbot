@@ -24,6 +24,26 @@ namespace Shipbot.JobScheduling
                 .UsingJobData(jobData)
                 .Build();
         }
+
+        public static Task TriggerJobOnce(this IScheduler scheduler, IJobDetail jobDetail)
+        {
+            var trigger = TriggerBuilder.Create()
+                .WithIdentity($"{jobDetail.Key.Name}-trigger-once", jobDetail.Key.Group)
+                .StartNow()
+                .ForJob(jobDetail)
+                .Build();
+
+            return scheduler.ScheduleJob(jobDetail, trigger);
+        }
+
+        public static Task TriggerJobOnce<TJob, TData>(this IScheduler scheduler, string name, string group, TData data)
+            where TJob : BaseJobWithData<TData>
+            where TData : class
+        {
+            var jobDetail = BuildJobWithData<TJob, TData>(name, group, data);
+
+            return TriggerJobOnce(scheduler, jobDetail);
+        }
     }
 
     public class ScheduleJobOptions

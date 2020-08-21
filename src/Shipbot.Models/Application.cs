@@ -8,7 +8,7 @@ namespace Shipbot.Models
     {
         protected bool Equals(Application other)
         {
-            return Name == other.Name && Images.Equals(other.Images) && Source.Equals(other.Source) && AutoDeploy == other.AutoDeploy && Notifications.Equals(other.Notifications);
+            return Name == other.Name && Images.Equals(other.Images) && AutoDeploy == other.AutoDeploy && Notifications.Equals(other.Notifications);
         }
 
         public override bool Equals(object obj)
@@ -25,7 +25,6 @@ namespace Shipbot.Models
             {
                 var hashCode = Name.GetHashCode();
                 hashCode = (hashCode * 397) ^ Images.GetHashCode();
-                hashCode = (hashCode * 397) ^ Source.GetHashCode();
                 hashCode = (hashCode * 397) ^ AutoDeploy.GetHashCode();
                 hashCode = (hashCode * 397) ^ Notifications.GetHashCode();
                 return hashCode;
@@ -35,8 +34,6 @@ namespace Shipbot.Models
         public string Name { get; }
         public ImmutableList<Image> Images { get; }
 
-        public ApplicationSource Source { get; }
-        
         public bool AutoDeploy { get; }
         
         public NotificationSettings Notifications { get; }
@@ -44,14 +41,12 @@ namespace Shipbot.Models
         public Application(
             string name, 
             ImmutableList<Image> images,
-            ApplicationSource source, 
             bool autoDeploy,
             NotificationSettings notifications
             )
         {
             Name = name;
             Images = images;
-            Source = source;
             AutoDeploy = autoDeploy;
             Notifications = notifications;
         }

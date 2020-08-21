@@ -55,7 +55,7 @@ namespace Shipbot.Controller
             services.Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
 
             // application sources
-            services.AddSingleton<IApplicationSourceService, ApplicationSourceService>();
+            services.AddScoped<IApplicationSourceService, ApplicationSourceService>();
             services.AddTransient<GitRepositorySyncJob>();
             services.AddTransient<GitRepositoryCheckoutJob>();
             
