@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Shipbot.Applications;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
-using Shipbot.Controller.Core.Deployments;
+using Shipbot.Deployments;
 using Shipbot.Models;
 using Xunit;
 

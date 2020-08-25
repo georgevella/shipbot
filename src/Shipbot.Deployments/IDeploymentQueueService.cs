@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shipbot.Controller.Core.Deployments.Models;
+using Shipbot.Deployments.Models;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Deployments
+namespace Shipbot.Deployments
 {
     public interface IDeploymentQueueService
     {

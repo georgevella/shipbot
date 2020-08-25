@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Shipbot.Applications;
-using Shipbot.Controller.Core.Deployments.Models;
+using Shipbot.Deployments.Models;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
 
-namespace Shipbot.Controller.Core.Deployments
+namespace Shipbot.Deployments
 {
     public class DeploymentQueueService : IDeploymentQueueService
     {

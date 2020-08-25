@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.Applications;
-using Shipbot.Controller.Core.Deployments;
+using Shipbot.Deployments;
 
 namespace Shipbot.Controller.Core.Registry.Watcher
 {

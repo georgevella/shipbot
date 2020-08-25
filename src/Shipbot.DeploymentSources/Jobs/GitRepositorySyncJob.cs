@@ -9,7 +9,7 @@ using Quartz;
 using Quartz.Util;
 using Shipbot.Applications;
 using Shipbot.Controller.Core.ApplicationSources.Models;
-using Shipbot.Controller.Core.Deployments;
+using Shipbot.Deployments;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
 using YamlDotNet.RepresentationModel;

@@ -5,14 +5,13 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
-using Shipbot.Contracts;
-using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Data;
+using Shipbot.Deployments.Models;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
-using Deployment = Shipbot.Controller.Core.Deployments.Models.Deployment;
+using Deployment = Shipbot.Deployments.Models.Deployment;
 
-namespace Shipbot.Controller.Core.Deployments
+namespace Shipbot.Deployments
 {
     public class DeploymentService : IDeploymentService
     {

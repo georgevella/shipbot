@@ -2,7 +2,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Shipbot.Data;
 
-namespace Shipbot.Controller.Core.Deployments
+namespace Shipbot.Deployments
 {
     public class DeploymentsDbContextConfigurator : IDbContextConfigurator
     {

@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Shipbot.Controller.Core.Deployments.Dao
+namespace Shipbot.Deployments.Dao
 {
     [Table("deployments")]
     public class Deployment

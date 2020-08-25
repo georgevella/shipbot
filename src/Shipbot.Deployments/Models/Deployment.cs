@@ -1,6 +1,6 @@
 using System;
 
-namespace Shipbot.Controller.Core.Deployments.Models
+namespace Shipbot.Deployments.Models
 {
     public class Deployment
     {

@@ -18,9 +18,9 @@ using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.ApplicationSources.Jobs;
 using Shipbot.Controller.Core.Configuration;
-using Shipbot.Controller.Core.Deployments;
 using Shipbot.Controller.Core.Registry;
 using Shipbot.Controller.Core.Registry.Watcher;
+using Shipbot.Deployments;
 using Shipbot.JobScheduling;
 using Shipbot.SlackIntegration;
 

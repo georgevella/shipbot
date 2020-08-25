@@ -1,9 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Shipbot.Contracts;
-using Shipbot.SlackIntegration;
 
-namespace Shipbot.Controller.Core.Deployments
+namespace Shipbot.Deployments
 {
     public static class ShipbotDeploymentServiceCollectionExtensions
     {

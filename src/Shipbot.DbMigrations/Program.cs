@@ -2,8 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Shipbot.Controller.Core.Deployments;
 using Shipbot.Data;
+using Shipbot.Deployments;
 using Shipbot.SlackIntegration;
 
 namespace Shipbot.DbMigrations
