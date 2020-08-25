@@ -9,10 +9,10 @@ namespace Shipbot.SlackIntegration
         public static IServiceCollection RegisterShipbotSlackIntegrationComponents(this IServiceCollection services)
         {
             services.AddTransient<IHostedService, SlackIntegrationHostedService>();
-            services.AddTransient<IDeploymentNotificationBuilder, DeploymentNotificationBuilder>();
 
             services.AddSingleton<SlackClientWrapper>();
             
+            services.AddScoped<IDeploymentNotificationBuilder, DeploymentNotificationBuilder>();
             services.AddScoped<ISlackClient, SlackClient>();
             services.AddScoped<IDeploymentNotificationService, DeploymentNotificationService>();
             

@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
 using Shipbot.Controller.Core.Deployments;
+using Shipbot.Controller.Core.Deployments.Models;
 using Shipbot.Controller.DTOs;
-using Shipbot.Models.Deployments;
 
 namespace Shipbot.Controller.Controllers
 {
@@ -28,23 +28,15 @@ namespace Shipbot.Controller.Controllers
             _deploymentService = deploymentService;
         }
 
-        [HttpGet("{application}")]
-        public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments(string application)
+        [HttpGet("{applicationName}")]
+        public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments(string applicationName)
         {
             try
             {
-                var appModel = _applicationService.GetApplication(application);
-                var deployments = await _deploymentService.GetDeployments(appModel);
+                var application = _applicationService.GetApplication(applicationName);
+                var deployments = await _deploymentService.GetDeployments(application);
 
-                var result = deployments.Select(x => new ApplicationDeploymentDto()
-                {
-                    Id = x.Id,
-                    Repository = x.ImageRepository,
-                    CurrentTag = x.CurrentTag,
-                    Tag = x.TargetTag,
-                    UpdatePath = x.UpdatePath,
-                    Status = (DeploymentStatusDto)x.Status
-                }).ToList();
+                var result = deployments.Select(ConvertFromModel).ToList();
 
                 return Ok(result.AsEnumerable());
             }
@@ -52,6 +44,56 @@ namespace Shipbot.Controller.Controllers
             {
                 return NotFound();
             }
+        }
+
+        private ApplicationDeploymentDto ConvertFromModel(Deployment x)
+        {
+            return new ApplicationDeploymentDto()
+            {
+                Id = x.Id,
+                Repository = x.ImageRepository,
+                CurrentTag = x.CurrentTag,
+                Tag = x.TargetTag,
+                UpdatePath = x.UpdatePath,
+                Status = (DeploymentStatusDto) x.Status
+            };
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> Post([FromBody] NewDeploymentDto newDeploymentDto)
+        {
+            var applications = _applicationService.GetApplications();
+            var allApplicationsTrackingThisRepository = applications
+                .SelectMany(
+                    x => x.Images,
+                    (app, img) =>
+                        new
+                        {
+                            Image = img,
+                            Application = app
+                        }
+                )
+                .Where(x =>
+                    x.Image.Repository.Equals(newDeploymentDto.Repository) &&
+                    x.Image.Policy.IsMatch(newDeploymentDto.Tag)
+                );
+
+            var createdDeploymentsDto = new List<ApplicationDeploymentDto>();
+
+            foreach (var item in allApplicationsTrackingThisRepository)
+            {
+                try
+                {
+                    var deployment = await _deploymentService.AddDeployment(item.Application, item.Image, newDeploymentDto.Tag);
+                    createdDeploymentsDto.Add(ConvertFromModel(deployment));
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+            
+            return StatusCode(StatusCodes.Status201Created, createdDeploymentsDto);
         }
     }
 }

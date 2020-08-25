@@ -81,7 +81,7 @@ namespace Shipbot.Controller.Core.Registry.Watcher
                             _log.LogInformation(
                                 "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
                                 latestTag.tag, image.Repository, application.Name, currentTag);
-                            await _deploymentService.AddDeploymentUpdate(application, image, latestTag.tag);
+                            await _deploymentService.AddDeployment(application, image, latestTag.tag);
                         }
                     }
                     catch (Exception e)

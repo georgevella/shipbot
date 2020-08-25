@@ -58,7 +58,7 @@ namespace Shipbot.Tests
             var application = _applicationService.GetApplication("TestApplication");
             var image = application.Images.First();
 
-            _deploymentService.AddDeploymentUpdate(application, image, "123");
+            _deploymentService.AddDeployment(application, image, "123");
         }
     }
 }

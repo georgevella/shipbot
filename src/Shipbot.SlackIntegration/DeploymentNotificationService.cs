@@ -10,10 +10,11 @@ namespace Shipbot.SlackIntegration
 {
     public class DeploymentNotificationService : IDeploymentNotificationService
     {
+        private static readonly ConcurrentDictionary<DeploymentUpdate, IMessageHandle> NotificationHandles = new ConcurrentDictionary<DeploymentUpdate, IMessageHandle>();
+        
         private readonly ILogger<DeploymentNotificationService> _log;
         private readonly IDeploymentNotificationBuilder _deploymentNotificationBuilder;
         private readonly ISlackClient _slackClient;
-        private static readonly ConcurrentDictionary<DeploymentUpdate, IMessageHandle> _notificationHandles = new ConcurrentDictionary<DeploymentUpdate, IMessageHandle>();
 
         public DeploymentNotificationService(
             ILogger<DeploymentNotificationService> log,
@@ -46,7 +47,7 @@ namespace Shipbot.SlackIntegration
                             DeploymentUpdateStatus.Pending);
                     
                     var handle = await _slackClient.PostMessageAsync(channel, notification);
-                    _notificationHandles.TryAdd(deploymentUpdate, handle);
+                    NotificationHandles.TryAdd(deploymentUpdate, handle);
                 }
                 catch (Exception e)
                 {
@@ -57,14 +58,14 @@ namespace Shipbot.SlackIntegration
 
         public async Task UpdateNotification(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
         {
-            if (_notificationHandles.TryGetValue(deploymentUpdate, out var handle))
+            if (NotificationHandles.TryGetValue(deploymentUpdate, out var handle))
             {
                 try
                 {
                     _log.LogInformation("Submitting {@DeploymentUpdate} notification change to slack {@MessageHandle}. ", deploymentUpdate, handle);
                     var notification = _deploymentNotificationBuilder.BuildNotification(deploymentUpdate, status);
                     var newHandle = await _slackClient.UpdateMessageAsync(handle, notification);
-                    _notificationHandles.TryUpdate(deploymentUpdate, newHandle, handle);
+                    NotificationHandles.TryUpdate(deploymentUpdate, newHandle, handle);
                 }
                 catch (Exception e)
                 {
