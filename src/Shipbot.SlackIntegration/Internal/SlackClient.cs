@@ -6,43 +6,29 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Shipbot.Controller.Core.Configuration;
-using Shipbot.Models;
 using SlackAPI;
 
-namespace Shipbot.SlackIntegration
+namespace Shipbot.SlackIntegration.Internal
 {
     public class SlackClient : ISlackClient, IDisposable
     {
         private readonly ILogger<SlackClient> _log;
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
         private readonly SlackTaskClient _actualClient;
-        private int _timeout;
+        private readonly int _timeout;
 
         public SlackClient(
             ILogger<SlackClient> log,
-            IOptions<SlackConfiguration> slackConfiguration
+            IOptions<SlackConfiguration> slackConfiguration,
+            SlackClientWrapper actualClient
         )
         {
             _log = log;
             _slackConfiguration = slackConfiguration;
-            _actualClient = new SlackTaskClient(_slackConfiguration.Value.Token);
+            _actualClient = actualClient;
+            _timeout = slackConfiguration.Value.Timeout;
         }
-
-        public async Task Connect()
-        {
-            _timeout = _slackConfiguration.Value.Timeout;
-            var loginResponse = await _actualClient.ConnectAsync();
-
-            if (loginResponse.ok)
-            {
-                _log.LogInformation("Connection to slack established.");
-            }
-            else
-            {
-                throw new InvalidOperationException(loginResponse.error);
-            }
-        }
-
+        
 //        private Task<IEnumerable<Channel>> GetPublicChannels()
 //        {
 //            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
@@ -108,18 +94,20 @@ namespace Shipbot.SlackIntegration
 //            return privateChannels.Concat(publicChannels).ToArray();
 //        }
 
-        public async Task<IMessageHandle> PostMessageAsync(string channelId, SlackMessage message)
+        public async Task<IMessageHandle> PostMessageAsync(string channelId, IMessage message)
         {
+            var actualMessage = (SlackMessage) message;
+            
             var messageResponse = await _actualClient.PostMessageAsync(
                 channelId,
-                message.Message,
-                blocks: message.Blocks
+                actualMessage.Message,
+                blocks: actualMessage.Blocks
             );
                 
             _log.LogInformation(
                 $"RESPONSE >> Received message deliver for [{messageResponse.ts}/${messageResponse.channel}]");
 
-            return new SingleMessageHandle(messageResponse);
+            return new SlackMessageHandle(messageResponse);
         }
 
         private Task<UpdateResponse> UpdateWithBlocksAsync(
@@ -163,23 +151,26 @@ namespace Shipbot.SlackIntegration
             return _actualClient.APIRequestWithTokenAsync<UpdateResponse>(tupleList.ToArray());
         }
         
-        private async Task<SingleMessageHandle> UpdateMessageAsync(SingleMessageHandle handle, SlackMessage message)
+        public async Task<IMessageHandle> UpdateMessageAsync(IMessageHandle handle, IMessage message)
         {
-            var tsc = new TaskCompletionSource<SingleMessageHandle>();
+            var actualMessage = (SlackMessage) message;
+            var actualHandle = (SlackMessageHandle) handle;
+            
+            var tsc = new TaskCompletionSource<SlackMessageHandle>();
             
             var ct = new CancellationTokenSource(_timeout);
             ct.Token.Register(() => tsc.TrySetCanceled(), useSynchronizationContext: false);
             
-            _log.LogInformation($"Sending message update for [{handle.Timestamp}/${handle.ChannelId}]");
+            _log.LogInformation($"Sending message update for [{actualHandle.Timestamp}/${actualHandle.ChannelId}]");
             var response = await UpdateWithBlocksAsync(
-                handle.Timestamp,
-                handle.ChannelId,
-                message.Message,
-                blocks: message.Blocks 
+                actualHandle.Timestamp,
+                actualHandle.ChannelId,
+                actualMessage.Message,
+                blocks: actualMessage.Blocks 
                 );
 
             _log.LogInformation($"RESPONSE >> Sending message update for [{response.ts}/${response.channel}]");
-            return new SingleMessageHandle(response);
+            return new SlackMessageHandle(response);
         }
 
         public async Task<IMessageHandle> SendMessage(string channel, string message)
@@ -190,101 +181,35 @@ namespace Shipbot.SlackIntegration
             return await PostMessageAsync(channel, new SlackMessage(message));
         }
 
-        private SlackMessage BuildDeploymentUpdateMessage(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
-        {
-            return new SlackMessage(
-                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*).",
-                new IBlock[]
-                {
-                    new SectionBlock()
-                    {
-                        text = new Text()
-                        {
-                            type = "mrkdwn",
-                            text =
-                                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*)."
-                        }
-                    },
-                    new DividerBlock(),
-                    new SectionBlock()
-                    {
-                        fields = new Text[]
-                        {
-                            new Text()
-                            {
-                                text = $"*From*\n{deploymentUpdate.CurrentTag}",
-                                type = "mrkdwn"
-                            },
-                            new Text()
-                            {
-                                text = $"*To*\n{deploymentUpdate.TargetTag}",
-                                type = "mrkdwn"
-                            },
-                        }
-                    },
-                    new SectionBlock()
-                    {
-                        fields = new Text[]
-                        {
-                            new Text()
-                            {
-                                text = $"*Application*\n{deploymentUpdate.Application}",
-                                type = "mrkdwn"
-                            },
-                            new Text()
-                            {
-                                text = $"*Status*\n{status}",
-                                type = "mrkdwn"
-                            },
-                        }
-                    }
-                }
-            );
-        }
-
-        public async Task<IMessageHandle> SendDeploymentUpdateNotification(
-            string channel, 
-            DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status
-            )
-        {
-            if (channel == null) throw new ArgumentNullException(nameof(channel));
-            if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
-
-//            var channelsResponse = await _actualClient.APIRequestWithTokenAsync<ConversationsListResponse>(
-//                new Tuple<string, string>("exclude_archived", "true"),
-//                new Tuple<string, string>("types", "public_channel,private_channel")
-//            );
-//            
-//            var channelMetadata = channelsResponse.channels.FirstOrDefault(c =>
-//                c.name.Equals(channel, StringComparison.OrdinalIgnoreCase)
-//            );
-//            
-//            if (channelMetadata == null)
-//            {
-//                throw new Exception($"Could not find channel with name {channel}");
-//            }
-
-            return await PostMessageAsync(
-                channel,
-                BuildDeploymentUpdateMessage(deploymentUpdate, status)
-            );
-        }
-
-        public async Task<IMessageHandle> UpdateDeploymentUpdateNotification(
-            IMessageHandle handle, 
-            DeploymentUpdate deploymentUpdate,
-            DeploymentUpdateStatus status
-        )
-        {
-            if (handle == null) throw new ArgumentNullException(nameof(handle));
-            if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
-
-            return await UpdateMessageAsync(
-                handle as SingleMessageHandle, 
-                BuildDeploymentUpdateMessage(deploymentUpdate, status)
-            );
-        }
+        // public async Task<IMessageHandle> SendDeploymentUpdateNotification(
+        //     string channel, 
+        //     DeploymentUpdate deploymentUpdate,
+        //     DeploymentUpdateStatus status
+        //     )
+        // {
+        //     if (channel == null) throw new ArgumentNullException(nameof(channel));
+        //     if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
+        //
+        //     return await PostMessageAsync(
+        //         channel,
+        //         BuildDeploymentUpdateMessage(deploymentUpdate, status)
+        //     );
+        // }
+        //
+        // public async Task<IMessageHandle> UpdateDeploymentUpdateNotification(
+        //     IMessageHandle handle, 
+        //     DeploymentUpdate deploymentUpdate,
+        //     DeploymentUpdateStatus status
+        // )
+        // {
+        //     if (handle == null) throw new ArgumentNullException(nameof(handle));
+        //     if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
+        //
+        //     return await UpdateMessageAsync(
+        //         handle as SingleMessageHandle, 
+        //         BuildDeploymentUpdateMessage(deploymentUpdate, status)
+        //     );
+        // }
 
         public void Dispose()
         {

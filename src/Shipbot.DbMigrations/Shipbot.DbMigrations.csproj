@@ -15,7 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Shipbot.Data\Shipbot.Data.csproj" />
     <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations" />
   </ItemGroup>
 
 </Project>

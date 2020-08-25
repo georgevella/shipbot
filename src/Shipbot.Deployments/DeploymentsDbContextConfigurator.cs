@@ -1,19 +1,20 @@
 using System;
 using Microsoft.EntityFrameworkCore;
+using Shipbot.Data;
 using Shipbot.Models.Deployments;
 
 namespace Shipbot.Controller.Core.Deployments
 {
-    public class DeploymentsDbContext : DbContext
+    public class DeploymentsDbContextConfigurator : IDbContextConfigurator
     {
-        public DbSet<Dao.Deployment> Deployments { get; set; } = null!;
-
-        public DeploymentsDbContext(DbContextOptions<DeploymentsDbContext> options) : base(options)
-        {
-            
-        }
+        // public DbSet<Dao.Deployment> Deployments { get; set; } = null!;
+        //
+        // public DeploymentsDbContext(DbContextOptions<DeploymentsDbContext> options) : base(options)
+        // {
+        //     
+        // }
         
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        public void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Dao.Deployment>()
                 .Property(e => e.Status)
@@ -32,8 +33,6 @@ namespace Shipbot.Controller.Core.Deployments
                     NewImageTag = x.TargetImageTag
                 })
                 .IsUnique();
-            
-            base.OnModelCreating(modelBuilder);
         }
     }
 }

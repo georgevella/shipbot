@@ -4,4 +4,9 @@ namespace Shipbot.SlackIntegration
     {
         
     }
+
+    public interface IMessage
+    {
+        
+    }
 }

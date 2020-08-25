@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
 using Shipbot.Contracts;
+using Shipbot.Data;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
 using Deployment = Shipbot.Models.Deployments.Deployment;
@@ -19,31 +20,36 @@ namespace Shipbot.Controller.Core.Deployments
         private readonly ILogger _log;
         private readonly IDeploymentQueueService _deploymentQueueService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
-        private readonly DeploymentsDbContext _deploymentsDbContext;
+        private readonly ShipbotDbContext _deploymentsDbContextConfigurator;
 
         public DeploymentService(
             ILogger<DeploymentService> log,
             IApplicationService applicationService,
             IDeploymentQueueService deploymentQueueService,
             IDeploymentNotificationService deploymentNotificationService,
-            DeploymentsDbContext deploymentsDbContext
+            ShipbotDbContext deploymentsDbContextConfigurator
         )
         {
             _log = log;
             _applicationService = applicationService;
             _deploymentQueueService = deploymentQueueService;
             _deploymentNotificationService = deploymentNotificationService;
-            _deploymentsDbContext = deploymentsDbContext;
+            _deploymentsDbContextConfigurator = deploymentsDbContextConfigurator;
         }
 
-        protected Task<Dao.Deployment> GetDeploymentDao(DeploymentUpdate deploymentUpdate) =>
-            _deploymentsDbContext.Deployments.FirstAsync(x =>
+        protected Task<Dao.Deployment> GetDeploymentDao(DeploymentUpdate deploymentUpdate)
+        {
+            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
+            
+            return deployments.FirstAsync(x =>
                 x.ApplicationId == deploymentUpdate.Application.Name &&
                 x.ImageRepository == deploymentUpdate.Image.Repository &&
                 x.UpdatePath == deploymentUpdate.Image.TagProperty.Path &&
                 x.CurrentImageTag == deploymentUpdate.CurrentTag &&
                 x.TargetImageTag == deploymentUpdate.TargetTag
             );
+        }
+             
 
         public async Task AddDeploymentUpdate(Application application, Image image, string newTag)
         {
@@ -53,8 +59,10 @@ namespace Shipbot.Controller.Core.Deployments
             {
                 currentTag = "<new image>";
             }
-
-            var deploymentExists = _deploymentsDbContext.Deployments.Any(
+            
+            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
+            
+            var deploymentExists = deployments.Any(
                 x =>
                     x.ApplicationId == application.Name &&
                     x.ImageRepository == image.Repository &&
@@ -76,7 +84,7 @@ namespace Shipbot.Controller.Core.Deployments
                 return;
             }
             
-            var entity = await _deploymentsDbContext.Deployments.AddAsync(new Dao.Deployment()
+            var entity = await deployments.AddAsync(new Dao.Deployment()
             {
                 Id = Guid.NewGuid(),
                 ApplicationId = application.Name,
@@ -108,12 +116,14 @@ namespace Shipbot.Controller.Core.Deployments
 
             await _deploymentQueueService.AddDeployment(application, deploymentUpdate);
             await _deploymentNotificationService.CreateNotification(deploymentUpdate);
-            await _deploymentsDbContext.SaveChangesAsync();
+            await _deploymentsDbContextConfigurator.SaveChangesAsync();
         }
 
         public Task<IEnumerable<Deployment>> GetDeployments(Application application)
         {
-            var applicationDeploymentDaos = _deploymentsDbContext.Deployments
+            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
+            
+            var applicationDeploymentDaos = deployments
                 .Where(x => x.ApplicationId == application.Name).ToList();
 
             var imageMap = application.Images.ToDictionary(
@@ -151,7 +161,7 @@ namespace Shipbot.Controller.Core.Deployments
                     deployment.DeploymentDateTime = DateTime.Now;
 
                 await _deploymentNotificationService.UpdateNotification(deploymentUpdate, status);
-                await _deploymentsDbContext.SaveChangesAsync();
+                await _deploymentsDbContextConfigurator.SaveChangesAsync();
             }
             catch (Exception e)
             {

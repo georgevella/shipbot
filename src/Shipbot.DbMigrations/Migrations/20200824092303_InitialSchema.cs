@@ -1,12 +1,32 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Shipbot.DbMigrations.Migrations.SlackIntegrationDb
+namespace Shipbot.DbMigrations.Migrations
 {
-    public partial class InitialSlackIntegrationSchema : Migration
+    public partial class InitialSchema : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "deployments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(nullable: false),
+                    CreationDateTime = table.Column<DateTime>(nullable: false),
+                    DeploymentDateTime = table.Column<DateTime>(nullable: true),
+                    ApplicationId = table.Column<string>(nullable: false),
+                    ImageRepository = table.Column<string>(nullable: false),
+                    UpdatePath = table.Column<string>(nullable: false),
+                    CurrentImageTag = table.Column<string>(nullable: false),
+                    TargetImageTag = table.Column<string>(nullable: false),
+                    IsAutomaticDeployment = table.Column<bool>(nullable: false),
+                    Status = table.Column<string>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_deployments", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "slackMessages",
                 columns: table => new
@@ -47,6 +67,12 @@ namespace Shipbot.DbMigrations.Migrations.SlackIntegrationDb
                 column: "SlackMessageId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_deployments_ApplicationId_ImageRepository_UpdatePath_Curren~",
+                table: "deployments",
+                columns: new[] { "ApplicationId", "ImageRepository", "UpdatePath", "CurrentImageTag", "TargetImageTag" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_slackMessages_Timestamp_ChannelId",
                 table: "slackMessages",
                 columns: new[] { "Timestamp", "ChannelId" });
@@ -56,6 +82,9 @@ namespace Shipbot.DbMigrations.Migrations.SlackIntegrationDb
         {
             migrationBuilder.DropTable(
                 name: "deploymentNotifications");
+
+            migrationBuilder.DropTable(
+                name: "deployments");
 
             migrationBuilder.DropTable(
                 name: "slackMessages");

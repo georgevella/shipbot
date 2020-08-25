@@ -2,22 +2,71 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Shipbot.SlackIntegration;
+using Shipbot.Data;
 
-namespace Shipbot.DbMigrations.Migrations.SlackIntegrationDb
+namespace Shipbot.DbMigrations.Migrations
 {
-    [DbContext(typeof(SlackIntegrationDbContext))]
-    partial class SlackIntegrationDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(ShipbotDbContext))]
+    [Migration("20200824092303_InitialSchema")]
+    partial class InitialSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
                 .HasAnnotation("ProductVersion", "3.1.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            modelBuilder.Entity("Shipbot.Controller.Core.Deployments.Dao.Deployment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApplicationId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreationDateTime")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CurrentImageTag")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeploymentDateTime")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ImageRepository")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsAutomaticDeployment")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetImageTag")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UpdatePath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId", "ImageRepository", "UpdatePath", "CurrentImageTag", "TargetImageTag")
+                        .IsUnique();
+
+                    b.ToTable("deployments");
+                });
 
             modelBuilder.Entity("Shipbot.SlackIntegration.Dao.DeploymentNotification", b =>
                 {

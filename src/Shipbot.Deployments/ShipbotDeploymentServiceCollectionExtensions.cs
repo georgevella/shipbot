@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shipbot.Contracts;
+using Shipbot.SlackIntegration;
 
 namespace Shipbot.Controller.Core.Deployments
 {
@@ -10,13 +11,15 @@ namespace Shipbot.Controller.Core.Deployments
         {
             // deployment
             services.AddSingleton<IDeploymentQueueService, DeploymentQueueService>();
-            services.AddSingleton<IDeploymentNotificationService, DeploymentNotificationService>();
             services.AddScoped<IDeploymentService, DeploymentService>();
-            services.AddDbContext<DeploymentsDbContext>(
-                builder => builder.UseNpgsql(
-                    "Host=localhost;Database=postgres;Username=postgres;Password=password123"
-                )
-            );
+            services.AddDbContextConfigurator<DeploymentsDbContextConfigurator>();
+            // services.AddDbContext<DeploymentsDbContext>(
+            //     builder => builder.UseNpgsql(
+            //         "Host=localhost;Database=postgres;Username=postgres;Password=password123"
+            //     )
+            // );
+            
+            
             
             return services;
         }

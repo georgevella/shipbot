@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shipbot.Controller.Core.Deployments;
+using Shipbot.Data;
 using Shipbot.SlackIntegration;
 
 namespace Shipbot.DbMigrations
@@ -18,8 +19,10 @@ namespace Shipbot.DbMigrations
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((context, collection) =>
                 {
-                    collection.AddDbContext<DeploymentsDbContext>(Setup);
-                    collection.AddDbContext<SlackIntegrationDbContext>(Setup);
+                    collection.RegisterShipbotDeploymentComponents();
+                    collection.RegisterShipbotSlackIntegrationComponents();
+                    
+                    collection.AddDbContext<ShipbotDbContext>(Setup);
                 });
 
         private static void Setup(DbContextOptionsBuilder builder)

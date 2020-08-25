@@ -3,24 +3,26 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shipbot.Contracts;
 using Shipbot.Models;
-using Shipbot.SlackIntegration;
+using Shipbot.SlackIntegration.Internal;
 
-namespace Shipbot.Controller.Core.Deployments
+namespace Shipbot.SlackIntegration
 {
     public class DeploymentNotificationService : IDeploymentNotificationService
     {
         private readonly ILogger<DeploymentNotificationService> _log;
+        private readonly IDeploymentNotificationBuilder _deploymentNotificationBuilder;
         private readonly ISlackClient _slackClient;
-        private readonly ConcurrentDictionary<DeploymentUpdate, IMessageHandle> _notificationHandles = new ConcurrentDictionary<DeploymentUpdate, IMessageHandle>();
+        private static readonly ConcurrentDictionary<DeploymentUpdate, IMessageHandle> _notificationHandles = new ConcurrentDictionary<DeploymentUpdate, IMessageHandle>();
 
         public DeploymentNotificationService(
             ILogger<DeploymentNotificationService> log,
+            IDeploymentNotificationBuilder deploymentNotificationBuilder,
             ISlackClient slackClient
         )
         {
             _log = log;
+            _deploymentNotificationBuilder = deploymentNotificationBuilder;
             _slackClient = slackClient;
         }
         
@@ -39,7 +41,11 @@ namespace Shipbot.Controller.Core.Deployments
                 );
                 try
                 {
-                    var handle = await _slackClient.SendDeploymentUpdateNotification(channel, deploymentUpdate, DeploymentUpdateStatus.Pending);
+                    var notification =
+                        _deploymentNotificationBuilder.BuildNotification(deploymentUpdate,
+                            DeploymentUpdateStatus.Pending);
+                    
+                    var handle = await _slackClient.PostMessageAsync(channel, notification);
                     _notificationHandles.TryAdd(deploymentUpdate, handle);
                 }
                 catch (Exception e)
@@ -56,7 +62,8 @@ namespace Shipbot.Controller.Core.Deployments
                 try
                 {
                     _log.LogInformation("Submitting {@DeploymentUpdate} notification change to slack {@MessageHandle}. ", deploymentUpdate, handle);
-                    var newHandle = await _slackClient.UpdateDeploymentUpdateNotification(handle, deploymentUpdate, status);
+                    var notification = _deploymentNotificationBuilder.BuildNotification(deploymentUpdate, status);
+                    var newHandle = await _slackClient.UpdateMessageAsync(handle, notification);
                     _notificationHandles.TryUpdate(deploymentUpdate, newHandle, handle);
                 }
                 catch (Exception e)

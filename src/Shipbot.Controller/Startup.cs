@@ -71,15 +71,13 @@ namespace Shipbot.Controller
 
 
             services.RegisterShipbotDeploymentComponents();
+            services.RegisterShipbotSlackIntegrationComponents();
+            services.RegisterDbContext();
 
             services.AddTransient<IHostedService, OperatorStartup>();
             services.AddTransient<IHostedService, ShipbotApplicationsHostedService>();
             services.AddTransient<IHostedService, ContainerRegistryHostedService>();
             services.AddTransient<IHostedService, DeploymentSourcesHostedService>();
-            
-            // slack handling
-            services.AddTransient<IHostedService, SlackStartup>();
-            services.AddSingleton<ISlackClient, SlackClient>();
 
             services.RegisterMediator(
                 new MediatorBuilder().RegisterHandlers(Assembly.GetExecutingAssembly())
