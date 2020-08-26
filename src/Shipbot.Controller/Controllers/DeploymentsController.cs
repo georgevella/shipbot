@@ -9,6 +9,7 @@ using Shipbot.Applications;
 using Shipbot.Controller.DTOs;
 using Shipbot.Deployments;
 using Shipbot.Deployments.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Controllers
 {
@@ -28,13 +29,16 @@ namespace Shipbot.Controller.Controllers
             _deploymentService = deploymentService;
         }
 
-        [HttpGet("{applicationName}")]
-        public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments(string applicationName)
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments([FromQuery(Name = "application")] string applicationName, [FromQuery(Name = "status")] DeploymentStatus? status)
         {
             try
             {
-                var application = _applicationService.GetApplication(applicationName);
-                var deployments = await _deploymentService.GetDeployments(application);
+                Application application = null;
+                if (!string.IsNullOrEmpty(applicationName))
+                    application = _applicationService.GetApplication(applicationName);
+                
+                var deployments = await _deploymentService.GetDeployments(application, status);
 
                 var result = deployments.Select(ConvertFromModel).ToList();
 
@@ -55,45 +59,23 @@ namespace Shipbot.Controller.Controllers
                 CurrentTag = x.CurrentTag,
                 Tag = x.TargetTag,
                 UpdatePath = x.UpdatePath,
-                Status = (DeploymentStatusDto) x.Status
+                Status = (DeploymentStatusDto) x.Status,
+                Application = x.ApplicationId
             };
         }
 
         [HttpPost]
         public async Task<ActionResult> Post([FromBody] NewDeploymentDto newDeploymentDto)
         {
-            var applications = _applicationService.GetApplications();
-            var allApplicationsTrackingThisRepository = applications
-                .SelectMany(
-                    x => x.Images,
-                    (app, img) =>
-                        new
-                        {
-                            Image = img,
-                            Application = app
-                        }
-                )
-                .Where(x =>
-                    x.Image.Repository.Equals(newDeploymentDto.Repository) &&
-                    x.Image.Policy.IsMatch(newDeploymentDto.Tag)
-                );
+            var createdDeployments = (await _deploymentService.CreateDeployment(newDeploymentDto.Repository,
+                newDeploymentDto.Tag)).ToList();
 
-            var createdDeploymentsDto = new List<ApplicationDeploymentDto>();
-
-            foreach (var item in allApplicationsTrackingThisRepository)
+            if (createdDeployments.Any())
             {
-                try
-                {
-                    var deployment = await _deploymentService.AddDeployment(item.Application, item.Image, newDeploymentDto.Tag);
-                    createdDeploymentsDto.Add(ConvertFromModel(deployment));
-                }
-                catch
-                {
-                    // ignored
-                }
+                return StatusCode(StatusCodes.Status201Created, createdDeployments.Select(ConvertFromModel).ToList());
             }
-            
-            return StatusCode(StatusCodes.Status201Created, createdDeploymentsDto);
+
+            return Ok();
         }
     }
 }

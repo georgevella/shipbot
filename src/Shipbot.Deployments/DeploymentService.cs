@@ -37,19 +37,6 @@ namespace Shipbot.Deployments
             _deploymentsDbContextConfigurator = deploymentsDbContextConfigurator;
         }
 
-        private Task<Dao.Deployment> GetDeploymentDao(DeploymentUpdate deploymentUpdate)
-        {
-            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
-            
-            return deployments.FirstAsync(x =>
-                x.ApplicationId == deploymentUpdate.Application.Name &&
-                x.ImageRepository == deploymentUpdate.Image.Repository &&
-                x.UpdatePath == deploymentUpdate.Image.TagProperty.Path &&
-                x.CurrentImageTag == deploymentUpdate.CurrentTag &&
-                x.TargetImageTag == deploymentUpdate.TargetTag
-            );
-        }
-
         private static Deployment ConvertFromDao(Dao.Deployment deploymentDao) =>
             new Deployment(
                 deploymentDao.Id,
@@ -60,7 +47,45 @@ namespace Shipbot.Deployments
                 deploymentDao.TargetImageTag,
                 (DeploymentStatus) deploymentDao.Status);
 
+        public async Task<IEnumerable<Deployment>> CreateDeployment(
+            string containerRepository, 
+            string tag
+            )
+        {
+            var applications = _applicationService.GetApplications();
+            var allApplicationsTrackingThisRepository = applications
+                .SelectMany(
+                    x => x.Images,
+                    (app, img) =>
+                        new
+                        {
+                            Image = img,
+                            Application = app
+                        }
+                )
+                .Where(x =>
+                    x.Image.Repository.Equals(containerRepository) &&
+                    x.Image.Policy.IsMatch(tag)
+                );
 
+            var createdDeployments = new List<Deployment>();
+
+            foreach (var item in allApplicationsTrackingThisRepository)
+            {
+                try
+                {
+                    var deployment = await AddDeployment(item.Application, item.Image, tag);
+                    createdDeployments.Add(deployment);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+
+            return createdDeployments;
+        }
+        
         public async Task<Deployment> AddDeployment(Application application, Image image, string newTag)
         {
             var currentTags = _applicationService.GetCurrentImageTags(application);
@@ -122,33 +147,52 @@ namespace Shipbot.Deployments
             
             if (application.AutoDeploy)
             {
+                _log.LogDebug("Adding deployment to deployment queue.");
                 await _deploymentQueueService.AddDeployment(deployment);
             }
 
             return deployment;
         }
 
-        public Task<IEnumerable<Deployment>> GetDeployments(Application application)
+        public Task<IEnumerable<Deployment>> GetDeployments(Application? application, DeploymentStatus? status)
         {
-            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
-            
-            var applicationDeploymentDaos = deployments
-                .Where(x => x.ApplicationId == application.Name).ToList();
+            var deploymentsDbSet = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
 
-            var imageMap = application.Images.ToDictionary(
-                x => $"{x.Repository}-{x.TagProperty.Path}"
-            );
+            var query = (IQueryable<Dao.Deployment>) deploymentsDbSet;
+
+            if (application != null)
+            {
+                query = query.Where(x => x.ApplicationId == application.Name);
+            }
+
+            if (status != null)
+            {
+                // NOTE: the conversion from Models.DeploymentStatus to Dao.DeploymentStatus is done 
+                // here outside of the Where clause due to a bug in EFCore as described in this
+                // post: https://stackoverflow.com/questions/55182602/efcore-enum-to-string-value-conversion-not-used-in-where-clause
+                
+                var daoStatus = (Dao.DeploymentStatus) status;
+                query = query.Where(x => x.Status == daoStatus);
+            }
+            
+            var applicationDeploymentDaos = query.ToList();
+
+            // var imageMap = application.Images.ToDictionary(
+            //     x => $"{x.Repository}-{x.TagProperty.Path}"
+            // );
 
             var result = new List<Deployment>();
 
             foreach (var deploymentDao in applicationDeploymentDaos)
             {
-                var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
+                // var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
                 result.Add(ConvertFromDao(deploymentDao));
             }
 
             return Task.FromResult(result.AsEnumerable());
         }
+
+
 
         public async Task<Deployment> GetDeployment(Guid deploymentId)
         {

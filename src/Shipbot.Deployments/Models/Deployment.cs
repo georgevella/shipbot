@@ -31,15 +31,4 @@ namespace Shipbot.Deployments.Models
             Status = status;
         }
     }
-    
-    public enum DeploymentStatus
-    {
-        Pending,
-        Starting,
-        UpdatingManifests,
-        Synchronizing,
-        Synchronized,
-        Complete,
-        Failed
-    }
 }

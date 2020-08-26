@@ -9,14 +9,15 @@ namespace Shipbot.Deployments
     public interface IDeploymentService
     {
         Task<Deployment> AddDeployment(Application application, Image image, string newTag);
-        Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status);
+        Task ChangeDeploymentUpdateStatus(Guid deploymentId, DeploymentUpdateStatus status);
 
         Task FinishDeploymentUpdate(
-            DeploymentUpdate deploymentUpdate,
+            Guid deploymentId,
             DeploymentUpdateStatus finalStatus
         );
 
-        Task<IEnumerable<Deployment>> GetDeployments(Application application);
+        Task<IEnumerable<Deployment>> GetDeployments(Application? application, DeploymentStatus? status);
         Task<Deployment> GetDeployment(Guid deploymentId);
+        Task<IEnumerable<Deployment>> CreateDeployment(string containerRepository, string tag);
     }
 }
