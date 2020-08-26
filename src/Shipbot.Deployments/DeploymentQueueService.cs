@@ -51,7 +51,7 @@ namespace Shipbot.Deployments
                 
             await _deploymentNotificationService.CreateNotification(deploymentUpdate);
         }
-        
+
         public Task<DeploymentUpdate?> GetNextPendingDeploymentUpdate(Application application)
         {
             // are there any pending deployments

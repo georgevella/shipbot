@@ -286,15 +286,15 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
             // start updating files
             var manifestsChanged = false;
-            DeploymentUpdate deploymentUpdate = null;
+            DeploymentUpdate? deploymentUpdate = null;
             while ((deploymentUpdate = await _deploymentQueueService.GetNextPendingDeploymentUpdate(application)) != null)
             {
-                await _deploymentService.ChangeDeploymentUpdateStatus(deploymentUpdate,
+                await _deploymentService.ChangeDeploymentUpdateStatus(deploymentUpdate.Id,
                     DeploymentUpdateStatus.Starting);
                 _log.LogInformation("Executing pending deployment update ...");
                 
                 await _deploymentService.ChangeDeploymentUpdateStatus(
-                    deploymentUpdate,
+                    deploymentUpdate.Id,
                     DeploymentUpdateStatus.UpdatingManifests
                 );
                 
@@ -312,7 +312,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 }
                 
                 await _deploymentService.FinishDeploymentUpdate(
-                    deploymentUpdate,
+                    deploymentUpdate.Id,
                     manifestsChanged ? DeploymentUpdateStatus.Complete : DeploymentUpdateStatus.Failed
                 );
             }

@@ -157,16 +157,34 @@ namespace Shipbot.Deployments
             return ConvertFromDao(deploymentDao);
         }
 
-        public async Task ChangeDeploymentUpdateStatus(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
+        public async Task ChangeDeploymentUpdateStatus(Guid deploymentId, DeploymentUpdateStatus status)
         {
             try
             {
-                var deployment = await GetDeploymentDao(deploymentUpdate);
-                deployment.Status = (Dao.DeploymentStatus) status;
+                var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
+                var deploymentDao = await deployments.FindAsync(deploymentId);
+                var application = _applicationService.GetApplication(deploymentDao.ApplicationId);
+                
+                var imageMap = application.Images.ToDictionary(
+                    x => $"{x.Repository}-{x.TagProperty.Path}"
+                );
+                var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
+                
+                deploymentDao.Status = (Dao.DeploymentStatus) status;
 
                 if (status == DeploymentUpdateStatus.Complete)
-                    deployment.DeploymentDateTime = DateTime.Now;
-
+                    deploymentDao.DeploymentDateTime = DateTime.Now;
+                
+                
+                // send notification out
+                var deploymentUpdate = new DeploymentUpdate(
+                    deploymentDao.Id,
+                    application, 
+                    image, 
+                    deploymentDao.CurrentImageTag, 
+                    deploymentDao.TargetImageTag
+                );
+                
                 await _deploymentNotificationService.UpdateNotification(deploymentUpdate, status);
                 await _deploymentsDbContextConfigurator.SaveChangesAsync();
             }
@@ -178,12 +196,22 @@ namespace Shipbot.Deployments
         }
 
         public async Task FinishDeploymentUpdate(
-            DeploymentUpdate deploymentUpdate,
+            Guid deploymentId,
             DeploymentUpdateStatus finalStatus
         )
         {
-            await ChangeDeploymentUpdateStatus(deploymentUpdate, finalStatus);
-            _applicationService.SetCurrentImageTag(deploymentUpdate.Application, deploymentUpdate.Image, deploymentUpdate.TargetTag);
+            await ChangeDeploymentUpdateStatus(deploymentId, finalStatus);
+            
+            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
+            var deploymentDao = await deployments.FindAsync(deploymentId);
+            var application = _applicationService.GetApplication(deploymentDao.ApplicationId);
+            var imageMap = application.Images.ToDictionary(
+                x => $"{x.Repository}-{x.TagProperty.Path}"
+            );
+            var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
+            
+            // TODO: trigger git refresh instead of explicitly setting the tag
+            _applicationService.SetCurrentImageTag(application, image, deploymentDao.TargetImageTag);
         }
     }
 }
