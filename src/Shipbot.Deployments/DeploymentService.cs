@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
 using Shipbot.Data;
+using Shipbot.Deployments.Internals;
 using Shipbot.Deployments.Models;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
@@ -36,16 +37,6 @@ namespace Shipbot.Deployments
             _deploymentNotificationService = deploymentNotificationService;
             _deploymentsDbContextConfigurator = deploymentsDbContextConfigurator;
         }
-
-        private static Deployment ConvertFromDao(Dao.Deployment deploymentDao) =>
-            new Deployment(
-                deploymentDao.Id,
-                deploymentDao.ApplicationId,
-                deploymentDao.ImageRepository,
-                deploymentDao.UpdatePath,
-                deploymentDao.CurrentImageTag,
-                deploymentDao.TargetImageTag,
-                (DeploymentStatus) deploymentDao.Status);
 
         public async Task<IEnumerable<Deployment>> CreateDeployment(
             string containerRepository, 
@@ -143,7 +134,7 @@ namespace Shipbot.Deployments
             
             await _deploymentsDbContextConfigurator.SaveChangesAsync();
 
-            var deployment = ConvertFromDao(entity.Entity);
+            var deployment = entity.Entity.ConvertToDeploymentModel();
             
             if (application.AutoDeploy)
             {
@@ -186,7 +177,7 @@ namespace Shipbot.Deployments
             foreach (var deploymentDao in applicationDeploymentDaos)
             {
                 // var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
-                result.Add(ConvertFromDao(deploymentDao));
+                result.Add(deploymentDao.ConvertToDeploymentModel());
             }
 
             return Task.FromResult(result.AsEnumerable());
@@ -198,7 +189,7 @@ namespace Shipbot.Deployments
         {
             var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
             var deploymentDao = await deployments.FindAsync(deploymentId);
-            return ConvertFromDao(deploymentDao);
+            return deploymentDao.ConvertToDeploymentModel();
         }
 
         public async Task ChangeDeploymentUpdateStatus(Guid deploymentId, DeploymentUpdateStatus status)
@@ -207,30 +198,14 @@ namespace Shipbot.Deployments
             {
                 var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
                 var deploymentDao = await deployments.FindAsync(deploymentId);
-                var application = _applicationService.GetApplication(deploymentDao.ApplicationId);
-                
-                var imageMap = application.Images.ToDictionary(
-                    x => $"{x.Repository}-{x.TagProperty.Path}"
-                );
-                var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
                 
                 deploymentDao.Status = (Dao.DeploymentStatus) status;
-
+                
                 if (status == DeploymentUpdateStatus.Complete)
                     deploymentDao.DeploymentDateTime = DateTime.Now;
-                
-                
-                // send notification out
-                var deploymentUpdate = new DeploymentUpdate(
-                    deploymentDao.Id,
-                    application, 
-                    image, 
-                    deploymentDao.CurrentImageTag, 
-                    deploymentDao.TargetImageTag
-                );
-                
-                await _deploymentNotificationService.UpdateNotification(deploymentUpdate, status);
+
                 await _deploymentsDbContextConfigurator.SaveChangesAsync();
+                await _deploymentNotificationService.UpdateNotification(deploymentDao.ConvertToDeploymentModel());
             }
             catch (Exception e)
             {

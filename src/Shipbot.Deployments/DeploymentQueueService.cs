@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Shipbot.Applications;
 using Shipbot.Data;
 using Shipbot.Deployments.Dao;
+using Shipbot.Deployments.Internals;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
 using Deployment = Shipbot.Deployments.Models.Deployment;
@@ -30,25 +31,19 @@ namespace Shipbot.Deployments
             _deploymentQueueRepository = deploymentQueueRepository;
         }
 
-        private DeploymentUpdate ConvertFromDao(DeploymentQueue dao)
-        {
-            var application = _applicationService.GetApplication(dao.ApplicationId);
-            var imageMap = application.Images.ToDictionary(
-                x => $"{x.Repository}-{x.TagProperty.Path}"
-            );
-                
-            var image = imageMap[$"{dao.Deployment.ImageRepository}-{dao.Deployment.UpdatePath}"];
-                
-            var deploymentUpdate = new DeploymentUpdate(
-                dao.DeploymentId,
-                application, 
-                image, 
-                dao.Deployment.CurrentImageTag, 
-                dao.Deployment.TargetImageTag
-            );
-
-            return deploymentUpdate;
-        }
+        // private Deployment ConvertFromDao(DeploymentQueue dao)
+        // {
+        //     var application = _applicationService.GetApplication(dao.ApplicationId);
+        //     var imageMap = application.Images.ToDictionary(
+        //         x => $"{x.Repository}-{x.TagProperty.Path}"
+        //     );
+        //         
+        //     var image = imageMap[$"{dao.Deployment.ImageRepository}-{dao.Deployment.UpdatePath}"];
+        //
+        //     var deployment = dao.Deployment.ConvertToDeploymentModel();
+        //
+        //     return deployment;
+        // }
         
         public async Task AddDeployment(Deployment deployment, TimeSpan? delay = null)
         {
@@ -68,10 +63,10 @@ namespace Shipbot.Deployments
 
             await _deploymentQueueRepository.Save();
             
-            await _deploymentNotificationService.CreateNotification(ConvertFromDao(dao));
+            await _deploymentNotificationService.CreateNotification(deployment);
         }
 
-        public async Task<DeploymentUpdate?> GetNextPendingDeploymentUpdate(Application application)
+        public async Task<Deployment?> GetNextPendingDeploymentUpdate(Application application)
         {
             // are there any pending deployments
             var queue = _deploymentQueueRepository.Query()
@@ -92,10 +87,10 @@ namespace Shipbot.Deployments
 
             await _deploymentQueueRepository.Save();
 
-            return ConvertFromDao(first);
+            return first.Deployment.ConvertToDeploymentModel();
         }
 
-        public Task<IEnumerable<DeploymentUpdate>> GetPendingDeployments()
+        public Task<IEnumerable<Deployment>> GetPendingDeployments()
         {
             var queue = _deploymentQueueRepository.Query()
                 .Where(
@@ -104,7 +99,7 @@ namespace Shipbot.Deployments
                 .OrderBy(x => x.AvailableDateTime)
                 .ToList();
 
-            var allPendingDeployments = queue.Select(ConvertFromDao).ToList();
+            var allPendingDeployments = queue.Select(x=>x.Deployment.ConvertToDeploymentModel()).ToList();
             return Task.FromResult(allPendingDeployments.AsEnumerable());
         }
     }

@@ -1,3 +1,4 @@
+using Shipbot.Deployments.Models;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
 
@@ -5,19 +6,19 @@ namespace Shipbot.Deployments
 {
     public class DeploymentNotificationBuilder : IDeploymentNotificationBuilder
     {
-        public IMessage BuildNotification(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status)
+        public IMessage BuildNotification(Deployment deployment)
         {
-            var builder = new SlackMessageBuilder($"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*).");
+            var builder = new SlackMessageBuilder($"A new image of *{deployment.ImageRepository}* was detected (tag *{deployment.TargetTag}*).");
             return builder.AddSection(
-                $"A new image of *{deploymentUpdate.Image.Repository}* was detected (tag *{deploymentUpdate.TargetTag}*)."
+                $"A new image of *{deployment.ImageRepository}* was detected (tag *{deployment.TargetTag}*)."
                 )
                 .AddDivider()
                 .AddSection(fields: new []
                 {
-                    $"*From*\n{deploymentUpdate.CurrentTag}",
-                    $"*To*\n{deploymentUpdate.TargetTag}",
-                    $"*Application*\n{deploymentUpdate.Application}",
-                    $"*Status*\n{status}"
+                    $"*From*\n{deployment.CurrentTag}",
+                    $"*To*\n{deployment.TargetTag}",
+                    $"*Application*\n{deployment.ApplicationId}",
+                    $"*Status*\n{deployment.Status}"
                 }
                 ).Build();
         }
@@ -25,6 +26,6 @@ namespace Shipbot.Deployments
 
     public interface IDeploymentNotificationBuilder
     {
-        IMessage BuildNotification(DeploymentUpdate deploymentUpdate, DeploymentUpdateStatus status);
+        IMessage BuildNotification(Deployment deployment);
     }
 }

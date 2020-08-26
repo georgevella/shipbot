@@ -10,6 +10,7 @@ using Quartz.Util;
 using Shipbot.Applications;
 using Shipbot.Controller.Core.ApplicationSources.Models;
 using Shipbot.Deployments;
+using Shipbot.Deployments.Models;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
 using YamlDotNet.RepresentationModel;
@@ -248,6 +249,10 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
 
             var application = _applicationService.GetApplication(context.ApplicationName);
+            var imageMap = application.Images.ToDictionary(
+                x => $"{x.Repository}-{x.TagProperty.Path}"
+            );
+            
             var yamlUtilities = new YamlUtilities();
 
             // build map of images -> yaml file that defines them and image -> current tag
@@ -286,33 +291,46 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
             // start updating files
             var manifestsChanged = false;
-            DeploymentUpdate? deploymentUpdate = null;
-            while ((deploymentUpdate = await _deploymentQueueService.GetNextPendingDeploymentUpdate(application)) != null)
+            Deployment? nextPendingDeployment = null;
+            while ((nextPendingDeployment = await _deploymentQueueService.GetNextPendingDeploymentUpdate(application)) != null)
             {
-                await _deploymentService.ChangeDeploymentUpdateStatus(deploymentUpdate.Id,
-                    DeploymentUpdateStatus.Starting);
+                await _deploymentService.ChangeDeploymentUpdateStatus(
+                    nextPendingDeployment.Id,
+                    DeploymentUpdateStatus.Starting
+                    );
                 _log.LogInformation("Executing pending deployment update ...");
                 
                 await _deploymentService.ChangeDeploymentUpdateStatus(
-                    deploymentUpdate.Id,
+                    nextPendingDeployment.Id,
                     DeploymentUpdateStatus.UpdatingManifests
+                );
+                
+                // build a deployment update object
+                var image = imageMap[$"{nextPendingDeployment.ImageRepository}-{nextPendingDeployment.UpdatePath}"];
+                // send notification out
+                var deploymentUpdate = new DeploymentUpdate(
+                    nextPendingDeployment.Id,
+                    application, 
+                    image, 
+                    nextPendingDeployment.CurrentTag, 
+                    nextPendingDeployment.TargetTag
                 );
                 
                 manifestsChanged = await UpdateDeploymentManifests(gitRepository, 
                     deploymentUpdate, 
                     imageToFilenameMap, 
-                    imageToTagInManifest.TryGetAndReturn(deploymentUpdate.Image) ?? "n/a", 
+                    imageToTagInManifest.TryGetAndReturn(image) ?? "n/a", 
                     applicationSourcePath, 
                     yamlUtilities, 
                     relativePath);
 
                 if (manifestsChanged)
                 {
-                    imageToTagInManifest[deploymentUpdate.Image] = deploymentUpdate.TargetTag;
+                    imageToTagInManifest[image] = nextPendingDeployment.TargetTag;
                 }
                 
                 await _deploymentService.FinishDeploymentUpdate(
-                    deploymentUpdate.Id,
+                    nextPendingDeployment.Id,
                     manifestsChanged ? DeploymentUpdateStatus.Complete : DeploymentUpdateStatus.Failed
                 );
             }
