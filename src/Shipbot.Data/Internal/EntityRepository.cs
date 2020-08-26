@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -32,8 +33,15 @@ namespace Shipbot.Data
         {
             var entity = await DbSet.AddAsync(item);
             return entity.Entity;
-        }        
-        
+        }
+
+        public ValueTask<T> Find<TKey>(TKey id)
+        {
+            if (id == null) throw new ArgumentNullException(nameof(id));
+            // ReSharper disable once HeapView.PossibleBoxingAllocation
+            return DbSet.FindAsync(new object[] { id }, CancellationToken.None);
+        }
+
         public T Update(T item)
         {
             var entity = DbSet.Update(item);

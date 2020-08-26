@@ -8,6 +8,8 @@ namespace Shipbot.Data
     {
         Task<T> Add(T item);
 
+        ValueTask<T> Find<TKey>(TKey id);
+
         IQueryable<T> Query();
         T Update(T item);
         Task Save();
