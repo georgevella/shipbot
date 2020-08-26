@@ -28,7 +28,7 @@ namespace Shipbot.JobScheduling
         public static Task TriggerJobOnce(this IScheduler scheduler, IJobDetail jobDetail)
         {
             var trigger = TriggerBuilder.Create()
-                .WithIdentity($"{jobDetail.Key.Name}-trigger-once", jobDetail.Key.Group)
+                .WithIdentity($"{jobDetail.Key}-trigger-once", jobDetail.Key.Group)
                 .StartNow()
                 .ForJob(jobDetail)
                 .Build();
@@ -43,6 +43,25 @@ namespace Shipbot.JobScheduling
             var jobDetail = BuildJobWithData<TJob, TData>(name, group, data);
 
             return TriggerJobOnce(scheduler, jobDetail);
+        }
+        
+        public static Task StartRecurringJob<TJob, TData>(this IScheduler scheduler, string name, string group, TData data, TimeSpan recurrenceSchedule)
+            where TJob : BaseJobWithData<TData>
+            where TData : class
+        {
+            var jobDetail = BuildJobWithData<TJob, TData>(name, group, data);
+            
+            var trigger = TriggerBuilder.Create()
+                .WithIdentity($"{jobDetail.Key}-trigger", jobDetail.Key.Group)
+                .StartNow()
+                .WithSimpleSchedule(x => x
+                    .WithInterval(recurrenceSchedule)
+                    .RepeatForever()
+                )
+                .ForJob(jobDetail)
+                .Build();
+
+            return scheduler.ScheduleJob(jobDetail, trigger);
         }
     }
 

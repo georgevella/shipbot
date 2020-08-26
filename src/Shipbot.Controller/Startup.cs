@@ -67,7 +67,7 @@ namespace Shipbot.Controller
             // container registry
             services.AddSingleton<RegistryClientPool>();
             services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
-            services.AddTransient<RegistryWatcherJob>();
+            services.AddTransient<ContainerRegistryPollingJob>();
 
 
             services.RegisterShipbotDeploymentComponents();

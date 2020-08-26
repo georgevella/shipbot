@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.Contracts;
+using Shipbot.JobScheduling;
 using Shipbot.Models;
 using Image = Shipbot.Models.Image;
 
@@ -13,7 +15,7 @@ namespace Shipbot.Controller.Core.Registry.Watcher
     {
         private readonly ILogger<RegistryWatcher> _log;
         private readonly IScheduler _scheduler;
-        private readonly ConcurrentDictionary<RegistryWatcherKey, RegistryWatcherJobContext> _jobs = new ConcurrentDictionary<RegistryWatcherKey,RegistryWatcherJobContext>();
+        private readonly ConcurrentDictionary<RegistryWatcherKey, string> _jobs = new ConcurrentDictionary<RegistryWatcherKey,string>();
 
         public RegistryWatcher(ILogger<RegistryWatcher> log, IScheduler scheduler)
         {
@@ -24,16 +26,21 @@ namespace Shipbot.Controller.Core.Registry.Watcher
         public async Task StartWatchingImageRepository(Application application)
         {
             _log.LogInformation("Adding application {name}, beginning watch of repositories", application.Name);
-            for (var i=0; i<application.Images.Count; i++)
+            for (var imageIndex=0; imageIndex<application.Images.Count; imageIndex++)
             {
-                var image = application.Images[i];
+                var image = application.Images[imageIndex];
 
                 var key = new RegistryWatcherKey(application, image);
-                var jobContext = new RegistryWatcherJobContext(application, image, i);
+                var jobKey = $"rwatcher-{application.Name}-{image.Repository}-{imageIndex}";
 
-                if (_jobs.TryAdd(key, jobContext))
+                if (_jobs.TryAdd(key, jobKey))
                 {
-                    await _scheduler.ScheduleJob(jobContext.Job, jobContext.Trigger);    
+                    await _scheduler.StartRecurringJob<ContainerRegistryPollingJob, ContainerRegistryPollingData>(
+                        jobKey, 
+                        "containerrepowatcher", 
+                        new ContainerRegistryPollingData(image.Repository, application.Name, imageIndex), 
+                        TimeSpan.FromSeconds(10) 
+                    );
                 }
             }
         }
@@ -68,32 +75,6 @@ namespace Shipbot.Controller.Core.Registry.Watcher
             {
                 _application = application;
                 _image = image;
-            }
-        }
-
-        private class RegistryWatcherJobContext
-        {
-            public IJobDetail Job { get; }
-            public ITrigger Trigger { get; }
-
-            public RegistryWatcherJobContext(Application application, Image image, int imageIndex)
-            {
-                Job = JobBuilder.Create<RegistryWatcherJob>()
-                    .WithIdentity($"rwatcher-{application.Name}-{image.Repository}-{imageIndex}", "containerrepowatcher")
-                    .UsingJobData("ImageRepository", image.Repository)
-                    .UsingJobData("Application", application.Name)
-                    .UsingJobData("ImageIndex", imageIndex)
-                    .Build();
-
-                Trigger = TriggerBuilder.Create()
-                    .WithIdentity($"rwatcher-trig-{application.Name}-{image.Repository}-{imageIndex}", "containerrepowatcher")
-                    .StartNow()
-                    .WithSimpleSchedule(x => x
-                        .WithIntervalInSeconds(10)
-                        .RepeatForever()
-                    )
-                    .ForJob(Job)
-                    .Build();
             }
         }
     }

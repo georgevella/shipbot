@@ -6,19 +6,20 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.Applications;
 using Shipbot.Deployments;
+using Shipbot.JobScheduling;
 
 namespace Shipbot.Controller.Core.Registry.Watcher
 {
     [DisallowConcurrentExecution]
-    public class RegistryWatcherJob : IJob
+    public class ContainerRegistryPollingJob : BaseJobWithData<ContainerRegistryPollingData>
     {
-        private readonly ILogger<RegistryWatcherJob> _log;
+        private readonly ILogger<ContainerRegistryPollingJob> _log;
         private readonly RegistryClientPool _registryClientPool;
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
 
-        public RegistryWatcherJob(
-            ILogger<RegistryWatcherJob> log,
+        public ContainerRegistryPollingJob(
+            ILogger<ContainerRegistryPollingJob> log,
             RegistryClientPool registryClientPool, 
             IApplicationService applicationService,
             IDeploymentService deploymentService
@@ -29,14 +30,13 @@ namespace Shipbot.Controller.Core.Registry.Watcher
             _applicationService = applicationService;
             _deploymentService = deploymentService;
         }
-            
-        public async Task Execute(IJobExecutionContext context)
-        {
-            var dataMap = context.JobDetail.JobDataMap;
 
-            var imageRepository = (string) dataMap["ImageRepository"];
-            var applicationId = (string) dataMap["Application"];
-            var imageIndex = (int) dataMap["ImageIndex"];
+
+        protected override async Task Execute(ContainerRegistryPollingData data)
+        {
+            var imageRepository = data.ImageRepository;
+            var applicationId = data.ApplicationId;
+            var imageIndex = data.ImageIndex;
 
             var application = _applicationService.GetApplication(applicationId);
             var image = application.Images[imageIndex];
@@ -90,7 +90,6 @@ namespace Shipbot.Controller.Core.Registry.Watcher
                     }
                 }
             }
-
         }
     }
 }
