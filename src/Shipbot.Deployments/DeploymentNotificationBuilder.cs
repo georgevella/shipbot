@@ -9,7 +9,7 @@ namespace Shipbot.Deployments
         public IMessage BuildNotification(Deployment deployment)
         {
             var builder = new SlackMessageBuilder($"A new image of *{deployment.ImageRepository}* was detected (tag *{deployment.TargetTag}*).");
-            return builder.AddSection(
+            var messageConfiguration = builder.AddSection(
                 $"A new image of *{deployment.ImageRepository}* was detected (tag *{deployment.TargetTag}*)."
                 )
                 .AddDivider()
@@ -20,7 +20,17 @@ namespace Shipbot.Deployments
                     $"*Application*\n{deployment.ApplicationId}",
                     $"*Status*\n{deployment.Status}"
                 }
-                ).Build();
+                );
+
+            if (deployment.Status == DeploymentStatus.Pending)
+            {
+                messageConfiguration.AddActions(
+                    blockBuilder => blockBuilder
+                        .AddButton("deploy", "Deploy", $"{deployment.Id:D}", style: "primary")
+                    );
+            }
+
+            return messageConfiguration.Build();
         }
     }
 

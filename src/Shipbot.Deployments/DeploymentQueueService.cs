@@ -17,16 +17,19 @@ namespace Shipbot.Deployments
     public class DeploymentQueueService : IDeploymentQueueService
     {
         private readonly IApplicationService _applicationService;
+        private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly IEntityRepository<DeploymentQueue> _deploymentQueueRepository;
 
         public DeploymentQueueService(
             IApplicationService applicationService,
+            IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
             IEntityRepository<DeploymentQueue> deploymentQueueRepository
             )
         {
             _applicationService = applicationService;
+            _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
             _deploymentQueueRepository = deploymentQueueRepository;
         }
@@ -45,7 +48,7 @@ namespace Shipbot.Deployments
         //     return deployment;
         // }
         
-        public async Task AddDeployment(Deployment deployment, TimeSpan? delay = null)
+        public async Task EnqueueDeployment(Deployment deployment, TimeSpan? delay = null)
         {
             if (deployment.Status != DeploymentStatus.Pending)
                 return;
@@ -60,10 +63,10 @@ namespace Shipbot.Deployments
                 AvailableDateTime = DateTime.Now.Add(delay ?? TimeSpan.FromSeconds(0)),
                 CreationDateTime = DateTime.Now
             });
-
+            
             await _deploymentQueueRepository.Save();
             
-            await _deploymentNotificationService.CreateNotification(deployment);
+            await _deploymentService.ChangeDeploymentUpdateStatus(deployment.Id, DeploymentStatus.Queued);
         }
 
         public async Task<Deployment?> GetNextPendingDeploymentUpdate(Application application)

@@ -296,13 +296,13 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             {
                 await _deploymentService.ChangeDeploymentUpdateStatus(
                     nextPendingDeployment.Id,
-                    DeploymentUpdateStatus.Starting
+                    DeploymentStatus.Starting
                     );
                 _log.LogInformation("Executing pending deployment update ...");
                 
                 await _deploymentService.ChangeDeploymentUpdateStatus(
                     nextPendingDeployment.Id,
-                    DeploymentUpdateStatus.UpdatingManifests
+                    DeploymentStatus.UpdatingManifests
                 );
                 
                 // build a deployment update object
@@ -331,7 +331,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 
                 await _deploymentService.FinishDeploymentUpdate(
                     nextPendingDeployment.Id,
-                    manifestsChanged ? DeploymentUpdateStatus.Complete : DeploymentUpdateStatus.Failed
+                    manifestsChanged ? DeploymentStatus.Complete : DeploymentStatus.Failed
                 );
             }
             

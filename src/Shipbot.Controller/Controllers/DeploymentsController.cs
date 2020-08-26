@@ -17,14 +17,17 @@ namespace Shipbot.Controller.Controllers
     [ApiController]
     public class DeploymentsController: ControllerBase
     {
+        private readonly IDeploymentWorkflowService _deploymentWorkflowService;
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
 
         public DeploymentsController(
+            IDeploymentWorkflowService deploymentWorkflowService,
             IApplicationService applicationService,
             IDeploymentService deploymentService
             )
         {
+            _deploymentWorkflowService = deploymentWorkflowService;
             _applicationService = applicationService;
             _deploymentService = deploymentService;
         }
@@ -67,7 +70,7 @@ namespace Shipbot.Controller.Controllers
         [HttpPost]
         public async Task<ActionResult> Post([FromBody] NewDeploymentDto newDeploymentDto)
         {
-            var createdDeployments = (await _deploymentService.CreateDeployment(newDeploymentDto.Repository,
+            var createdDeployments = (await _deploymentWorkflowService.StartImageDeployment(newDeploymentDto.Repository,
                 newDeploymentDto.Tag)).ToList();
 
             if (createdDeployments.Any())

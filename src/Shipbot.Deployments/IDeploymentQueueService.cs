@@ -14,7 +14,7 @@ namespace Shipbot.Deployments
         /// <returns>Returns the next deployment update in the queue, or <c>null</c> if there are no pending deployment updates.</returns>
         Task<Deployment?> GetNextPendingDeploymentUpdate(Application application);
 
-        Task AddDeployment(
+        Task EnqueueDeployment(
             Deployment deployment,
             TimeSpan? delay = null 
             );

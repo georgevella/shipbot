@@ -53,9 +53,60 @@ namespace Shipbot.SlackIntegration
             return this;
         }
 
+        public SlackMessageBuilder AddActions(Action<ActionBlockBuilder> c, string? blockId = null)
+        {
+            var builder  = new ActionBlockBuilder(blockId);
+            c(builder);
+            _blocks.Add(builder.GetBlock());
+            
+            return this;
+        }
+
         public IMessage Build()
         {
             return new SlackMessage(_message, _blocks.ToArray());
         }
     }
 }
+
+    public class ActionBlockBuilder
+    {
+        private readonly string? _blockId;
+        private readonly List<IElement> _elements = new List<IElement>();
+
+        public ActionBlockBuilder(string? blockId)
+        {
+            _blockId = blockId;
+        }
+
+        public ActionBlockBuilder AddButton(string actionId, string text, string value, string? style = null)
+        {
+            var element = new ButtonElement()
+            {
+                action_id = actionId,
+                text = new Text()
+                {
+                    text = text
+                },
+                value = value
+            };
+
+            if (style != null)
+            {
+                element.style = style;
+            }
+
+            _elements.Add(element);
+
+            return this;
+        }
+
+        internal ActionsBlock GetBlock()
+        {
+            return new ActionsBlock()
+            {
+                block_id = _blockId,
+                elements = _elements.ToArray()
+            };
+        }
+    }

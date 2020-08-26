@@ -43,7 +43,7 @@ namespace Shipbot.Controller.Controllers
         {
             var deployment = await _deploymentService.GetDeployment(entry.DeploymentId);
 
-            await _deploymentQueueService.AddDeployment(
+            await _deploymentQueueService.EnqueueDeployment(
                 deployment,
                 TimeSpan.FromSeconds(entry.Delay ?? 0)
             );

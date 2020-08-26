@@ -19,62 +19,20 @@ namespace Shipbot.Deployments
         private readonly IApplicationService _applicationService;
 
         private readonly ILogger _log;
-        private readonly IDeploymentQueueService _deploymentQueueService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly ShipbotDbContext _deploymentsDbContextConfigurator;
 
         public DeploymentService(
             ILogger<DeploymentService> log,
             IApplicationService applicationService,
-            IDeploymentQueueService deploymentQueueService,
             IDeploymentNotificationService deploymentNotificationService,
             ShipbotDbContext deploymentsDbContextConfigurator
         )
         {
             _log = log;
             _applicationService = applicationService;
-            _deploymentQueueService = deploymentQueueService;
             _deploymentNotificationService = deploymentNotificationService;
             _deploymentsDbContextConfigurator = deploymentsDbContextConfigurator;
-        }
-
-        public async Task<IEnumerable<Deployment>> CreateDeployment(
-            string containerRepository, 
-            string tag
-            )
-        {
-            var applications = _applicationService.GetApplications();
-            var allApplicationsTrackingThisRepository = applications
-                .SelectMany(
-                    x => x.Images,
-                    (app, img) =>
-                        new
-                        {
-                            Image = img,
-                            Application = app
-                        }
-                )
-                .Where(x =>
-                    x.Image.Repository.Equals(containerRepository) &&
-                    x.Image.Policy.IsMatch(tag)
-                );
-
-            var createdDeployments = new List<Deployment>();
-
-            foreach (var item in allApplicationsTrackingThisRepository)
-            {
-                try
-                {
-                    var deployment = await AddDeployment(item.Application, item.Image, tag);
-                    createdDeployments.Add(deployment);
-                }
-                catch
-                {
-                    // ignored
-                }
-            }
-
-            return createdDeployments;
         }
         
         public async Task<Deployment> AddDeployment(Application application, Image image, string newTag)
@@ -136,11 +94,7 @@ namespace Shipbot.Deployments
 
             var deployment = entity.Entity.ConvertToDeploymentModel();
             
-            if (application.AutoDeploy)
-            {
-                _log.LogDebug("Adding deployment to deployment queue.");
-                await _deploymentQueueService.AddDeployment(deployment);
-            }
+            await _deploymentNotificationService.CreateNotification(deployment);
 
             return deployment;
         }
@@ -182,9 +136,7 @@ namespace Shipbot.Deployments
 
             return Task.FromResult(result.AsEnumerable());
         }
-
-
-
+        
         public async Task<Deployment> GetDeployment(Guid deploymentId)
         {
             var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
@@ -192,7 +144,7 @@ namespace Shipbot.Deployments
             return deploymentDao.ConvertToDeploymentModel();
         }
 
-        public async Task ChangeDeploymentUpdateStatus(Guid deploymentId, DeploymentUpdateStatus status)
+        public async Task ChangeDeploymentUpdateStatus(Guid deploymentId, DeploymentStatus status)
         {
             try
             {
@@ -201,7 +153,7 @@ namespace Shipbot.Deployments
                 
                 deploymentDao.Status = (Dao.DeploymentStatus) status;
                 
-                if (status == DeploymentUpdateStatus.Complete)
+                if (status == DeploymentStatus.Complete)
                     deploymentDao.DeploymentDateTime = DateTime.Now;
 
                 await _deploymentsDbContextConfigurator.SaveChangesAsync();
@@ -216,7 +168,7 @@ namespace Shipbot.Deployments
 
         public async Task FinishDeploymentUpdate(
             Guid deploymentId,
-            DeploymentUpdateStatus finalStatus
+            DeploymentStatus finalStatus
         )
         {
             await ChangeDeploymentUpdateStatus(deploymentId, finalStatus);
