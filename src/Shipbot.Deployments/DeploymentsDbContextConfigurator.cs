@@ -1,5 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shipbot.Data;
 
 namespace Shipbot.Deployments
@@ -32,6 +33,21 @@ namespace Shipbot.Deployments
                     NewImageTag = x.TargetImageTag
                 })
                 .IsUnique();
+
+            modelBuilder.Entity<Dao.DeploymentQueue>()
+                .HasIndex(x => new
+                {
+                    x.ApplicationId,
+                    x.AvailableDateTime,
+                    x.AcknowledgeDateTime
+                });
+            
+            modelBuilder.Entity<Dao.DeploymentQueue>()
+                .HasIndex(x => new
+                {
+                    x.AvailableDateTime,
+                    x.AcknowledgeDateTime
+                });
         }
     }
 }

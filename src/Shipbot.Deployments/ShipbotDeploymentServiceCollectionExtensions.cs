@@ -10,9 +10,7 @@ namespace Shipbot.Deployments
             services.AddScoped<IDeploymentQueueService, DeploymentQueueService>();
             services.AddScoped<IDeploymentService, DeploymentService>();
             services.AddDbContextConfigurator<DeploymentsDbContextConfigurator>();
-
-
-
+            
             return services;
         }
     }

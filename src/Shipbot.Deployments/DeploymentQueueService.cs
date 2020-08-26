@@ -1,72 +1,110 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Shipbot.Applications;
-using Shipbot.Deployments.Models;
+using Shipbot.Data;
+using Shipbot.Deployments.Dao;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
+using Deployment = Shipbot.Deployments.Models.Deployment;
+using DeploymentStatus = Shipbot.Deployments.Models.DeploymentStatus;
 
 namespace Shipbot.Deployments
 {
     public class DeploymentQueueService : IDeploymentQueueService
     {
-        private static readonly ConcurrentDictionary<Application, ConcurrentQueue<DeploymentUpdate>> PendingDeploymentUpdates = new ConcurrentDictionary<Application, ConcurrentQueue<DeploymentUpdate>>();
-
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
+        private readonly IEntityRepository<DeploymentQueue> _deploymentQueueRepository;
 
         public DeploymentQueueService(
             IApplicationService applicationService,
-            IDeploymentNotificationService deploymentNotificationService
+            IDeploymentNotificationService deploymentNotificationService,
+            IEntityRepository<DeploymentQueue> deploymentQueueRepository
             )
         {
             _applicationService = applicationService;
             _deploymentNotificationService = deploymentNotificationService;
+            _deploymentQueueRepository = deploymentQueueRepository;
         }
-        
-        public async Task AddDeployment(Deployment deployment)
+
+        private DeploymentUpdate ConvertFromDao(DeploymentQueue dao)
         {
-            var application = _applicationService.GetApplication(deployment.ApplicationId);
+            var application = _applicationService.GetApplication(dao.ApplicationId);
             var imageMap = application.Images.ToDictionary(
                 x => $"{x.Repository}-{x.TagProperty.Path}"
             );
                 
-            var image = imageMap[$"{deployment.ImageRepository}-{deployment.UpdatePath}"];
+            var image = imageMap[$"{dao.Deployment.ImageRepository}-{dao.Deployment.UpdatePath}"];
                 
             var deploymentUpdate = new DeploymentUpdate(
-                deployment.Id,
+                dao.DeploymentId,
                 application, 
                 image, 
-                deployment.CurrentTag, 
-                deployment.TargetTag
+                dao.Deployment.CurrentImageTag, 
+                dao.Deployment.TargetImageTag
             );
-                
-            var queue = PendingDeploymentUpdates.GetOrAdd(
-                application,
-                key => new ConcurrentQueue<DeploymentUpdate>()
-            );
-                
-            queue.Enqueue(deploymentUpdate);
-                
-            await _deploymentNotificationService.CreateNotification(deploymentUpdate);
+
+            return deploymentUpdate;
+        }
+        
+        public async Task AddDeployment(Deployment deployment)
+        {
+            if (deployment.Status != DeploymentStatus.Pending)
+                return;
+            
+            // add entry in store
+            var dao = await _deploymentQueueRepository.Add(new DeploymentQueue()
+            {
+                DeploymentId = deployment.Id,
+                Id = Guid.NewGuid(),
+                ApplicationId = deployment.ApplicationId,
+                AttemptCount = 0,
+                AvailableDateTime = DateTime.Now.AddMinutes(10),
+                CreationDateTime = DateTime.Now
+            });
+
+            await _deploymentQueueRepository.Save();
+            
+            await _deploymentNotificationService.CreateNotification(ConvertFromDao(dao));
         }
 
-        public Task<DeploymentUpdate?> GetNextPendingDeploymentUpdate(Application application)
+        public async Task<DeploymentUpdate?> GetNextPendingDeploymentUpdate(Application application)
         {
             // are there any pending deployments
-            if (!PendingDeploymentUpdates.TryGetValue(application, out var queue))
-                return Task.FromResult<DeploymentUpdate?>(null);
-            
-            return queue.TryDequeue(out var deploymentUpdate) 
-                ? Task.FromResult<DeploymentUpdate?>(deploymentUpdate) 
-                : Task.FromResult<DeploymentUpdate?>(null);
+            var queue = _deploymentQueueRepository.Query()
+                .Where(
+                    x => x.ApplicationId == application.Name
+                         && x.AcknowledgeDateTime == null
+                         && x.AvailableDateTime <= DateTime.Now
+                         )
+                .OrderBy(x => x.AvailableDateTime)
+                .ToList();
+
+            if (!queue.Any())
+                return null;
+
+            var first = queue.First();
+            first.AcknowledgeDateTime = DateTime.Now;
+            first = _deploymentQueueRepository.Update(first);
+
+            await _deploymentQueueRepository.Save();
+
+            return ConvertFromDao(first);
         }
 
         public Task<IEnumerable<DeploymentUpdate>> GetPendingDeployments()
         {
-            var allQueues = PendingDeploymentUpdates.Values.ToList();
-            var allPendingDeployments = allQueues.SelectMany(x => x.ToArray()).ToList();
+            var queue = _deploymentQueueRepository.Query()
+                .Where(
+                    x => x.AcknowledgeDateTime == null
+                )
+                .OrderBy(x => x.AvailableDateTime)
+                .ToList();
+
+            var allPendingDeployments = queue.Select(ConvertFromDao).ToList();
             return Task.FromResult(allPendingDeployments.AsEnumerable());
         }
     }

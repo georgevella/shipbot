@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shipbot.Data;
@@ -9,9 +10,10 @@ using Shipbot.Data;
 namespace Shipbot.DbMigrations.Migrations
 {
     [DbContext(typeof(ShipbotDbContext))]
-    partial class ShipbotDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200826065742_DeploymentQueue")]
+    partial class DeploymentQueue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,8 +74,8 @@ namespace Shipbot.DbMigrations.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset?>("AcknowledgeDateTime")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateTime?>("AcknowledgeDateTime")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ApplicationId")
                         .IsRequired()
@@ -82,11 +84,11 @@ namespace Shipbot.DbMigrations.Migrations
                     b.Property<int>("AttemptCount")
                         .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("AvailableDateTime")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateTime>("AvailableDateTime")
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<DateTimeOffset>("CreationDateTime")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<DateTime>("CreationDateTime")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("DeploymentId")
                         .HasColumnType("uuid");
@@ -94,8 +96,6 @@ namespace Shipbot.DbMigrations.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DeploymentId");
-
-                    b.HasIndex("AvailableDateTime", "AcknowledgeDateTime");
 
                     b.HasIndex("ApplicationId", "AvailableDateTime", "AcknowledgeDateTime");
 
