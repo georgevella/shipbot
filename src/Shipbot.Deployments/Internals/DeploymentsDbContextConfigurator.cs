@@ -1,11 +1,10 @@
 using System;
 using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shipbot.Data;
 
-namespace Shipbot.Deployments
+namespace Shipbot.Deployments.Internals
 {
-    public class DeploymentsDbContextConfigurator : IDbContextConfigurator
+    internal class DeploymentsDbContextConfigurator : IDbContextConfigurator
     {
         // public DbSet<Dao.Deployment> Deployments { get; set; } = null!;
         //
@@ -33,6 +32,9 @@ namespace Shipbot.Deployments
                     NewImageTag = x.TargetImageTag
                 })
                 .IsUnique();
+            
+            modelBuilder.Entity<Dao.DeploymentNotification>()
+                .HasIndex( x=>x.DeploymentId );
 
             modelBuilder.Entity<Dao.DeploymentQueue>()
                 .HasIndex(x => new

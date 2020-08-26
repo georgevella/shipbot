@@ -14,9 +14,9 @@ namespace Shipbot.SlackIntegration.Dao
         
         public string ChannelId { get; set; }
         
-        public DateTime CreationDateTime { get; set; }
+        public DateTimeOffset CreationDateTime { get; set; }
         
-        public DateTime UpdatedDateTime { get; set; }
+        public DateTimeOffset UpdatedDateTime { get; set; }
         
     }
 }

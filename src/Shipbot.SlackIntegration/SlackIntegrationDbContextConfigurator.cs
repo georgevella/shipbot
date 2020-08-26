@@ -9,8 +9,6 @@ namespace Shipbot.SlackIntegration
         {
             modelBuilder.Entity<Dao.SlackMessage>()
                 .HasIndex(x => new {x.Timestamp, x.ChannelId});
-
-            modelBuilder.Entity<Dao.DeploymentNotification>();
         }
     }
 }

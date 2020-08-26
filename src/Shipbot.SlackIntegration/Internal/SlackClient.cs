@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Shipbot.Controller.Core.Configuration;
+using Shipbot.Data;
 using SlackAPI;
 
 namespace Shipbot.SlackIntegration.Internal
@@ -14,19 +15,23 @@ namespace Shipbot.SlackIntegration.Internal
     {
         private readonly ILogger<SlackClient> _log;
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
+        private readonly IEntityRepository<Dao.SlackMessage> _slackMessageRepository;
         private readonly SlackTaskClient _actualClient;
         private readonly int _timeout;
 
         public SlackClient(
             ILogger<SlackClient> log,
             IOptions<SlackConfiguration> slackConfiguration,
+            IEntityRepository<Dao.SlackMessage> slackMessageRepository,
             SlackClientWrapper actualClient
         )
         {
             _log = log;
             _slackConfiguration = slackConfiguration;
+            _slackMessageRepository = slackMessageRepository;
             _actualClient = actualClient;
             _timeout = slackConfiguration.Value.Timeout;
+            
         }
         
 //        private Task<IEnumerable<Channel>> GetPublicChannels()
@@ -107,7 +112,18 @@ namespace Shipbot.SlackIntegration.Internal
             _log.LogInformation(
                 $"RESPONSE >> Received message deliver for [{messageResponse.ts}/${messageResponse.channel}]");
 
-            return new SlackMessageHandle(messageResponse);
+            var dao = await _slackMessageRepository.Add(new Dao.SlackMessage()
+            {
+                Id = Guid.NewGuid(),
+                ChannelId = messageResponse.channel,
+                Timestamp = messageResponse.ts,
+                CreationDateTime = DateTime.Now,
+                UpdatedDateTime = DateTime.Now
+            });
+
+            await _slackMessageRepository.Save();
+
+            return new MessageHandle(dao.Id);
         }
 
         private Task<UpdateResponse> UpdateWithBlocksAsync(
@@ -154,23 +170,24 @@ namespace Shipbot.SlackIntegration.Internal
         public async Task<IMessageHandle> UpdateMessageAsync(IMessageHandle handle, IMessage message)
         {
             var actualMessage = (SlackMessage) message;
-            var actualHandle = (SlackMessageHandle) handle;
-            
-            var tsc = new TaskCompletionSource<SlackMessageHandle>();
-            
-            var ct = new CancellationTokenSource(_timeout);
-            ct.Token.Register(() => tsc.TrySetCanceled(), useSynchronizationContext: false);
-            
-            _log.LogInformation($"Sending message update for [{actualHandle.Timestamp}/${actualHandle.ChannelId}]");
+            var dao = await _slackMessageRepository.Find(handle.Id);
+
+            _log.LogInformation($"Sending message update for [{dao.Timestamp}/${dao.ChannelId}]");
             var response = await UpdateWithBlocksAsync(
-                actualHandle.Timestamp,
-                actualHandle.ChannelId,
+                dao.Timestamp,
+                dao.ChannelId,
                 actualMessage.Message,
                 blocks: actualMessage.Blocks 
                 );
 
             _log.LogInformation($"RESPONSE >> Sending message update for [{response.ts}/${response.channel}]");
-            return new SlackMessageHandle(response);
+            dao.ChannelId = response.channel;
+            dao.Timestamp = response.ts;
+            dao.UpdatedDateTime = DateTimeOffset.Now;
+
+            await _slackMessageRepository.Save();
+            
+            return handle;
         }
 
         public async Task<IMessageHandle> SendMessage(string channel, string message)
@@ -180,36 +197,6 @@ namespace Shipbot.SlackIntegration.Internal
             
             return await PostMessageAsync(channel, new SlackMessage(message));
         }
-
-        // public async Task<IMessageHandle> SendDeploymentUpdateNotification(
-        //     string channel, 
-        //     DeploymentUpdate deploymentUpdate,
-        //     DeploymentUpdateStatus status
-        //     )
-        // {
-        //     if (channel == null) throw new ArgumentNullException(nameof(channel));
-        //     if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
-        //
-        //     return await PostMessageAsync(
-        //         channel,
-        //         BuildDeploymentUpdateMessage(deploymentUpdate, status)
-        //     );
-        // }
-        //
-        // public async Task<IMessageHandle> UpdateDeploymentUpdateNotification(
-        //     IMessageHandle handle, 
-        //     DeploymentUpdate deploymentUpdate,
-        //     DeploymentUpdateStatus status
-        // )
-        // {
-        //     if (handle == null) throw new ArgumentNullException(nameof(handle));
-        //     if (deploymentUpdate == null) throw new ArgumentNullException(nameof(deploymentUpdate));
-        //
-        //     return await UpdateMessageAsync(
-        //         handle as SingleMessageHandle, 
-        //         BuildDeploymentUpdateMessage(deploymentUpdate, status)
-        //     );
-        // }
 
         public void Dispose()
         {
