@@ -50,11 +50,11 @@ namespace Shipbot.Deployments
             return deploymentUpdate;
         }
         
-        public async Task AddDeployment(Deployment deployment)
+        public async Task AddDeployment(Deployment deployment, TimeSpan? delay = null)
         {
             if (deployment.Status != DeploymentStatus.Pending)
                 return;
-            
+
             // add entry in store
             var dao = await _deploymentQueueRepository.Add(new DeploymentQueue()
             {
@@ -62,7 +62,7 @@ namespace Shipbot.Deployments
                 Id = Guid.NewGuid(),
                 ApplicationId = deployment.ApplicationId,
                 AttemptCount = 0,
-                AvailableDateTime = DateTime.Now.AddMinutes(10),
+                AvailableDateTime = DateTime.Now.Add(delay ?? TimeSpan.FromSeconds(0)),
                 CreationDateTime = DateTime.Now
             });
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -42,7 +43,10 @@ namespace Shipbot.Controller.Controllers
         {
             var deployment = await _deploymentService.GetDeployment(entry.DeploymentId);
 
-            await _deploymentQueueService.AddDeployment(deployment);
+            await _deploymentQueueService.AddDeployment(
+                deployment,
+                TimeSpan.FromSeconds(entry.Delay ?? 0)
+            );
 
             return StatusCode(StatusCodes.Status201Created);
         }
