@@ -6,7 +6,9 @@ namespace Shipbot.Deployments
     {
         public static IServiceCollection RegisterShipbotDeploymentComponents(this IServiceCollection services)
         {
-            // deployment
+            services.AddScoped<IDeploymentNotificationBuilder, DeploymentNotificationBuilder>();
+            services.AddScoped<IDeploymentNotificationService, DeploymentNotificationService>();
+            
             services.AddScoped<IDeploymentQueueService, DeploymentQueueService>();
             services.AddScoped<IDeploymentService, DeploymentService>();
             services.AddDbContextConfigurator<DeploymentsDbContextConfigurator>();

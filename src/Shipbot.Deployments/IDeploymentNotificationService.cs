@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Shipbot.Models;
 
-namespace Shipbot.SlackIntegration
+namespace Shipbot.Deployments
 {
     public interface IDeploymentNotificationService
     {

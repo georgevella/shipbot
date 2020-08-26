@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shipbot.Models;
-using Shipbot.SlackIntegration.Internal;
+using Shipbot.SlackIntegration;
 
-namespace Shipbot.SlackIntegration
+namespace Shipbot.Deployments
 {
     public class DeploymentNotificationService : IDeploymentNotificationService
     {

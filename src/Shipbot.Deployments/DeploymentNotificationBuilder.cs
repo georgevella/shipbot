@@ -1,6 +1,7 @@
 using Shipbot.Models;
+using Shipbot.SlackIntegration;
 
-namespace Shipbot.SlackIntegration
+namespace Shipbot.Deployments
 {
     public class DeploymentNotificationBuilder : IDeploymentNotificationBuilder
     {

@@ -12,10 +12,8 @@ namespace Shipbot.SlackIntegration
 
             services.AddSingleton<SlackClientWrapper>();
             
-            services.AddScoped<IDeploymentNotificationBuilder, DeploymentNotificationBuilder>();
             services.AddScoped<ISlackClient, SlackClient>();
-            services.AddScoped<IDeploymentNotificationService, DeploymentNotificationService>();
-            
+
             services.AddDbContextConfigurator<SlackIntegrationDbContextConfigurator>();
 
 
