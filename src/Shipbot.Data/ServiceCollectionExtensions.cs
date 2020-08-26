@@ -25,6 +25,11 @@ namespace Microsoft.Extensions.DependencyInjection
 
         public static IServiceCollection RegisterDbContext(this IServiceCollection serviceCollection)
         {
+            serviceCollection.AddScoped<IUnitOfWork, UnitOfWork>();
+            serviceCollection.Add(
+                new ServiceDescriptor(typeof(IEntityRepository<>), typeof(EntityRepository<>), ServiceLifetime.Scoped)
+                );
+            
             return serviceCollection.AddDbContext<ShipbotDbContext>(
                 builder => builder
                     // .UseLoggerFactory(MyLoggerFactory)

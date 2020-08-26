@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
@@ -21,27 +20,6 @@ namespace Shipbot.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             _configurators.ToList().ForEach( x=>x.OnModelCreating(modelBuilder));
-            
-            // modelBuilder.Entity<Deployment>()
-            //     .Property(e => e.Status)
-            //     .HasConversion(
-            //         v => v.ToString(),
-            //         v => (DeploymentStatus) Enum.Parse(typeof(DeploymentStatus), v)
-            //     );
-            //
-            // modelBuilder.Entity<Deployment>()
-            //     .HasIndex(x => new
-            //     {
-            //         x.ApplicationId,
-            //         x.ImageRepository,
-            //         x.UpdatePath,
-            //         x.CurrentImageTag,
-            //         NewImageTag = x.TargetImageTag
-            //     })
-            //     .IsUnique();
-            //
-            // modelBuilder.Entity<SlackMessage>()
-            //     .HasIndex(x => new {x.Timestamp, x.ChannelId});
         }
     }
 }
