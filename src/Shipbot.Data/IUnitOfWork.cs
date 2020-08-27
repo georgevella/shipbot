@@ -7,7 +7,7 @@ namespace Shipbot.Data
         
     }
 
-    class UnitOfWork : IUnitOfWork
+    public class UnitOfWork : IUnitOfWork
     {
         private readonly ShipbotDbContext _dbContext;
 

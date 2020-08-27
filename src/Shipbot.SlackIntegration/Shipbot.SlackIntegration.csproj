@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.7" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.1.4" />
+    <PackageReference Include="Slack.NetStandard" Version="2.1.0" />
     <PackageReference Include="SlackAPI" Version="1.1.7" />
   </ItemGroup>
 

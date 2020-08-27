@@ -26,19 +26,9 @@ namespace Shipbot.SlackIntegration
             _slackClientWrapper = slackClientWrapper;
         }
         
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            // var _timeout = _slackConfiguration.Value.Timeout;
-            var loginResponse = await _slackClientWrapper.ConnectAsync();
-
-            if (loginResponse.ok)
-            {
-                _log.LogInformation("Connection to slack established.");
-            }
-            else
-            {
-                throw new InvalidOperationException(loginResponse.error);
-            }
+            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

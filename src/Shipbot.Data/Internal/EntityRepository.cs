@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Shipbot.Data
 {
-    internal class EntityRepository<T> : IEntityRepository<T>
+    public class EntityRepository<T> : IEntityRepository<T>
         where T : class
     {
         private readonly ShipbotDbContext _dbContext;

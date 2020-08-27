@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Shipbot.SlackIntegration.Events;
+using Shipbot.SlackIntegration.Events.EventHandlers;
 using Shipbot.SlackIntegration.Internal;
 
 namespace Shipbot.SlackIntegration
@@ -13,6 +15,9 @@ namespace Shipbot.SlackIntegration
             services.AddSingleton<SlackClientWrapper>();
             
             services.AddScoped<ISlackClient, SlackClient>();
+
+            services.AddTransient<ISlackEventHandler, AppMentionHandler>();
+            services.AddScoped<ISlackEventDispatcher, SlackEventDispatcher>();
 
             services.AddDbContextConfigurator<SlackIntegrationDbContextConfigurator>();
 

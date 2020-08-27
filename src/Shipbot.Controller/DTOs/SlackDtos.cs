@@ -3,11 +3,38 @@ using Newtonsoft.Json;
 
 namespace Shipbot.Controller.DTOs
 {
-    public partial class ActionPayload
+    public enum SlackIncomingRequestType
+    {
+        /// <summary>
+        ///     Sent by Slack to determine the validity of an endpoint.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        url_verification,
+        
+        /// <summary>
+        ///     Sent when a user on slack clicks an interactive element within a message.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        block_actions
+    }
+    
+    public class BaseSlackIncomingRequestPayload
     {
         [JsonProperty("type")]
         public string Type { get; set; }
+    }
 
+    public class UrlVerificationPayload : BaseSlackIncomingRequestPayload
+    {
+        [JsonProperty("token")]
+        public string Token { get; set; }
+        
+        [JsonProperty("challenge")]
+        public string Challenge { get; set; }
+    }
+    
+    public partial class BlockActionsPayload : BaseSlackIncomingRequestPayload
+    {
         [JsonProperty("team")]
         public Team Team { get; set; }
 

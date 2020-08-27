@@ -10,7 +10,7 @@ namespace Shipbot.Data
             object entity,
             ref TRelated navigationField,
             [CallerMemberName] string navigationName = null)
-            where TRelated : class
+            where TRelated : class?
         {
             loader?.Invoke(entity, navigationName);
 

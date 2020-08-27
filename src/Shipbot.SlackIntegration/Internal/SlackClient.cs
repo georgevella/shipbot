@@ -177,7 +177,7 @@ namespace Shipbot.SlackIntegration.Internal
                 dao.Timestamp,
                 dao.ChannelId,
                 actualMessage.Message,
-                blocks: actualMessage.Blocks 
+                blocks: actualMessage.Blocks , as_user: true
                 );
 
             _log.LogInformation($"RESPONSE >> Sending message update for [{response.ts}/${response.channel}]");

@@ -9,11 +9,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json.Converters;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Shipbot.Applications;
 using Shipbot.Contracts;
+using Shipbot.Controller.Controllers;
 using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.ApplicationSources.Jobs;
@@ -23,6 +25,7 @@ using Shipbot.Controller.Core.Registry.Watcher;
 using Shipbot.Deployments;
 using Shipbot.JobScheduling;
 using Shipbot.SlackIntegration;
+using Slack.NetStandard.JsonConverters;
 
 namespace Shipbot.Controller
 {
@@ -39,11 +42,21 @@ namespace Shipbot.Controller
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers()
-                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
-                .AddJsonOptions(options =>
-                {
-                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                });
+                .AddNewtonsoftJson(
+                    options =>
+                    {
+                        options.SerializerSettings.Converters.Add(new StringEnumConverter());
+                        options.SerializerSettings.Converters.Add(new EventConverter());
+                        options.SerializerSettings.Converters.Add(new CallbackEventConverter());
+                        //options.SerializerSettings.Converters.Add(new NewtonsoftJsonSlackIncomingPayloadConverter());
+                    }
+                )
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+                // .AddJsonOptions(options =>
+                // {
+                //     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                //     options.JsonSerializerOptions.Converters.Add(new SlackIncomingPayloadConverterFactory());
+                // });
 
             services.AddHealthChecks();
 
