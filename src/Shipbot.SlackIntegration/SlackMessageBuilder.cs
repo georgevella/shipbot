@@ -64,7 +64,16 @@ namespace Shipbot.SlackIntegration
 
         public IMessage Build()
         {
-            return new SlackMessage(_message, _blocks.ToArray());
+            if (!_blocks.Any()) 
+                return new SlackMessage(_message);
+
+            var finalBlockList = new List<IBlock>
+            {
+                new SectionBlock() {text = new Text() {text = _message, type = "mrkdwn"}}
+            };
+            finalBlockList.AddRange(_blocks);
+            return new SlackMessage(_message, finalBlockList.ToArray());
+
         }
     }
 }

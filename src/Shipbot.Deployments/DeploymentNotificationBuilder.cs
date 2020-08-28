@@ -9,9 +9,7 @@ namespace Shipbot.Deployments
         public IMessage BuildNotification(Deployment deployment)
         {
             var builder = new SlackMessageBuilder($"A new image of *{deployment.ImageRepository}* was detected (tag *{deployment.TargetTag}*).");
-            var messageConfiguration = builder.AddSection(
-                $"A new image of *{deployment.ImageRepository}* was detected (tag *{deployment.TargetTag}*)."
-                )
+            var messageConfiguration = builder
                 .AddDivider()
                 .AddSection(fields: new []
                 {
