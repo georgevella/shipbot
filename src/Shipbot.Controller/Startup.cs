@@ -14,6 +14,7 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Shipbot.Applications;
+using Shipbot.Applications.Slack;
 using Shipbot.Contracts;
 using Shipbot.Controller.Controllers;
 using Shipbot.Controller.Core;
@@ -25,6 +26,7 @@ using Shipbot.Controller.Core.Registry.Watcher;
 using Shipbot.Deployments;
 using Shipbot.JobScheduling;
 using Shipbot.SlackIntegration;
+using Shipbot.SlackIntegration.Commands;
 using Slack.NetStandard.JsonConverters;
 
 namespace Shipbot.Controller
@@ -71,6 +73,7 @@ namespace Shipbot.Controller
             // applications
             services.AddSingleton<IApplicationStore, InMemoryApplicationStore>();
             services.AddScoped<IApplicationService, ApplicationService>();
+            services.AddTransient<ISlackCommandHandler, GetCurrentApplicationTags>();
 
             // quartz
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
