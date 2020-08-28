@@ -108,9 +108,17 @@ namespace Shipbot.SlackIntegration.Internal
                 actualMessage.Message,
                 blocks: actualMessage.Blocks
             );
-                
-            _log.LogInformation(
-                $"RESPONSE >> Received message deliver for [{messageResponse.ts}/${messageResponse.channel}]");
+
+
+            if (!messageResponse.ok || string.IsNullOrEmpty(messageResponse.error))
+            {
+                _log.LogError("Failed to send message via Slack [{error}]", messageResponse.error);
+                throw new InvalidOperationException($"Failed to send message via Slack [{messageResponse.error}]");
+            }
+            
+            _log.LogTrace(
+                $"Sent message via slack [{messageResponse.ts}/${messageResponse.channel}]"
+                );
 
             var dao = await _slackMessageRepository.Add(new Dao.SlackMessage()
             {
@@ -179,8 +187,16 @@ namespace Shipbot.SlackIntegration.Internal
                 actualMessage.Message,
                 blocks: actualMessage.Blocks , as_user: true
                 );
+            
+            if (!response.ok || !string.IsNullOrEmpty(response.error))
+            {
+                _log.LogError("Failed to send message update via Slack [{error}]", response.error);
+                throw new InvalidOperationException($"Failed to send message via Slack [{response.error}]");
+            }
 
-            _log.LogInformation($"RESPONSE >> Sending message update for [{response.ts}/${response.channel}]");
+            _log.LogTrace(
+                $"Updated message via slack [{response.ts}/${response.channel}]"
+            );
             dao.ChannelId = response.channel;
             dao.Timestamp = response.ts;
             dao.UpdatedDateTime = DateTimeOffset.Now;

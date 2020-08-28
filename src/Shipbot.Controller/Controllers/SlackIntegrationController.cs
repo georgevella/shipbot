@@ -27,15 +27,19 @@ namespace Shipbot.Controller.Controllers
         private readonly ISlackEventDispatcher _slackEventDispatcher;
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentQueueService _deploymentQueueService;
+        private readonly IDeploymentNotificationService _deploymentNotificationService;
 
         public SlackIntegrationController(
             ISlackEventDispatcher slackEventDispatcher,
             IDeploymentService deploymentService,
-            IDeploymentQueueService deploymentQueueService)
+            IDeploymentQueueService deploymentQueueService,
+            IDeploymentNotificationService deploymentNotificationService
+            )
         {
             _slackEventDispatcher = slackEventDispatcher;
             _deploymentService = deploymentService;
             _deploymentQueueService = deploymentQueueService;
+            _deploymentNotificationService = deploymentNotificationService;
         }
 
         [HttpPost("events")]
@@ -76,6 +80,15 @@ namespace Shipbot.Controller.Controllers
                 }
             }
             
+            return Ok();
+        }
+
+        [HttpPost("deployment-notification")]
+        public async Task<ActionResult> ResendDeploymentNotification([FromForm(Name = "deploymentId")] Guid deploymentId)
+        {
+            var deployment = await _deploymentService.GetDeployment(deploymentId);
+            await _deploymentNotificationService.CreateNotification(deployment);
+
             return Ok();
         }
     }
