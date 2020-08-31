@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
-using Shipbot.Controller.Core.Registry.Services;
+using Shipbot.ContainerRegistry.Services;
 using Shipbot.Deployments;
 
 namespace Shipbot.Controller.Controllers

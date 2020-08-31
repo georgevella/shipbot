@@ -1,4 +1,4 @@
-namespace Shipbot.Controller.Core.Registry.Watcher
+namespace Shipbot.ContainerRegistry.Watcher
 {
     public class ContainerRegistryPollingData
     {

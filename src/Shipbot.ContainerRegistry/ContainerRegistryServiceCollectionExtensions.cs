@@ -1,13 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Shipbot.ContainerRegistry.Internals;
+using Shipbot.ContainerRegistry.Services;
+using Shipbot.ContainerRegistry.Watcher;
 using Shipbot.Contracts;
-using Shipbot.Controller.Core.Registry.Internals;
-using Shipbot.Controller.Core.Registry.Services;
-using Shipbot.Controller.Core.Registry.Watcher;
-using Shipbot.Deployments;
-using Shipbot.Deployments.Internals;
 
-namespace Shipbot.Controller.Core.Registry
+namespace Shipbot.ContainerRegistry
 {
     public static class ContainerRegistryServiceCollectionExtensions
     {

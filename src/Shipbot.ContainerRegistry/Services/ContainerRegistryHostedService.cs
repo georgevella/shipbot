@@ -7,12 +7,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shipbot.Applications;
+using Shipbot.ContainerRegistry.Ecr;
 using Shipbot.Contracts;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Registry;
-using Shipbot.Controller.Core.Registry.Ecr;
 
-namespace Shipbot.Controller.Core.Registry.Services
+namespace Shipbot.ContainerRegistry.Services
 {
     internal class ContainerRegistryHostedService: IHostedService
     {

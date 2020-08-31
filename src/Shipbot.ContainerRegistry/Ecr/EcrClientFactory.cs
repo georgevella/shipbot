@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shipbot.Controller.Core.Configuration.Registry;
 
-namespace Shipbot.Controller.Core.Registry.Ecr
+namespace Shipbot.ContainerRegistry.Ecr
 {
     public class EcrClientFactory
     {

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -8,7 +7,7 @@ using Shipbot.Contracts;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Registry.Watcher
+namespace Shipbot.ContainerRegistry.Watcher
 {
     public class RegistryWatcher : IRegistryWatcher
     {

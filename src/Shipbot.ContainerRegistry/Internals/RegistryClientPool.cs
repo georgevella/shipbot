@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Shipbot.Controller.Core.Registry.Internals
+namespace Shipbot.ContainerRegistry.Internals
 {
     internal class RegistryClientPool : IRegistryClientPool
     {

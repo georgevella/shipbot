@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Shipbot.Controller.Core.Registry
+namespace Shipbot.ContainerRegistry
 {
     public interface IRegistryClient
     {

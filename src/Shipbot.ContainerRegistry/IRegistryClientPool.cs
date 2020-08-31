@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Shipbot.Controller.Core.Registry
+namespace Shipbot.ContainerRegistry
 {
     public interface IRegistryClientPool
     {

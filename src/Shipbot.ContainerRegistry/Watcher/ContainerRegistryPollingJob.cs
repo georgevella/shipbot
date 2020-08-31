@@ -1,16 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.Applications;
-using Shipbot.Controller.Core.Registry.Internals;
-using Shipbot.Controller.Core.Registry.Services;
+using Shipbot.ContainerRegistry.Services;
 using Shipbot.Deployments;
 using Shipbot.JobScheduling;
 
-namespace Shipbot.Controller.Core.Registry.Watcher
+namespace Shipbot.ContainerRegistry.Watcher
 {
     [DisallowConcurrentExecution]
     internal class ContainerRegistryPollingJob : BaseJobWithData<ContainerRegistryPollingData>

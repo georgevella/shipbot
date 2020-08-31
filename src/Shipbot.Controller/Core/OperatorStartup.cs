@@ -15,10 +15,7 @@ using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Registry;
-using Shipbot.Controller.Core.Registry;
-using Shipbot.Controller.Core.Registry.Ecr;
-using Shipbot.Controller.Core.Registry.Internals;
-using Shipbot.Controller.Core.Registry.Watcher;
+
 //using ArgoAutoDeploy.Core.K8s;
 //using k8s;
 // using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;

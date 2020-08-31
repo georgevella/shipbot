@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Registry.Services
+namespace Shipbot.ContainerRegistry.Services
 {
     public class NewImageTagDetector : INewImageTagDetector
     {

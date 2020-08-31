@@ -7,7 +7,7 @@ using Amazon.ECR;
 using Amazon.ECR.Model;
 using Microsoft.Extensions.Logging;
 
-namespace Shipbot.Controller.Core.Registry.Ecr
+namespace Shipbot.ContainerRegistry.Ecr
 {
     public class EcrRegistryClient : IRegistryClient
     {
