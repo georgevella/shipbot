@@ -12,20 +12,20 @@ using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Registry;
 using Shipbot.Controller.Core.Registry.Ecr;
 
-namespace Shipbot.Controller.Core.Registry
+namespace Shipbot.Controller.Core.Registry.Services
 {
-    public class ContainerRegistryHostedService: IHostedService
+    internal class ContainerRegistryHostedService: IHostedService
     {
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<ContainerRegistryHostedService> _log;
-        private readonly RegistryClientPool _registryClientPool;
+        private readonly IRegistryClientPool _registryClientPool;
 
         public ContainerRegistryHostedService(
             IOptions<ShipbotConfiguration> configuration,
             IServiceProvider serviceProvider,
             ILogger<ContainerRegistryHostedService> log,
-            RegistryClientPool registryClientPool
+            IRegistryClientPool registryClientPool
             )
         { 
             _configuration = configuration;

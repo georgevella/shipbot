@@ -7,7 +7,6 @@ using Quartz;
 using Shipbot.Contracts;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
-using Image = Shipbot.Models.Image;
 
 namespace Shipbot.Controller.Core.Registry.Watcher
 {
@@ -69,9 +68,9 @@ namespace Shipbot.Controller.Core.Registry.Watcher
             }
 
             private readonly Application _application;
-            private readonly Image _image;
+            private readonly ApplicationImage _image;
 
-            public RegistryWatcherKey(Application application, Image image)
+            public RegistryWatcherKey(Application application, ApplicationImage image)
             {
                 _application = application;
                 _image = image;

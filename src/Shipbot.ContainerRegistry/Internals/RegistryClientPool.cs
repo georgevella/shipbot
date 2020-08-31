@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Shipbot.Controller.Core.Registry
+namespace Shipbot.Controller.Core.Registry.Internals
 {
-    public class RegistryClientPool
+    internal class RegistryClientPool : IRegistryClientPool
     {
         private readonly List<IRegistryClient> _registryClients = new List<IRegistryClient>();
 

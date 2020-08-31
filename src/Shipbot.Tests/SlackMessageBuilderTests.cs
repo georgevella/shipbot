@@ -1,11 +1,14 @@
 using System;
 using System.Threading.Tasks;
+using DotNet.Globbing;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Data;
+using Shipbot.Models;
 using Shipbot.SlackIntegration;
 using Shipbot.SlackIntegration.Dao;
 using Shipbot.SlackIntegration.Internal;
@@ -57,6 +60,14 @@ namespace Shipbot.Tests
             await client.UpdateMessageAsync(handle, new SlackMessageBuilder("goodbye!").Build());
             
             // verify
+        }
+
+        [Fact]
+        public async Task Y()
+        {
+            var x = new GlobImageUpdatePolicy("develop-*");
+            x.IsGreaterThen("develop-1024", "develop-999").Should().Be(true);
+            x.IsGreaterThen("develop-999", "develop-1024").Should().Be(false);
         }
     }
     

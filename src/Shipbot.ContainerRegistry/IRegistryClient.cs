@@ -7,6 +7,6 @@ namespace Shipbot.Controller.Core.Registry
     public interface IRegistryClient
     {
         Task<bool> IsKnownRepository(string repository);
-        Task<List<(string tag, DateTime createdAt)>> GetRepositoryTags(string repository);
+        Task<IEnumerable<(string tag, DateTime createdAt)>> GetRepositoryTags(string repository);
     }
 }

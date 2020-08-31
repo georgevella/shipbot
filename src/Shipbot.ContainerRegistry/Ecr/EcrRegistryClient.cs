@@ -33,7 +33,7 @@ namespace Shipbot.Controller.Core.Registry.Ecr
             );
         }
 
-        public async Task<List<(string tag, DateTime createdAt)>> GetRepositoryTags(string repository)
+        public async Task<IEnumerable<(string tag, DateTime createdAt)>> GetRepositoryTags(string repository)
         {
             using (_log.BeginScope(new Dictionary<string, object>()
             {
@@ -75,7 +75,7 @@ namespace Shipbot.Controller.Core.Registry.Ecr
                 
                 _log.LogInformation("Found {ImageCount} images for {Repository}", imageList.Count, repository);
 
-                return imageList;
+                return imageList.AsEnumerable();
             }
         }
     }

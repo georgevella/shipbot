@@ -81,18 +81,13 @@ namespace Shipbot.Controller
             services.AddSingleton<IJobFactory, DependencyInjectionQuartzJobFactory>();
 
             // container registry
-            services.AddSingleton<RegistryClientPool>();
-            services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
-            services.AddTransient<ContainerRegistryPollingJob>();
-
-
+            services.RegisterShipbotContainerRegistryComponents();
             services.RegisterShipbotDeploymentComponents();
             services.RegisterShipbotSlackIntegrationComponents();
             services.RegisterDbContext();
 
             services.AddTransient<IHostedService, OperatorStartup>();
             services.AddTransient<IHostedService, ShipbotApplicationsHostedService>();
-            services.AddTransient<IHostedService, ContainerRegistryHostedService>();
             services.AddTransient<IHostedService, DeploymentSourcesHostedService>();
 
             services.RegisterMediator(

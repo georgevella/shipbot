@@ -17,6 +17,7 @@ using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Registry;
 using Shipbot.Controller.Core.Registry;
 using Shipbot.Controller.Core.Registry.Ecr;
+using Shipbot.Controller.Core.Registry.Internals;
 using Shipbot.Controller.Core.Registry.Watcher;
 //using ArgoAutoDeploy.Core.K8s;
 //using k8s;
@@ -27,23 +28,16 @@ namespace Shipbot.Controller.Core
     public class OperatorStartup : IHostedService
     {
         private readonly ILogger<OperatorStartup> _log;
-        private readonly IOptions<ShipbotConfiguration> _configuration;
-        private readonly RegistryClientPool _registryClientPool;
-        private readonly IServiceProvider _serviceProvider;
         private readonly ConcurrentBag<Task> _watcherJobs = new ConcurrentBag<Task>();
         private readonly CancellationTokenSource _cancelSource;
 
         public OperatorStartup(
             ILogger<OperatorStartup> log, 
             IOptions<ShipbotConfiguration> configuration,
-            RegistryClientPool registryClientPool,
             IServiceProvider serviceProvider
         )
         {
             _log = log;
-            _configuration = configuration;
-            _registryClientPool = registryClientPool;
-            _serviceProvider = serviceProvider;
 
             _cancelSource = new CancellationTokenSource();
         }

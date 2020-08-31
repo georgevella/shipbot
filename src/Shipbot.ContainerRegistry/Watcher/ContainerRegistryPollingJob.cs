@@ -5,33 +5,37 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.Applications;
+using Shipbot.Controller.Core.Registry.Internals;
+using Shipbot.Controller.Core.Registry.Services;
 using Shipbot.Deployments;
 using Shipbot.JobScheduling;
 
 namespace Shipbot.Controller.Core.Registry.Watcher
 {
     [DisallowConcurrentExecution]
-    public class ContainerRegistryPollingJob : BaseJobWithData<ContainerRegistryPollingData>
+    internal class ContainerRegistryPollingJob : BaseJobWithData<ContainerRegistryPollingData>
     {
         private readonly ILogger<ContainerRegistryPollingJob> _log;
-        private readonly RegistryClientPool _registryClientPool;
+        private readonly IRegistryClientPool _registryClientPool;
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
+        private readonly INewImageTagDetector _newImageTagDetector;
 
         public ContainerRegistryPollingJob(
             ILogger<ContainerRegistryPollingJob> log,
-            RegistryClientPool registryClientPool, 
+            IRegistryClientPool registryClientPool, 
             IApplicationService applicationService,
-            IDeploymentService deploymentService
+            IDeploymentService deploymentService,
+            INewImageTagDetector newImageTagDetector
         )
         {
             _log = log;
             _registryClientPool = registryClientPool;
             _applicationService = applicationService;
             _deploymentService = deploymentService;
+            _newImageTagDetector = newImageTagDetector;
         }
-
-
+        
         protected override async Task Execute(ContainerRegistryPollingData data)
         {
             var imageRepository = data.ImageRepository;
@@ -52,7 +56,8 @@ namespace Shipbot.Controller.Core.Registry.Watcher
                 if (!currentTags.ContainsKey(image))
                 {
                     _log.LogInformation(
-                        "Current Tag not available, application source watcher may have not yet run or detected the current image tag");
+                        "Current Tag not available, application source watcher may have not yet run or detected the current image tag"
+                        );
                 }
                 else
                 {
@@ -65,23 +70,13 @@ namespace Shipbot.Controller.Core.Registry.Watcher
 
                         var tags = await client.GetRepositoryTags(imageRepository);
 
-                        var matchingTags = tags.Where(tagDetails => image.Policy.IsMatch(tagDetails.tag))
-                            .ToDictionary(x => x.tag);
-
-                        var latestTag = matchingTags.Values
-                            .OrderBy(tuple => tuple.createdAt, Comparer<DateTime>.Default)
-                            .Last();
-
-                        if (latestTag.tag == currentTag)
-                        {
-                            _log.LogInformation("Latest image tag is applied to the deployment specs");
-                        }
-                        else
+                        var (newImageTagAvailable, tag) = _newImageTagDetector.GetLatestTag(tags, currentTag, image.Policy);
+                        if (newImageTagAvailable)
                         {
                             _log.LogInformation(
                                 "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
-                                latestTag.tag, image.Repository, application.Name, currentTag);
-                            await _deploymentService.AddDeployment(application, image, latestTag.tag);
+                                tag, image.Repository, application.Name, currentTag);
+                            await _deploymentService.AddDeployment(application, image, tag);
                         }
                     }
                     catch (Exception e)
