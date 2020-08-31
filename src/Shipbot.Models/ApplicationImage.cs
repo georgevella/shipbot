@@ -2,9 +2,9 @@ using System.Linq;
 
 namespace Shipbot.Models
 {
-    public class Image
+    public class ApplicationImage
     {
-        public Image(string repository, TagProperty tagProperty, ImageUpdatePolicy policy)
+        public ApplicationImage(string repository, TagProperty tagProperty, ImageUpdatePolicy policy)
         {
             Repository = repository;
             TagProperty = tagProperty;
@@ -16,7 +16,7 @@ namespace Shipbot.Models
             return this.Repository;
         }
 
-        protected bool Equals(Image other)
+        protected bool Equals(ApplicationImage other)
         {
             return string.Equals(Repository, other.Repository) && Equals(TagProperty, other.TagProperty) && Equals(Policy, other.Policy);
         }
@@ -26,7 +26,7 @@ namespace Shipbot.Models
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((Image) obj);
+            return Equals((ApplicationImage) obj);
         }
 
         public override int GetHashCode()

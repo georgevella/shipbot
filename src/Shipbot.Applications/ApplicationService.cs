@@ -40,7 +40,7 @@ namespace Shipbot.Applications
 
             var application = new Application(
                 applicationDefinition.Name,
-                applicationDefinition.Images.Select(imageSettings => (Image) imageSettings).ToImmutableList(),
+                applicationDefinition.Images.Select(imageSettings => (ApplicationImage) imageSettings).ToImmutableList(),
                 // applicationSource,
                 applicationDefinition.AutoDeploy,
                 new NotificationSettings(applicationDefinition.SlackChannel)
@@ -64,13 +64,13 @@ namespace Shipbot.Applications
         }
 
         [Obsolete]
-        public IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application)
+        public IReadOnlyDictionary<ApplicationImage, string> GetCurrentImageTags(Application application)
         {
             return _applicationStore.GetCurrentImageTags(application);
         }
 
         [Obsolete]
-        public void SetCurrentImageTag(Application application, Image image, string tag)
+        public void SetCurrentImageTag(Application application, ApplicationImage image, string tag)
         {
             _applicationStore.SetCurrentImageTag(application, image, tag);
         }

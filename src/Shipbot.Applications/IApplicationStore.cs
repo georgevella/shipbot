@@ -11,8 +11,8 @@ namespace Shipbot.Applications
         bool Contains(string name);
         Application GetApplication(string name);
         [Obsolete]
-        IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application);
+        IReadOnlyDictionary<ApplicationImage, string> GetCurrentImageTags(Application application);
         [Obsolete]
-        void SetCurrentImageTag(Application application, Image image, string tag);
+        void SetCurrentImageTag(Application application, ApplicationImage image, string tag);
     }
 }

@@ -8,7 +8,7 @@ namespace Shipbot.Deployments
 {
     public interface IDeploymentService
     {
-        Task<Deployment> AddDeployment(Application application, Image image, string newTag);
+        Task<Deployment> AddDeployment(Application application, ApplicationImage image, string newTag);
         Task ChangeDeploymentUpdateStatus(Guid deploymentId, DeploymentStatus status);
 
         Task FinishDeploymentUpdate(

@@ -20,7 +20,7 @@ namespace Shipbot.Applications
             
             public ApplicationSyncState State { get; set; }
             
-            public ConcurrentDictionary<Image, string> CurrentTags { get; } = new ConcurrentDictionary<Image, string>();
+            public ConcurrentDictionary<ApplicationImage, string> CurrentTags { get; } = new ConcurrentDictionary<ApplicationImage, string>();
             
             public ApplicationContextData(Application application)
             {
@@ -47,14 +47,14 @@ namespace Shipbot.Applications
 
         // TODO: move to dedicated service (application source service, or a new impl)
         [Obsolete]
-        public IReadOnlyDictionary<Image, string> GetCurrentImageTags(Application application)
+        public IReadOnlyDictionary<ApplicationImage, string> GetCurrentImageTags(Application application)
         {
             return _applications[application.Name].CurrentTags;
         }
 
         // TODO: move to dedicated service (application source service, or a new impl)
         [Obsolete]
-        public void SetCurrentImageTag(Application application, Image image, string tag)
+        public void SetCurrentImageTag(Application application, ApplicationImage image, string tag)
         {
             var ctx = _applications[application.Name];
             ctx.CurrentTags.AddOrUpdate(image,

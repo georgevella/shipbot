@@ -13,9 +13,9 @@ namespace Shipbot.Controller.Core.Configuration.Apps
 
         public UpdatePolicy Policy { get; set; }
 
-        public static implicit operator Image(ImageSettings imageSettings)
+        public static implicit operator ApplicationImage(ImageSettings imageSettings)
         {
-            return new Image(
+            return new ApplicationImage(
                 imageSettings.Repository,
                 new TagProperty(
                     imageSettings.TagProperty.Path,

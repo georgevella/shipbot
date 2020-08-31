@@ -35,7 +35,7 @@ namespace Shipbot.Deployments
             _deploymentsDbContextConfigurator = deploymentsDbContextConfigurator;
         }
         
-        public async Task<Deployment> AddDeployment(Application application, Image image, string newTag)
+        public async Task<Deployment> AddDeployment(Application application, ApplicationImage image, string newTag)
         {
             var currentTags = _applicationService.GetCurrentImageTags(application);
 

@@ -32,7 +32,7 @@ namespace Shipbot.Models
         }
 
         public string Name { get; }
-        public ImmutableList<Image> Images { get; }
+        public ImmutableList<ApplicationImage> Images { get; }
 
         public bool AutoDeploy { get; }
         
@@ -40,7 +40,7 @@ namespace Shipbot.Models
 
         public Application(
             string name, 
-            ImmutableList<Image> images,
+            ImmutableList<ApplicationImage> images,
             bool autoDeploy,
             NotificationSettings notifications
             )

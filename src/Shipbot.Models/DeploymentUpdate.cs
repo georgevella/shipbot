@@ -32,7 +32,7 @@ namespace Shipbot.Models
 
         public Guid Id { get; }
         public Application Application { get; }
-        public Image Image { get; }
+        public ApplicationImage Image { get; }
         public string CurrentTag { get; }
 
         public string TargetTag { get; }
@@ -40,7 +40,7 @@ namespace Shipbot.Models
         public DeploymentUpdate(
             Guid id,
             Application application, 
-            Image image, 
+            ApplicationImage image, 
             string currentTag,
             string targetTag
             )

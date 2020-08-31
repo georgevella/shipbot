@@ -258,8 +258,8 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             // build map of images -> yaml file that defines them and image -> current tag
             _log.LogInformation("Beginning to parse value files defined in application source ...");
 
-            var imageToFilenameMap = new Dictionary<Image, string>();
-            var imageToTagInManifest = new Dictionary<Image, string>();
+            var imageToFilenameMap = new Dictionary<ApplicationImage, string>();
+            var imageToTagInManifest = new Dictionary<ApplicationImage, string>();
 
             foreach (var file in helmApplicationSource.ValuesFiles)
             {
@@ -350,7 +350,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
         private async Task<bool> UpdateDeploymentManifests(
             Repository gitRepository, 
             DeploymentUpdate deploymentUpdate,
-            Dictionary<Image, string> imageToFilenameMap, 
+            Dictionary<ApplicationImage, string> imageToFilenameMap, 
             string currentImageTag,
             string applicationSourcePath,
             YamlUtilities yamlUtilities, 
