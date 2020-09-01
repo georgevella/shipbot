@@ -1,8 +1,11 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Shipbot.ContainerRegistry.Internals;
 using Shipbot.ContainerRegistry.Services;
 using Shipbot.ContainerRegistry.Watcher;
 using Shipbot.Contracts;
+
+[assembly: InternalsVisibleTo("Shipbot.Tests")]
 
 namespace Shipbot.ContainerRegistry
 {
@@ -10,10 +13,12 @@ namespace Shipbot.ContainerRegistry
     {
         public static IServiceCollection RegisterShipbotContainerRegistryComponents(this IServiceCollection services)
         {
-            services.AddSingleton<RegistryClientPool>();
+            services.AddSingleton<IRegistryClientPool, RegistryClientPool>();
+
+
             services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
 
-            services.AddTransient<INewImageTagDetector, NewImageTagDetector>();
+            services.AddTransient<INewContainerImageService, NewContainerImageService>();
             
             services.AddTransient<ContainerRegistryPollingJob>();
 

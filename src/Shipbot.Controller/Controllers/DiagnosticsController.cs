@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
+using Shipbot.ContainerRegistry;
+using Shipbot.ContainerRegistry.Models;
 using Shipbot.ContainerRegistry.Services;
 using Shipbot.Deployments;
 
@@ -15,19 +17,19 @@ namespace Shipbot.Controller.Controllers
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
-        private readonly INewImageTagDetector _newImageTagDetector;
+        private readonly INewContainerImageService _newContainerImageService;
 
         public DiagnosticsController(
             IApplicationService applicationService,
             IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
-            INewImageTagDetector newImageTagDetector
+            INewContainerImageService newContainerImageService
             )
         {
             _applicationService = applicationService;
             _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
-            _newImageTagDetector = newImageTagDetector;
+            _newContainerImageService = newContainerImageService;
         }
         
         [HttpPost("deployment-notifications")]
@@ -50,12 +52,11 @@ namespace Shipbot.Controller.Controllers
         {
             var application = _applicationService.GetApplication(applicationId);
             var image = application.Images.First(x => x.Repository == repository);
-            var currentTags = _applicationService.GetCurrentImageTags(application);
-            var currentTag = currentTags[image];
-            var result = _newImageTagDetector.GetLatestTag(new[]
+
+            var result = _newContainerImageService.GetLatestTagMatchingPolicy(new[]
                 {
-                    (tag, DateTime.Now)
-                }, currentTag,
+                    new ContainerImage(repository, tag, tag.GetHashCode().ToString()), 
+                },
                 image.Policy
             );
 

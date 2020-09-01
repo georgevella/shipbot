@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
+    <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj" />
     <ProjectReference Include="..\Shipbot.Models\Shipbot.Models.csproj" />
     <ProjectReference Include="..\Shipbot.SlackIntegration\Shipbot.SlackIntegration.csproj" />

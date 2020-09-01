@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Amazon.ECR;
 using Amazon.ECR.Model;
 using Microsoft.Extensions.Logging;
+using Shipbot.ContainerRegistry.Models;
 
 namespace Shipbot.ContainerRegistry.Ecr
 {
@@ -22,18 +23,70 @@ namespace Shipbot.ContainerRegistry.Ecr
             _log = log;
             _client = client;
         }
-
-
+        
         public async Task<bool> IsKnownRepository(string repository)
         {
-            var repositories = await _client.DescribeRepositoriesAsync(new DescribeRepositoriesRequest());
+            var repositories = await GetRepositories();
 
-            return repositories.Repositories.Any(r =>
-                r.RepositoryUri.Equals(repository, StringComparison.OrdinalIgnoreCase)
+            return repositories.Any(
+                r => r.Equals(repository, StringComparison.OrdinalIgnoreCase)
             );
         }
 
-        public async Task<IEnumerable<(string tag, DateTime createdAt)>> GetRepositoryTags(string repository)
+        private async Task<List<(string repositoryUri, string registryId, string repositoryName)>> GetRepositoriesInternal()
+        {
+            DescribeRepositoriesResponse? ecrResponse = null;
+            var result = new List<(string repositoryUri, string registryId, string repositoryName)>();
+            
+            do
+            {
+                ecrResponse = await _client.DescribeRepositoriesAsync(new DescribeRepositoriesRequest()
+                {
+                    MaxResults = 1000,
+                    NextToken = (ecrResponse?.NextToken) ?? null
+                    
+                });
+                
+                result.AddRange(ecrResponse.Repositories.Select(r => (r.RepositoryUri, r.RegistryId, r.RepositoryName) ));
+            }
+            while (ecrResponse.NextToken != null);
+
+            return result;
+        }
+
+        public async Task<IEnumerable<string>> GetRepositories()
+        {
+            var result = await GetRepositoriesInternal();
+            return result.Select(x => x.repositoryUri).ToList();
+        }
+
+        public async Task<ContainerImage> GetImage(string repository, string tag)
+        {
+            var repositories = await GetRepositoriesInternal();
+            var repo = repositories.First(x => x.repositoryUri == repository);
+            
+            var describeImagesRequest = new DescribeImagesRequest()
+            {
+                ImageIds = new List<ImageIdentifier>()
+                {
+                    new ImageIdentifier()
+                    {
+                        ImageTag = tag
+                    }
+                },
+                RegistryId = repo.registryId,
+                RepositoryName = repo.repositoryName,
+            };
+                
+            var images = await _client.DescribeImagesAsync(describeImagesRequest, CancellationToken.None);
+            return images.ImageDetails.SelectMany(
+                    i => i.ImageTags,
+                    (i, tag) => new ContainerImage(repository, tag, i.ImageDigest, i.ImagePushedAt)
+                )
+                .First();
+        }
+        
+        public async Task<IEnumerable<ContainerImage>> GetRepositoryTags(string repository)
         {
             using (_log.BeginScope(new Dictionary<string, object>()
             {
@@ -41,14 +94,16 @@ namespace Shipbot.ContainerRegistry.Ecr
             }))
             {
                 _log.LogInformation("Getting repository tags");
-                var repositories = await _client.DescribeRepositoriesAsync(new DescribeRepositoriesRequest());
-                var repo = repositories.Repositories.First(r =>
-                    r.RepositoryUri.Equals(repository, StringComparison.OrdinalIgnoreCase));
+
+                var repositories = await GetRepositoriesInternal();
+                // var repositories = await _client.DescribeRepositoriesAsync(new DescribeRepositoriesRequest());
+                var repo = repositories.First(r =>
+                    r.repositoryUri.Equals(repository, StringComparison.OrdinalIgnoreCase));
                 
                 var describeImagesRequest = new DescribeImagesRequest()
                 {
-                    RegistryId = repo.RegistryId,
-                    RepositoryName = repo.RepositoryName,
+                    RegistryId = repo.registryId,
+                    RepositoryName = repo.repositoryName,
                 };
                 
                 var images = await _client.DescribeImagesAsync(describeImagesRequest, CancellationToken.None);
@@ -56,7 +111,7 @@ namespace Shipbot.ContainerRegistry.Ecr
                 _log.LogTrace("Building image list");
                 var imageList = images.ImageDetails.SelectMany(
                         i => i.ImageTags,
-                        (i, tag) => (tag, i.ImagePushedAt)
+                        (i, tag) => new ContainerImage(repository, tag, i.ImageDigest, i.ImagePushedAt)
                     )
                     .ToList();
                 
@@ -68,14 +123,14 @@ namespace Shipbot.ContainerRegistry.Ecr
                     imageList.AddRange(
                         images.ImageDetails.SelectMany(
                             i => i.ImageTags,
-                            (i, tag) => (tag, i.ImagePushedAt)
+                            (i, tag) => new ContainerImage(repository, tag, i.ImageDigest, i.ImagePushedAt)
                         )
                     );
                 }
                 
                 _log.LogInformation("Found {ImageCount} images for {Repository}", imageList.Count, repository);
 
-                return imageList.AsEnumerable();
+                return imageList;
             }
         }
     }

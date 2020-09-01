@@ -17,21 +17,21 @@ namespace Shipbot.ContainerRegistry.Watcher
         private readonly IRegistryClientPool _registryClientPool;
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
-        private readonly INewImageTagDetector _newImageTagDetector;
+        private readonly INewContainerImageService _newContainerImageService;
 
         public ContainerRegistryPollingJob(
             ILogger<ContainerRegistryPollingJob> log,
             IRegistryClientPool registryClientPool, 
             IApplicationService applicationService,
             IDeploymentService deploymentService,
-            INewImageTagDetector newImageTagDetector
+            INewContainerImageService newContainerImageService
         )
         {
             _log = log;
             _registryClientPool = registryClientPool;
             _applicationService = applicationService;
             _deploymentService = deploymentService;
-            _newImageTagDetector = newImageTagDetector;
+            _newContainerImageService = newContainerImageService;
         }
         
         protected override async Task Execute(ContainerRegistryPollingData data)
@@ -64,17 +64,22 @@ namespace Shipbot.ContainerRegistry.Watcher
                         var currentTag = currentTags[image];
 
                         _log.LogInformation("Fetching tags for {imagerepository}", imageRepository);
+                        
                         var client = await _registryClientPool.GetRegistryClientForRepository(imageRepository);
-
-                        var tags = await client.GetRepositoryTags(imageRepository);
-
-                        var (newImageTagAvailable, tag) = _newImageTagDetector.GetLatestTag(tags, currentTag, image.Policy);
-                        if (newImageTagAvailable)
+                        var currentImage = await client.GetImage(image.Repository, currentTag);
+                        var iamges = await client.GetRepositoryTags(imageRepository);
+                        
+                        var latestImage = _newContainerImageService.GetLatestTagMatchingPolicy(iamges, image.Policy);
+                        
+                        var comparer = _newContainerImageService.GetComparer(image.Policy);
+                        
+                        if (comparer.Compare(currentImage, latestImage) < 0)
                         {
+                            // latest image is newer than current image
                             _log.LogInformation(
                                 "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
-                                tag, image.Repository, application.Name, currentTag);
-                            await _deploymentService.AddDeployment(application, image, tag);
+                                latestImage.Tag, image.Repository, application.Name, currentTag);
+                            await _deploymentService.AddDeployment(application, image, latestImage.Tag);
                         }
                     }
                     catch (Exception e)
