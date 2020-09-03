@@ -16,7 +16,7 @@ namespace Shipbot.ContainerRegistry
             services.AddSingleton<IRegistryClientPool, RegistryClientPool>();
 
 
-            services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
+            services.AddSingleton<IRegistryWatcher, ContainerRegistryTrackingService>();
 
             services.AddTransient<INewContainerImageService, NewContainerImageService>();
             

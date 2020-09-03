@@ -22,9 +22,6 @@ namespace Shipbot.Controller.Core.ApplicationSources
 {
     public class ApplicationSourceService : IApplicationSourceService
     {
-        // private readonly ConcurrentDictionary<string, ApplicationSourceTrackingContext> _trackingContexts =
-        //     new ConcurrentDictionary<string, ApplicationSourceTrackingContext>();
-
         private readonly ILogger<ApplicationSourceService> _log;
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly IScheduler _scheduler;

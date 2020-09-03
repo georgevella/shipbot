@@ -63,6 +63,14 @@ namespace Shipbot.JobScheduling
 
             return scheduler.ScheduleJob(jobDetail, trigger);
         }
+
+        public static async Task StopRecurringJob(this IScheduler scheduler, string name, string group)
+        {
+            var jobKey = new JobKey(name, group);
+            var triggerKey = new TriggerKey($"{name}-trigger", group);
+            await scheduler.UnscheduleJob(triggerKey);
+            await scheduler.DeleteJob(jobKey);
+        }
     }
 
     public class ScheduleJobOptions

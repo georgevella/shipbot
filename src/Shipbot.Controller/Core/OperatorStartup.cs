@@ -39,30 +39,9 @@ namespace Shipbot.Controller.Core
             _cancelSource = new CancellationTokenSource();
         }
         
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            
-            //            // start watching argo applications
-//            foreach (var connectionDetails in conf.Kubernetes)
-//            {
-//                var client = _clientPool.GetConnection(connectionDetails);
-//                foreach (var customResourceWatcher in _watchers)
-//                {
-//                    _log.LogInformation("Starting watcher ...");
-//                    
-//                    var task = Task.Factory.StartNew(
-//                        c => customResourceWatcher.Start((Kubernetes) c, _cancelSource.Token), 
-//                        client, 
-//                        _cancelSource.Token, 
-//                        TaskCreationOptions.LongRunning,
-//                        TaskScheduler.Default
-//                    );
-//                    
-//                    _watcherJobs.Add(task.Unwrap());
-//                    
-//                    _log.LogInformation("Starting watcher ... done, next");
-//                }
-//            }
+            return Task.CompletedTask;
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

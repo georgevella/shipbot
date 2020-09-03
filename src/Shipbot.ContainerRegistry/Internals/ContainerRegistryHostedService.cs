@@ -12,7 +12,7 @@ using Shipbot.Contracts;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Registry;
 
-namespace Shipbot.ContainerRegistry.Services
+namespace Shipbot.ContainerRegistry.Internals
 {
     internal class ContainerRegistryHostedService: IHostedService
     {
@@ -67,7 +67,6 @@ namespace Shipbot.ContainerRegistry.Services
             foreach (var trackedApplication in trackedApplications)
             {
                 _log.LogInformation("Adding container registry tracking tracking for {Application}", trackedApplication.Name);
-
                 await registryWatcher.StartWatchingImageRepository(trackedApplication);
             }   
             
@@ -76,7 +75,9 @@ namespace Shipbot.ContainerRegistry.Services
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            using var scope = _serviceProvider.CreateScope();
+            var registryWatcher = scope.ServiceProvider.GetService<IRegistryWatcher>();
+            return registryWatcher.Shutdown();
         }
     }
 }

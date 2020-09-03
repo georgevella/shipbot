@@ -3,19 +3,22 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shipbot.ContainerRegistry.Watcher;
 using Shipbot.Contracts;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
 
-namespace Shipbot.ContainerRegistry.Watcher
+namespace Shipbot.ContainerRegistry.Services
 {
-    public class RegistryWatcher : IRegistryWatcher
+    public class ContainerRegistryTrackingService : IRegistryWatcher
     {
-        private readonly ILogger<RegistryWatcher> _log;
+        private readonly ILogger<ContainerRegistryTrackingService> _log;
         private readonly IScheduler _scheduler;
         private readonly ConcurrentDictionary<RegistryWatcherKey, string> _jobs = new ConcurrentDictionary<RegistryWatcherKey,string>();
+        
+        private const string  PollingJobGroup = "containerrepowatcher";
 
-        public RegistryWatcher(ILogger<RegistryWatcher> log, IScheduler scheduler)
+        public ContainerRegistryTrackingService(ILogger<ContainerRegistryTrackingService> log, IScheduler scheduler)
         {
             _log = log;
             _scheduler = scheduler;
@@ -35,11 +38,33 @@ namespace Shipbot.ContainerRegistry.Watcher
                 {
                     await _scheduler.StartRecurringJob<ContainerRegistryPollingJob, ContainerRegistryPollingData>(
                         jobKey, 
-                        "containerrepowatcher", 
+                        PollingJobGroup, 
                         new ContainerRegistryPollingData(image.Repository, application.Name, imageIndex), 
                         TimeSpan.FromSeconds(10) 
                     );
                 }
+            }
+        }
+
+        public async Task StopWatchingImageRepository(Application application)
+        {
+            for (var imageIndex=0; imageIndex<application.Images.Count; imageIndex++)
+            {
+                var image = application.Images[imageIndex];
+                
+                var key = new RegistryWatcherKey(application, image);
+                if (_jobs.TryRemove(key, out var jobKey))
+                {
+                    await _scheduler.StopRecurringJob(jobKey, PollingJobGroup);
+                }
+            }
+        }
+
+        public async Task Shutdown()
+        {
+            foreach (var keyValuePair in _jobs)
+            {
+                await _scheduler.StopRecurringJob(keyValuePair.Value, PollingJobGroup);
             }
         }
 
