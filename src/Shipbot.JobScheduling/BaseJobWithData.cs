@@ -5,9 +5,7 @@ namespace Shipbot.JobScheduling
 {
     public abstract class BaseJobWithData<T> : IJob
     {
-        
-        
-        protected abstract Task Execute(T data);
+        public abstract Task Execute(T data);
         
         Task IJob.Execute(IJobExecutionContext context)
         {

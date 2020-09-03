@@ -19,7 +19,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _scheduler = scheduler;
         }
 
-        protected override async Task Execute(ApplicationSourceTrackingContext data)
+        public override async Task Execute(ApplicationSourceTrackingContext data)
         {
             var repository = data.ApplicationSource.Repository;
 

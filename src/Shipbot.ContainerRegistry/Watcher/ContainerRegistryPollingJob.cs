@@ -33,8 +33,8 @@ namespace Shipbot.ContainerRegistry.Watcher
             _deploymentService = deploymentService;
             _newContainerImageService = newContainerImageService;
         }
-        
-        protected override async Task Execute(ContainerRegistryPollingData data)
+
+        public override async Task Execute(ContainerRegistryPollingData data)
         {
             var imageRepository = data.ImageRepository;
             var applicationId = data.ApplicationId;

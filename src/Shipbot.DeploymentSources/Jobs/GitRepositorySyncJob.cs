@@ -38,7 +38,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _deploymentQueueService = deploymentQueueService;
         }
 
-        protected override async Task Execute(ApplicationSourceTrackingContext context)
+        public override async Task Execute(ApplicationSourceTrackingContext context)
         {
             using (_log.BeginScope(new Dictionary<string, object>
             {
@@ -83,7 +83,6 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 var branch = CheckoutDeploymentManifest(gitRepository, repository, credentials);
                 
                 // TODO: handle scenario when we are tracking a git commit or a tag
-
                 if (context.ApplicationSource is HelmApplicationSource helmApplicationSource)
                 {
                     if (await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
@@ -121,7 +120,6 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                                 {
                                     FileConflictStrategy = CheckoutFileConflictStrategy.Theirs,
                                 });
-
                                 
                                 --attempt;
                             }
