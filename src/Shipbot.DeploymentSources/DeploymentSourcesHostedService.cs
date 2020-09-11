@@ -34,7 +34,12 @@ namespace Shipbot.Controller.Core.ApplicationSources
 
             var conf = _configuration.Value;
 
-            var map = conf.Applications.Values.ToDictionary(x => x.Name);
+            // rebuild the application configuration to support the transition period between having the name defined in the configuration
+            // and the name defined in the key
+            var map = conf.Applications.ToDictionary(
+                pair => string.IsNullOrEmpty(pair.Value.Name) ? pair.Key : pair.Value.Name,
+                pair => pair.Value
+            );
             
             using var scope = _serviceProvider.CreateScope();
             

@@ -30,9 +30,10 @@ namespace Shipbot.Applications
             
             var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
 
-            foreach (var applicationDefinition in conf.Applications)
+            foreach (var pair in conf.Applications)
             {
-                applicationService.AddApplication(applicationDefinition.Value);
+                var name = string.IsNullOrEmpty(pair.Value.Name) ? pair.Key : pair.Value.Name;
+                applicationService.AddApplication(name, pair.Value);
             }
 
             return Task.CompletedTask;

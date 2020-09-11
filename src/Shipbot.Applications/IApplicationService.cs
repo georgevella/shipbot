@@ -7,7 +7,7 @@ namespace Shipbot.Applications
 {
     public interface IApplicationService
     {
-        Application AddApplication(ApplicationDefinition applicationDefinition);
+        Application AddApplication(string name, ApplicationDefinition applicationDefinition);
         IEnumerable<Application> GetApplications();
         Application GetApplication(string id);
 

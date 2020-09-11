@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Shipbot.Controller.Core.Configuration.ApplicationSources;
@@ -6,6 +7,7 @@ namespace Shipbot.Controller.Core.Configuration.Apps
 {
     public class ApplicationDefinition
     {
+        [Obsolete("This should not be used anymore since the configuration schema has changed to use a map instead of list")]
         public string Name { get; set; }
         
         public ApplicationSourceSettings Source { get; set; }

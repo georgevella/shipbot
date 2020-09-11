@@ -29,17 +29,17 @@ namespace Shipbot.Applications
             _applicationStore = applicationStore;
         }
 
-        public Application AddApplication(ApplicationDefinition applicationDefinition)
+        public Application AddApplication(string name, ApplicationDefinition applicationDefinition)
         {
             var conf = _configuration.Value;
 
-            if (_applicationStore.Contains(applicationDefinition.Name))
+            if (_applicationStore.Contains(name))
             {
-                throw new Exception($"An application with the name '{applicationDefinition.Name}' already exists.");
+                throw new Exception($"An application with the name '{name}' already exists.");
             }
 
             var application = new Application(
-                applicationDefinition.Name,
+                name,
                 applicationDefinition.Images.Select(imageSettings => (ApplicationImage) imageSettings).ToImmutableList(),
                 // applicationSource,
                 applicationDefinition.AutoDeploy,
