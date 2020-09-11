@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Shipbot.Data;
 
@@ -23,19 +24,24 @@ namespace Microsoft.Extensions.DependencyInjection
             return serviceCollection.AddTransient<IDbContextConfigurator, T>();
         }
 
-        public static IServiceCollection RegisterDbContext(this IServiceCollection serviceCollection)
+        public static IServiceCollection RegisterDbContext(this IServiceCollection serviceCollection, IConfiguration configuration)
         {
             serviceCollection.AddScoped<IUnitOfWork, UnitOfWork>();
             serviceCollection.Add(
                 new ServiceDescriptor(typeof(IEntityRepository<>), typeof(EntityRepository<>), ServiceLifetime.Scoped)
                 );
-            
+
             return serviceCollection.AddDbContext<ShipbotDbContext>(
                 builder => builder
                     // .UseLoggerFactory(MyLoggerFactory)
                     // .EnableSensitiveDataLogging()
-                    .UseNpgsql("Host=localhost;Database=postgres;Username=postgres;Password=password123")
+                    .UseNpgsql(configuration.GetShipbotConnectionString())
             );
+        }
+
+        public static string GetShipbotConnectionString(this IConfiguration configuration)
+        {
+            return configuration.GetConnectionString("ShipbotDb");
         }
     }
 }

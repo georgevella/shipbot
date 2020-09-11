@@ -43,8 +43,6 @@ namespace Shipbot.Tests
             const string applicationId = "test-app";
             var deploymentId = Guid.NewGuid();
             
-            
-
             var containerImages = new List<ContainerImage>();
 
             ContainerImage? currentContainerImage = null;

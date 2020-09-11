@@ -67,9 +67,9 @@ namespace Shipbot.ContainerRegistry.Watcher
                         
                         var client = await _registryClientPool.GetRegistryClientForRepository(imageRepository);
                         var currentImage = await client.GetImage(image.Repository, currentTag);
-                        var iamges = await client.GetRepositoryTags(imageRepository);
+                        var images = await client.GetRepositoryTags(imageRepository);
                         
-                        var latestImage = _newContainerImageService.GetLatestTagMatchingPolicy(iamges, image.Policy);
+                        var latestImage = _newContainerImageService.GetLatestTagMatchingPolicy(images, image.Policy);
                         
                         var comparer = _newContainerImageService.GetComparer(image.Policy);
                         
