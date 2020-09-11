@@ -23,14 +23,5 @@ namespace Shipbot.Models
         {
             return _pattern.IsMatch(value);
         }
-
-        public override bool IsGreaterThen(string left, string right)
-        {
-            var leftResult = Regex.Match(left, _regexPattern);
-            var rightResult = Regex.Match(right, _regexPattern);
-            
-            
-            return left?.CompareTo(right) > 0;
-        }
     }
 }

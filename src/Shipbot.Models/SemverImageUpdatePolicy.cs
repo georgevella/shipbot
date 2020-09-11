@@ -6,10 +6,5 @@ namespace Shipbot.Models
         {
             throw new System.NotImplementedException();
         }
-
-        public override bool IsGreaterThen(string left, string right)
-        {
-            throw new System.NotImplementedException();
-        }
     }
 }
