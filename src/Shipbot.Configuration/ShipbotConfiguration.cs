@@ -8,6 +8,7 @@ namespace Shipbot.Controller.Core.Configuration
 {
     public class ShipbotConfiguration
     {
+        public bool Dryrun { get; set; }
         //public List<KubernetesConnectionDetails> Kubernetes { get; set; }
         
         public List<ContainerRegistrySettings> Registries { get; set; } = new List<ContainerRegistrySettings>();

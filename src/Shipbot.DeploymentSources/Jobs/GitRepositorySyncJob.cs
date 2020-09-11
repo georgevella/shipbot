@@ -5,10 +5,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Util;
 using Shipbot.Applications;
 using Shipbot.Controller.Core.ApplicationSources.Models;
+using Shipbot.Controller.Core.Configuration;
 using Shipbot.Deployments;
 using Shipbot.Deployments.Models;
 using Shipbot.JobScheduling;
@@ -24,18 +26,21 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentQueueService _deploymentQueueService;
+        private readonly IOptions<ShipbotConfiguration> _configuration;
 
         public GitRepositorySyncJob(
             ILogger<GitRepositorySyncJob> log,
             IApplicationService applicationService,
             IDeploymentService deploymentService,
-            IDeploymentQueueService deploymentQueueService
+            IDeploymentQueueService deploymentQueueService,
+            IOptions<ShipbotConfiguration> configuration
         )
         {
             _log = log;
             _applicationService = applicationService;
             _deploymentService = deploymentService;
             _deploymentQueueService = deploymentQueueService;
+            _configuration = configuration;
         }
 
         public override async Task Execute(ApplicationSourceTrackingContext context)
@@ -51,13 +56,12 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
                 // TODO: improve this to not have passwords in memory / use SecureStrings
                 var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
-                
-                _log.LogInformation("Removing local copy of git repository",
-                    repository.Uri,
-                    context.GitRepositoryPath);
-                
+
                 if (Directory.Exists(context.GitRepositoryPath))
                 {
+                    _log.LogInformation("Removing local copy of git repository",
+                        repository.Uri,
+                        context.GitRepositoryPath);
                     Directory.Delete(context.GitRepositoryPath, true);
                 }
 
@@ -85,8 +89,10 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 // TODO: handle scenario when we are tracking a git commit or a tag
                 if (context.ApplicationSource is HelmApplicationSource helmApplicationSource)
                 {
-                    if (await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
-                        context.AutoDeploy)
+                    if (
+                        await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
+                        context.AutoDeploy &&
+                        !_configuration.Value.Dryrun)
                     {
                         int attempt = 3;
 
