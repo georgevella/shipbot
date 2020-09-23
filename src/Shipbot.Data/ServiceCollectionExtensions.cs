@@ -1,6 +1,8 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using Shipbot.Data;
 
 // ReSharper disable once CheckNamespace
@@ -36,6 +38,24 @@ namespace Microsoft.Extensions.DependencyInjection
                     // .UseLoggerFactory(MyLoggerFactory)
                     // .EnableSensitiveDataLogging()
                     .UseNpgsql(configuration.GetShipbotConnectionString())
+            );
+        }
+        
+        public static IServiceCollection RegisterDbContext(this IServiceCollection serviceCollection, IConfiguration configuration, Action<NpgsqlDbContextOptionsBuilder> optionsBuilderFunc)
+        {
+            serviceCollection.AddScoped<IUnitOfWork, UnitOfWork>();
+            serviceCollection.Add(
+                new ServiceDescriptor(typeof(IEntityRepository<>), typeof(EntityRepository<>), ServiceLifetime.Scoped)
+            );
+
+            return serviceCollection.AddDbContext<ShipbotDbContext>(
+                builder => builder
+                    // .UseLoggerFactory(MyLoggerFactory)
+                    // .EnableSensitiveDataLogging()
+                    .UseNpgsql(
+                        configuration.GetShipbotConnectionString(),
+                        optionsBuilderFunc
+                    )
             );
         }
 
