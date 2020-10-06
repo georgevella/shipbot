@@ -3,39 +3,39 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Controller", "Shipbot.Controller\Shipbot.Controller.csproj", "{58DB82DA-60BC-402E-B2B2-E2ECA450CDA9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Controller", "src\Shipbot.Controller\Shipbot.Controller.csproj", "{58DB82DA-60BC-402E-B2B2-E2ECA450CDA9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OperatorSdk", "OperatorSdk\OperatorSdk.csproj", "{B8337EFC-F674-4E1D-A482-4CE26ACD45A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OperatorSdk", "src\OperatorSdk\OperatorSdk.csproj", "{B8337EFC-F674-4E1D-A482-4CE26ACD45A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.ArgoSupport", "Shipbot.ArgoSupport\Shipbot.ArgoSupport.csproj", "{37A80176-B2BB-4E9B-AE73-C928F6651521}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.ArgoSupport", "src\Shipbot.ArgoSupport\Shipbot.ArgoSupport.csproj", "{37A80176-B2BB-4E9B-AE73-C928F6651521}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OperatorSdk.Eks", "OperatorSdk.Eks\OperatorSdk.Eks.csproj", "{99150715-ABE9-46C2-8471-7ED93316397F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OperatorSdk.Eks", "src\OperatorSdk.Eks\OperatorSdk.Eks.csproj", "{99150715-ABE9-46C2-8471-7ED93316397F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Tests", "Shipbot.Tests\Shipbot.Tests.csproj", "{A38CC639-4E36-4814-9246-2854C62ED70F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Tests", "src\Shipbot.Tests\Shipbot.Tests.csproj", "{A38CC639-4E36-4814-9246-2854C62ED70F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Deployments", "Shipbot.Deployments\Shipbot.Deployments.csproj", "{017A46B5-8941-41E9-A314-300120CEA88F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Deployments", "src\Shipbot.Deployments\Shipbot.Deployments.csproj", "{017A46B5-8941-41E9-A314-300120CEA88F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Applications", "Shipbot.Applications\Shipbot.Applications.csproj", "{F54C8DE4-B99C-4554-ABD2-472D91FB116F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Applications", "src\Shipbot.Applications\Shipbot.Applications.csproj", "{F54C8DE4-B99C-4554-ABD2-472D91FB116F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Configuration", "Shipbot.Configuration\Shipbot.Configuration.csproj", "{15C808F7-0D49-4C8D-84AA-557580D09F64}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Configuration", "src\Shipbot.Configuration\Shipbot.Configuration.csproj", "{15C808F7-0D49-4C8D-84AA-557580D09F64}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Models", "Shipbot.Models\Shipbot.Models.csproj", "{A4A9EAAA-4BCF-4858-A1DF-2C2E123A434F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Models", "src\Shipbot.Models\Shipbot.Models.csproj", "{A4A9EAAA-4BCF-4858-A1DF-2C2E123A434F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.ContainerRegistry", "Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj", "{9A813B7E-C341-43B8-9350-A74CE6AA8DB6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.ContainerRegistry", "src\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj", "{9A813B7E-C341-43B8-9350-A74CE6AA8DB6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Contracts", "Shipbot.Contracts\Shipbot.Contracts.csproj", "{DDBB08EF-8E25-460D-A0CC-30AA699C36BD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Contracts", "src\Shipbot.Contracts\Shipbot.Contracts.csproj", "{DDBB08EF-8E25-460D-A0CC-30AA699C36BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.DbMigrations", "Shipbot.DbMigrations\Shipbot.DbMigrations.csproj", "{E3BF4DFE-6036-4F23-B652-4B6FD867E6CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.DbMigrations", "src\Shipbot.DbMigrations\Shipbot.DbMigrations.csproj", "{E3BF4DFE-6036-4F23-B652-4B6FD867E6CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.DeploymentSources", "Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj", "{B8E9C5D8-C05E-4618-BEDA-F41D075CA67C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.DeploymentSources", "src\Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj", "{B8E9C5D8-C05E-4618-BEDA-F41D075CA67C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.JobScheduling", "Shipbot.JobScheduling\Shipbot.JobScheduling.csproj", "{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.JobScheduling", "src\Shipbot.JobScheduling\Shipbot.JobScheduling.csproj", "{D7B6A20A-C467-4ABA-A735-A8027C5C51E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.SlackIntegration", "Shipbot.SlackIntegration\Shipbot.SlackIntegration.csproj", "{60ADE416-A272-4B93-BE12-A85A69D49A23}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.SlackIntegration", "src\Shipbot.SlackIntegration\Shipbot.SlackIntegration.csproj", "{60ADE416-A272-4B93-BE12-A85A69D49A23}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Data", "Shipbot.Data\Shipbot.Data.csproj", "{F0B6F78D-2D7E-42C1-8B46-FDDA983C2A14}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Data", "src\Shipbot.Data\Shipbot.Data.csproj", "{F0B6F78D-2D7E-42C1-8B46-FDDA983C2A14}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Host", "Shipbot.Host\Shipbot.Host.csproj", "{F49EC512-1841-42B7-A8B8-A06EC39DF5BB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.Host", "src\Shipbot.Host\Shipbot.Host.csproj", "{F49EC512-1841-42B7-A8B8-A06EC39DF5BB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
