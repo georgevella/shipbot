@@ -82,10 +82,10 @@ public class BaseCommand<TCommandHandler> : Command
         
         public Task Run(CancellationToken cancellationToken)
         {
-            foreach (var item in _configuration.AsEnumerable())
-            {
-                Console.WriteLine($"{item.Key}: {item.Value}");
-            }
+            // foreach (var item in _configuration.AsEnumerable())
+            // {
+            //     Console.WriteLine($"{item.Key}: {item.Value}");
+            // }
             
             Console.WriteLine("-----");
             Console.WriteLine($"Environment: {_hostEnvironment.EnvironmentName}");
@@ -140,6 +140,10 @@ public class BaseCommand<TCommandHandler> : Command
                                 builder
                                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                                     .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+                            })
+                            .ConfigureLogging((context, builder) =>
+                            {
+                                
                             })
                             .ConfigureServices((hostContext, services) =>
                             { ;

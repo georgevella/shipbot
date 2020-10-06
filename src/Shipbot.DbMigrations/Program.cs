@@ -30,8 +30,8 @@ namespace Shipbot.DbMigrations
                 })
                 .ConfigureServices((context, collection) =>
                 {
-                    collection.RegisterShipbotDeploymentComponents();
-                    collection.RegisterShipbotSlackIntegrationComponents();
+                    collection.RegisterDeploymentDataServices();
+                    collection.RegisterSlackIntegrationDataServices();
                     
                     collection.RegisterDbContext(
                         context.Configuration, 

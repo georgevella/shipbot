@@ -9,6 +9,13 @@ namespace Shipbot.SlackIntegration
 {
     public static class ShipbotSlackIntegrationServiceCollectionExtensions
     {
+        public static IServiceCollection RegisterSlackIntegrationDataServices(this IServiceCollection services)
+        {
+            services.AddDbContextConfigurator<SlackIntegrationDbContextConfigurator>();
+            
+            return services;
+        }
+        
         public static IServiceCollection RegisterShipbotSlackIntegrationComponents(this IServiceCollection services)
         {
             services.AddTransient<IHostedService, SlackIntegrationHostedService>();
@@ -22,10 +29,7 @@ namespace Shipbot.SlackIntegration
 
             services.AddScoped<ISlackCommandDispatcher, SlackCommandDispatcher>();
 
-            services.AddDbContextConfigurator<SlackIntegrationDbContextConfigurator>();
-
-
-            return services;
+            return services.RegisterSlackIntegrationDataServices();
         }
     }
 }

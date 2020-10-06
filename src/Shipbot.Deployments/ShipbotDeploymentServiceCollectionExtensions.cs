@@ -5,6 +5,12 @@ namespace Shipbot.Deployments
 {
     public static class ShipbotDeploymentServiceCollectionExtensions
     {
+        public static IServiceCollection RegisterDeploymentDataServices(this IServiceCollection services)
+        {
+            services.AddDbContextConfigurator<DeploymentsDbContextConfigurator>();
+            return services;
+        }
+        
         public static IServiceCollection RegisterShipbotDeploymentComponents(this IServiceCollection services)
         {
             services.AddScoped<IDeploymentNotificationBuilder, DeploymentNotificationBuilder>();
@@ -13,9 +19,8 @@ namespace Shipbot.Deployments
             services.AddScoped<IDeploymentQueueService, DeploymentQueueService>();
             services.AddScoped<IDeploymentService, DeploymentService>();
             services.AddScoped<IDeploymentWorkflowService, DeploymentWorkflowService>();
-            services.AddDbContextConfigurator<DeploymentsDbContextConfigurator>();
-            
-            return services;
+
+            return services.RegisterDeploymentDataServices();
         }
     }
 }
