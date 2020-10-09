@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -7,102 +8,68 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Data;
+using Slack.NetStandard;
+using Slack.NetStandard.Objects;
+using Slack.NetStandard.WebApi.Chat;
 using SlackAPI;
+using Channel = SlackAPI.Channel;
 
 namespace Shipbot.SlackIntegration.Internal
 {
-    public class SlackClient : ISlackClient, IDisposable
+    public class SlackClient : ISlackClient
     {
         private readonly ILogger<SlackClient> _log;
-        private readonly IOptions<SlackConfiguration> _slackConfiguration;
         private readonly IEntityRepository<Dao.SlackMessage> _slackMessageRepository;
         private readonly SlackTaskClient _actualClient;
-        private readonly int _timeout;
+        private readonly ISlackApiClient _netStandardSlackClient;
 
         public SlackClient(
             ILogger<SlackClient> log,
-            IOptions<SlackConfiguration> slackConfiguration,
             IEntityRepository<Dao.SlackMessage> slackMessageRepository,
-            SlackClientWrapper actualClient
+            SlackClientWrapper actualClient,
+            ISlackApiClient netStandardSlackClient
         )
         {
             _log = log;
-            _slackConfiguration = slackConfiguration;
             _slackMessageRepository = slackMessageRepository;
             _actualClient = actualClient;
-            _timeout = slackConfiguration.Value.Timeout;
-            
+            _netStandardSlackClient = netStandardSlackClient;
         }
         
-//        private Task<IEnumerable<Channel>> GetPublicChannels()
-//        {
-//            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
-//
-//            try
-//            {
-//                _actualClient.GetChannelList(
-//                    response =>
-//                    {
-//                        if (response.ok)
-//                        {
-//                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.channels));
-//                        }
-//                        else
-//                        {
-//                            tsc.SetException(new InvalidOperationException($"SLACKCLIENT ERROR: {response.error}"));
-//                        }
-//                    }
-//                );
-//            }
-//            catch (Exception e)
-//            {
-//                tsc.SetException(e);
-//            }
-//
-//            return tsc.Task;
-//        }
-//        
-//        private Task<IEnumerable<Channel>> GetPrivateChannels()
-//        {
-//            var tsc = new TaskCompletionSource<IEnumerable<Channel>>();
-//
-//            try
-//            {
-//                _actualClient.GetGroupsListAsync()
-//                _actualClient.GetGroupsListAsync(
-//                    response =>
-//                    {
-//                        if (response.ok)
-//                        {
-//                            tsc.SetResult(new ReadOnlyCollection<Channel>(response.groups));
-//                        }
-//                        else
-//                        {
-//                            tsc.SetException(new InvalidOperationException($"SLACKCLIENT ERROR: {response.error}"));
-//                        }
-//                    }
-//                );
-//            }
-//            catch (Exception e)
-//            {
-//                tsc.SetException(e);
-//            }
-//
-//            return tsc.Task;
-//        }
+        private Task<IEnumerable<Channel>> GetPublicChannels()
+        {
+            return Task.FromResult(_actualClient.Channels.AsEnumerable());
+        }
+        
+        private Task<IEnumerable<Channel>> GetPrivateChannels()
+        {
+            return Task.FromResult(Enumerable.Empty<Channel>());
+        }
 
-//        private async Task<IEnumerable<Channel>> GetChannels()
-//        {
-//            var publicChannels = await GetPublicChannels();
-//            var privateChannels = await GetPrivateChannels();
-//
-//            return privateChannels.Concat(publicChannels).ToArray();
-//        }
+        public async Task<IEnumerable<Channel>> GetChannels()
+        {
+            var publicChannels = await GetPublicChannels();
+            var privateChannels = await GetPrivateChannels();
+
+            return privateChannels.Concat(publicChannels).ToArray();
+        }
+
+        public async Task<IEnumerable<(string name, string description)>> GetAllUserGroupNames()
+        {
+            var userGroups = await _netStandardSlackClient.Usergroups.List();
+
+            if (userGroups.OK)
+            {
+                return userGroups.Usergroups.Select(u => (u.Name, u.Description)).ToList();
+            }
+            
+            throw new Exception("Failed to get user groups");
+        }
 
         public async Task<IMessageHandle> PostMessageAsync(string channelId, IMessage message)
         {
             var actualMessage = (SlackMessage) message;
-            
+
             var messageResponse = await _actualClient.PostMessageAsync(
                 channelId,
                 actualMessage.Message,
@@ -110,7 +77,7 @@ namespace Shipbot.SlackIntegration.Internal
             );
 
 
-            if (!messageResponse.ok || string.IsNullOrEmpty(messageResponse.error))
+            if (!messageResponse.ok || !string.IsNullOrEmpty(messageResponse.error))
             {
                 _log.LogError("Failed to send message via Slack [{error}]", messageResponse.error);
                 throw new InvalidOperationException($"Failed to send message via Slack [{messageResponse.error}]");

@@ -50,9 +50,9 @@ namespace Shipbot.Tests
             });
             var client = new SlackClient(
                 log,
-                slackConfiguration, 
                 repo,
-                new SlackClientWrapper(slackConfiguration)
+                new SlackClientWrapper(slackConfiguration),
+                new SlackApiClientWrapper(slackConfiguration)
                 );
 
             // run

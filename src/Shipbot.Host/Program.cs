@@ -19,7 +19,8 @@ using Shipbot.SlackIntegration;
 
 namespace Shipbot.Host
 {
-public class BaseCommand<TCommandHandler> : Command
+    
+    public class BaseCommand<TCommandHandler> : Command
         where TCommandHandler : ICommandHandler
     {
         public BaseCommand(string name, string? alias = null, string? description = null) : base(name, description)
@@ -82,12 +83,10 @@ public class BaseCommand<TCommandHandler> : Command
         
         public Task Run(CancellationToken cancellationToken)
         {
-            // foreach (var item in _configuration.AsEnumerable())
-            // {
-            //     Console.WriteLine($"{item.Key}: {item.Value}");
-            // }
             
-            Console.WriteLine("-----");
+            
+            Console.WriteLine("Describing the environment where the shipbot runtime is running: ");
+            
             Console.WriteLine($"Environment: {_hostEnvironment.EnvironmentName}");
             Console.WriteLine($"Application Name: {_hostEnvironment.ApplicationName}");
             Console.WriteLine($"Shipbot Connection string: {_configuration.GetShipbotConnectionString()}");

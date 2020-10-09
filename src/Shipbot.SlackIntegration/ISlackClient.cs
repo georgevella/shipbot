@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shipbot.Models;
+using SlackAPI;
 
 namespace Shipbot.SlackIntegration
 {
@@ -20,5 +22,7 @@ namespace Shipbot.SlackIntegration
         Task<IMessageHandle> PostMessageAsync(string channelId, IMessage message);
         Task<IMessageHandle> UpdateMessageAsync(IMessageHandle messageHandle, IMessage handle);
         Task<IMessageHandle> SendMessage(string channel, string message);
+        Task<IEnumerable<Channel>> GetChannels();
+        Task<IEnumerable<(string name, string description)>> GetAllUserGroupNames();
     }
 }

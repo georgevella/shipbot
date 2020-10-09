@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
 using Shipbot.ContainerRegistry;
 using Shipbot.ContainerRegistry.Models;
-using Shipbot.ContainerRegistry.Services;
 using Shipbot.Deployments;
+using Shipbot.SlackIntegration;
 
 namespace Shipbot.Controller.Controllers
 {
@@ -18,18 +18,22 @@ namespace Shipbot.Controller.Controllers
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly INewContainerImageService _newContainerImageService;
+        private readonly ISlackClient _slackClient;
 
         public DiagnosticsController(
             IApplicationService applicationService,
             IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
-            INewContainerImageService newContainerImageService
+            INewContainerImageService newContainerImageService,
+            ISlackClient slackClient
+            
             )
         {
             _applicationService = applicationService;
             _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
             _newContainerImageService = newContainerImageService;
+            _slackClient = slackClient;
         }
         
         [HttpPost("deployment-notifications")]
@@ -61,6 +65,13 @@ namespace Shipbot.Controller.Controllers
             );
 
             return Ok(result);
+        }
+
+        [HttpGet("slack/user-groups")]
+        public async Task<ActionResult> GetSlackUserGroups()
+        {
+            var result = await _slackClient.GetAllUserGroupNames();
+            return Ok(result.Select(x => x.name));
         }
     }
 }

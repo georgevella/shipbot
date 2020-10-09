@@ -11,4 +11,9 @@ namespace Shipbot.SlackIntegration
     {
         
     }
+
+    public interface ISlackUserRoleService
+    {
+        
+    }
 }

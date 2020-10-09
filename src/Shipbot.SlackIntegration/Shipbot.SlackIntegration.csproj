@@ -9,8 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.7" />
-    <PackageReference Include="Slack.NetStandard" Version="2.1.0" />
-    <PackageReference Include="SlackAPI" Version="1.1.7" />
+    <PackageReference Include="Slack.NetStandard" Version="2.5.1" />
+    <PackageReference Include="SlackAPI" Version="1.1.9" />
   </ItemGroup>
 
   <ItemGroup>

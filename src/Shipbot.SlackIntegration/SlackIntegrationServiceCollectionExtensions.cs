@@ -4,6 +4,7 @@ using Shipbot.SlackIntegration.Commands;
 using Shipbot.SlackIntegration.Events;
 using Shipbot.SlackIntegration.Events.EventHandlers;
 using Shipbot.SlackIntegration.Internal;
+using Slack.NetStandard;
 
 namespace Shipbot.SlackIntegration
 {
@@ -20,7 +21,9 @@ namespace Shipbot.SlackIntegration
         {
             services.AddTransient<IHostedService, SlackIntegrationHostedService>();
 
+            // we make use of two libraries for slack comms
             services.AddSingleton<SlackClientWrapper>();
+            services.AddSingleton<ISlackApiClient, SlackApiClientWrapper>();
             
             services.AddScoped<ISlackClient, SlackClient>();
 

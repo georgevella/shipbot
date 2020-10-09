@@ -18,6 +18,7 @@ namespace Shipbot.SlackIntegration.Dao
             get => LazyLoader.Load( this, ref _message);
             set => _message = value;
         }
+        
         public Guid MessageId { get; set; }
         
         public DateTimeOffset CreationDateTime { get; set; }
