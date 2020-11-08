@@ -30,7 +30,7 @@ namespace Shipbot.JobScheduling
 
             if (job == null)
             {
-                throw new InvalidOperationException($"Job '{jobType.ToString()}' not resolved");
+                throw new InvalidOperationException($"Job '{jobType}' not resolved");
             }
 
             return (IJob) Activator.CreateInstance(wrapperType, logger, scope, job, bundle.JobDetail);
@@ -77,6 +77,7 @@ namespace Shipbot.JobScheduling
                     catch (Exception e)
                     {
                         _logger.LogError($"Unhandled job exception ({e.GetType()}) [{e.Message}]", e);
+                        throw;
                     }
                 }
             }

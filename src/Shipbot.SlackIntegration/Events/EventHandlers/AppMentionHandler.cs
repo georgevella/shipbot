@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Shipbot.SlackIntegration.Commands;
+using Slack.NetStandard;
 using Slack.NetStandard.EventsApi.CallbackEvents;
 
 namespace Shipbot.SlackIntegration.Events.EventHandlers
@@ -12,16 +13,19 @@ namespace Shipbot.SlackIntegration.Events.EventHandlers
     {
         private readonly ISlackClient _slackClient;
         private readonly ISlackCommandDispatcher _slackCommandDispatcher;
-        
+        private readonly ISlackApiClient _slackApiClient;
+
         private static readonly Regex FormattingFilter = new Regex(@"<(?<type>[@#!])?(?<link>[^>|]+)(?:\|(?<label>[^>]+))?>");
 
         public AppMentionHandler(
             ISlackClient slackClient, 
-            ISlackCommandDispatcher slackCommandDispatcher
+            ISlackCommandDispatcher slackCommandDispatcher,
+            ISlackApiClient slackApiClient
             )
         {
             _slackClient = slackClient;
             _slackCommandDispatcher = slackCommandDispatcher;
+            _slackApiClient = slackApiClient;
         }
         
         private string RemoveFormatting(string text)
@@ -71,7 +75,7 @@ namespace Shipbot.SlackIntegration.Events.EventHandlers
 
         }
 
-        protected override async Task Invoke(AppMention callbackEvent)
+        public override async Task Process(AppMention callbackEvent)
         {
             if (callbackEvent.Text.Contains("hello"))
             {

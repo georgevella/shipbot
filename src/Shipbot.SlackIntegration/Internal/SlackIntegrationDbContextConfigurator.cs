@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Shipbot.Data;
 
-namespace Shipbot.SlackIntegration
+namespace Shipbot.SlackIntegration.Internal
 {
     public class SlackIntegrationDbContextConfigurator : IDbContextConfigurator
     {

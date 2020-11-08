@@ -14,16 +14,19 @@ namespace Shipbot.SlackIntegration
         private readonly ILogger<SlackIntegrationHostedService> _log;
         private readonly IOptions<SlackConfiguration> _slackConfiguration;
         private readonly SlackClientWrapper _slackClientWrapper;
+        private readonly IAppHomeManager _appHomeManager;
 
         public SlackIntegrationHostedService(
             ILogger<SlackIntegrationHostedService> log,
             IOptions<SlackConfiguration> slackConfiguration,
-            SlackClientWrapper slackClientWrapper
+            SlackClientWrapper slackClientWrapper,
+            IAppHomeManager appHomeManager
             )
         {
             _log = log;
             _slackConfiguration = slackConfiguration;
             _slackClientWrapper = slackClientWrapper;
+            _appHomeManager = appHomeManager;
         }
         
         public Task StartAsync(CancellationToken cancellationToken)

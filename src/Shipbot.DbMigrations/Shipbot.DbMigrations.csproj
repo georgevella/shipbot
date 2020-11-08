@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Shipbot.Data\Shipbot.Data.csproj" />
     <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
   </ItemGroup>

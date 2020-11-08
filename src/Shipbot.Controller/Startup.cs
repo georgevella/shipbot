@@ -27,6 +27,7 @@ using Shipbot.Deployments;
 using Shipbot.JobScheduling;
 using Shipbot.SlackIntegration;
 using Shipbot.SlackIntegration.Commands;
+using Shipbot.SlackIntegration.ExternalOptions;
 using Slack.NetStandard.JsonConverters;
 
 namespace Shipbot.Controller
@@ -80,17 +81,15 @@ namespace Shipbot.Controller
             services.AddSingleton<IApplicationStore, InMemoryApplicationStore>();
             services.AddScoped<IApplicationService, ApplicationService>();
             services.AddTransient<ISlackCommandHandler, GetCurrentApplicationTags>();
+            services.AddTransient<ISlackExternalOptionsSource, ApplicationIdsExternalOptionsSource>();
+            services.AddTransient<ISlackExternalOptionsSource, ApplicationRepositoriesExternalOptionsSource>();
 
-            // quartz
-            services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
-            services.AddSingleton<IScheduler, DependencyInjectionQuartzScheduler>();
-            services.AddSingleton<IJobFactory, DependencyInjectionQuartzJobFactory>();
-
-            // container registry
-            services.RegisterShipbotContainerRegistryComponents();
-            services.RegisterShipbotDeploymentComponents();
+            // setup modules
+            services.RegisterJobSchedulerServices(Configuration);
+            services.RegisterContainerRegistryComponents();
+            services.RegisterDeploymentComponents();
             services.RegisterShipbotSlackIntegrationComponents();
-            
+
             // setup data services
             services.RegisterDbContext(Configuration);
 

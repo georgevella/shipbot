@@ -11,7 +11,13 @@ namespace Shipbot.ContainerRegistry
 {
     public static class ContainerRegistryServiceCollectionExtensions
     {
-        public static IServiceCollection RegisterShipbotContainerRegistryComponents(this IServiceCollection services)
+        public static IServiceCollection RegisterContainerRegistryDataServices(this IServiceCollection services)
+        {
+            services.AddDbContextConfigurator<DbContextConfigurator>();
+            return services;
+        }
+        
+        public static IServiceCollection RegisterContainerRegistryComponents(this IServiceCollection services)
         {
             services.AddSingleton<IRegistryClientPool, RegistryClientPool>();
 
@@ -24,7 +30,7 @@ namespace Shipbot.ContainerRegistry
 
             services.AddHostedService<ContainerRegistryHostedService>();
 
-            return services;
+            return services.RegisterContainerRegistryDataServices();
         }
     }
 }

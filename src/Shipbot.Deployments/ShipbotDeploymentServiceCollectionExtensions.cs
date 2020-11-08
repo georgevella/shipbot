@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shipbot.Deployments.Internals;
+using Shipbot.Deployments.Slack;
+using Shipbot.SlackIntegration.Interaction;
 
 namespace Shipbot.Deployments
 {
@@ -11,7 +13,7 @@ namespace Shipbot.Deployments
             return services;
         }
         
-        public static IServiceCollection RegisterShipbotDeploymentComponents(this IServiceCollection services)
+        public static IServiceCollection RegisterDeploymentComponents(this IServiceCollection services)
         {
             services.AddScoped<IDeploymentNotificationBuilder, DeploymentNotificationBuilder>();
             services.AddScoped<IDeploymentNotificationService, DeploymentNotificationService>();
@@ -19,6 +21,11 @@ namespace Shipbot.Deployments
             services.AddScoped<IDeploymentQueueService, DeploymentQueueService>();
             services.AddScoped<IDeploymentService, DeploymentService>();
             services.AddScoped<IDeploymentWorkflowService, DeploymentWorkflowService>();
+
+            services.AddTransient<ISlackGlobalShortcutHandler, ManageDeploymentShortcutHandler>();
+            
+            services.AddTransient<ISlackActionHandler, DeployActionHandler>();
+            services.AddTransient<ISlackActionHandler, AppNameSelectionActionHandler>();
 
             return services.RegisterDeploymentDataServices();
         }

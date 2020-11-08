@@ -39,13 +39,18 @@ namespace Shipbot.Controller.Core.ApplicationSources
         
         public async Task AddApplicationSource(string applicationName, ApplicationSourceSettings applicationSourceSettings)
         {
-            if (await _scheduler.CheckExists(new JobKey($"gitclone-{applicationName}", Constants.SchedulerGroup)))
+            var jobKey = new JobKey($"gitclone-{applicationName}", Constants.SchedulerGroup);
+            if (await _scheduler.CheckExists(jobKey))
             {
-                throw new Exception();
+                var triggers = await _scheduler.GetTriggersOfJob(jobKey);
+                foreach (var trigger in triggers)
+                {
+                    await _scheduler.UnscheduleJob(trigger.Key);
+                }
+                await _scheduler.DeleteJob(new JobKey($"gitclone-{applicationName}", Constants.SchedulerGroup));
             }
             
             var conf = _configuration.Value;
-
             var applicationSource = applicationSourceSettings.Type switch {
                 ApplicationSourceType.Helm => (ApplicationSource) new HelmApplicationSource(
                     applicationName,

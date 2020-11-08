@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Shipbot.ContainerRegistry;
 using Shipbot.Deployments;
 using Shipbot.SlackIntegration;
 
@@ -32,6 +33,7 @@ namespace Shipbot.DbMigrations
                 {
                     collection.RegisterDeploymentDataServices();
                     collection.RegisterSlackIntegrationDataServices();
+                    collection.RegisterContainerRegistryDataServices();
                     
                     collection.RegisterDbContext(
                         context.Configuration, 

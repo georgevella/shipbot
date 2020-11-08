@@ -184,7 +184,7 @@ namespace Shipbot.Host
                 )
                 .ConfigureServices((context, collection) =>
                 {
-                    collection.RegisterShipbotDeploymentComponents();
+                    collection.RegisterDeploymentComponents();
                     collection.RegisterShipbotSlackIntegrationComponents();
 
                     collection.RegisterDbContext(

@@ -18,7 +18,6 @@ namespace Shipbot.JobScheduling
             scheduler.JobFactory = jobFactory;
             scheduler.Start();
             
-            
             _schedulerImplementation = scheduler;
         }
         

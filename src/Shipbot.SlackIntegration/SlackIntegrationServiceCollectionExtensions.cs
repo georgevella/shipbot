@@ -3,6 +3,9 @@ using Microsoft.Extensions.Hosting;
 using Shipbot.SlackIntegration.Commands;
 using Shipbot.SlackIntegration.Events;
 using Shipbot.SlackIntegration.Events.EventHandlers;
+using Shipbot.SlackIntegration.ExternalOptions;
+using Shipbot.SlackIntegration.Interaction;
+using Shipbot.SlackIntegration.Interaction.Dispatchers;
 using Shipbot.SlackIntegration.Internal;
 using Slack.NetStandard;
 
@@ -25,12 +28,21 @@ namespace Shipbot.SlackIntegration
             services.AddSingleton<SlackClientWrapper>();
             services.AddSingleton<ISlackApiClient, SlackApiClientWrapper>();
             
+
+            services.AddTransient<IAppHomeManager, AppHomeManager>();
             services.AddScoped<ISlackClient, SlackClient>();
 
+            // event handlers
             services.AddTransient<ISlackEventHandler, AppMentionHandler>();
+            services.AddTransient<ISlackEventHandler, AppHomeOpenedEventHandler>();
+            
+            
+            // dispatchers!
             services.AddScoped<ISlackEventDispatcher, SlackEventDispatcher>();
-
+            services.AddScoped<ISlackShortcutInteractionDispatcher, ShortcutInteractionDispatcher>();
             services.AddScoped<ISlackCommandDispatcher, SlackCommandDispatcher>();
+            services.AddScoped<ISlackExternalOptionsProvider, ExternalOptionsProvider>();
+            services.AddScoped<ISlackInteractionActionDispatcher, InteractionActionDispatcher>();
 
             return services.RegisterSlackIntegrationDataServices();
         }
