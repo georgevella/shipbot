@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Shipbot.Controller.Core.Configuration;
 using Shipbot.SlackIntegration.Commands;
 using Shipbot.SlackIntegration.Events;
 using Shipbot.SlackIntegration.Events.EventHandlers;
@@ -20,8 +22,10 @@ namespace Shipbot.SlackIntegration
             return services;
         }
         
-        public static IServiceCollection RegisterShipbotSlackIntegrationComponents(this IServiceCollection services)
+        public static IServiceCollection RegisterShipbotSlackIntegrationComponents(this IServiceCollection services, IConfiguration configuration)
         {
+            services.Configure<SlackConfiguration>(configuration.GetSection("Slack"));
+
             services.AddTransient<IHostedService, SlackIntegrationHostedService>();
 
             // we make use of two libraries for slack comms

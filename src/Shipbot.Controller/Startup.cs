@@ -70,7 +70,6 @@ namespace Shipbot.Controller
 
             services.AddSwaggerGenNewtonsoftSupport();
             services.Configure<ShipbotConfiguration>(Configuration.GetSection("Shipbot"));
-            services.Configure<SlackConfiguration>(Configuration.GetSection("Slack"));
 
             // application sources
             services.AddScoped<IApplicationSourceService, ApplicationSourceService>();
@@ -88,7 +87,7 @@ namespace Shipbot.Controller
             services.RegisterJobSchedulerServices(Configuration);
             services.RegisterContainerRegistryComponents();
             services.RegisterDeploymentComponents();
-            services.RegisterShipbotSlackIntegrationComponents();
+            services.RegisterShipbotSlackIntegrationComponents(Configuration);
 
             // setup data services
             services.RegisterDbContext(Configuration);
