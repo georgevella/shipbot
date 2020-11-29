@@ -1,7 +1,10 @@
+using System.IO;
 using System.Threading.Tasks;
+using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shipbot.JobScheduling;
+using Shipbot.Models;
 
 namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
@@ -19,24 +22,50 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _scheduler = scheduler;
         }
 
-        public override async Task Execute(ApplicationSourceTrackingContext data)
+        public override async Task Execute(ApplicationSourceTrackingContext context)
         {
-            var repository = data.ApplicationSource.Repository;
-
+            var repository = context.ApplicationSource.Repository;
             
+            _log.LogInformation("Checkout repository containing application declaration");
+            var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
+
+            if (Directory.Exists(context.GitRepositoryPath))
+            {
+                _log.LogInformation("Removing local copy of git repository",
+                    repository.Uri,
+                    context.GitRepositoryPath);
+                Directory.Delete(context.GitRepositoryPath, true);
+            }
+
+            _log.LogInformation("Cloning {Repository} into {Path}",
+                repository.Uri,
+                context.GitRepositoryPath);
+
+            Repository.Clone(
+                repository.Uri.ToString(),
+                context.GitRepositoryPath,
+                new CloneOptions()
+                {
+                    CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                    {
+                        Username = credentials.Username,
+                        Password = credentials.Password
+                    }
+                });
+
             _log.LogInformation("Starting sync-job for {Repository} in {Path}",
                 repository.Uri,
-                data.GitRepositoryPath
+                context.GitRepositoryPath
             );
 
             var job = JobFactory.BuildJobWithData<GitRepositorySyncJob, ApplicationSourceTrackingContext>(
-                $"gitwatch-{data.ApplicationName}", 
+                $"gitwatch-{context.ApplicationName}", 
                 Constants.SchedulerGroup, 
-                data
+                context
                 );
 
             var trigger = TriggerBuilder.Create()
-                .WithIdentity($"gitwatch-trig-{data.ApplicationName}", Constants.SchedulerGroup)
+                .WithIdentity($"gitwatch-trig-{context.ApplicationName}", Constants.SchedulerGroup)
                 .StartNow()
                 .WithSimpleSchedule(x => x
                     .WithIntervalInSeconds(10)

@@ -19,9 +19,9 @@ namespace Shipbot.Controller.Core.ApplicationSources
 
         public string GitSyncJobId { get; } 
 
-        public ApplicationSourceTrackingContext(string applicationName, ApplicationSource applicationSource)
+        public ApplicationSourceTrackingContext(string applicationName, ApplicationSource applicationSource, string checkoutPath)
         {
-            GitRepositoryPath = Path.Combine(Path.GetTempPath(), $"{applicationName}__{applicationSource.Repository.Ref}");
+            GitRepositoryPath = checkoutPath;
             ApplicationName = applicationName;
             ApplicationSource = applicationSource;
             GitSyncJobId = $"{ApplicationName}-gitsync-job";

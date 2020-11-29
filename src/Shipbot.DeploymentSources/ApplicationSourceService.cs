@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -71,7 +72,11 @@ namespace Shipbot.Controller.Core.ApplicationSources
                 _ => throw new InvalidOperationException() 
             };
             
-            var context = new ApplicationSourceTrackingContext(applicationName, applicationSource);
+            var context = new ApplicationSourceTrackingContext(
+                applicationName, 
+                applicationSource,
+                Path.Combine(Path.GetTempPath(), $"sb-{Guid.NewGuid()}-{applicationName}-{applicationSource.Repository.Ref}")
+                );
 
             await _scheduler.TriggerJobOnce<GitRepositoryCheckoutJob, ApplicationSourceTrackingContext>(
                 $"gitclone-{applicationName}",
