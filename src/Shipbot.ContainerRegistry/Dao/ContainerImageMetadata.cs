@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shipbot.ContainerRegistry.Dao
@@ -6,6 +7,7 @@ namespace Shipbot.ContainerRegistry.Dao
     [Table("containerImageMetadata")]
     public class ContainerImageMetadata
     {
+        [Key]
         public Guid Id { get; set; }
         
         public Guid RepositoryId { get; set; }

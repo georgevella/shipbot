@@ -25,6 +25,8 @@ namespace Shipbot.ContainerRegistry
             services.AddSingleton<IRegistryWatcher, ContainerRegistryTrackingService>();
 
             services.AddTransient<INewContainerImageService, NewContainerImageService>();
+
+            services.AddScoped<ILocalContainerMetadataService, LocalContainerMetadataService>();
             
             services.AddTransient<ContainerRegistryPollingJob>();
 

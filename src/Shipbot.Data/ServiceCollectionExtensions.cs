@@ -53,7 +53,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     // .UseLoggerFactory(MyLoggerFactory)
                     // .EnableSensitiveDataLogging()
                     .UseNpgsql(
-                        configuration.GetShipbotConnectionString(),
+                        configuration.GetShipbotConnectionString(), 
                         optionsBuilderFunc
                     )
             );

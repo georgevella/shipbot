@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
 using Shipbot.ContainerRegistry;
 using Shipbot.ContainerRegistry.Models;
+using Shipbot.ContainerRegistry.Services;
+using Shipbot.Controller.DTOs;
 using Shipbot.Deployments;
 using Shipbot.SlackIntegration;
 
@@ -19,21 +21,23 @@ namespace Shipbot.Controller.Controllers
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly INewContainerImageService _newContainerImageService;
         private readonly ISlackClient _slackClient;
+        private readonly ILocalContainerMetadataService _localContainerMetadataService;
 
         public DiagnosticsController(
             IApplicationService applicationService,
             IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
             INewContainerImageService newContainerImageService,
-            ISlackClient slackClient
-            
-            )
+            ISlackClient slackClient,
+            ILocalContainerMetadataService localContainerMetadataService
+        )
         {
             _applicationService = applicationService;
             _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
             _newContainerImageService = newContainerImageService;
             _slackClient = slackClient;
+            _localContainerMetadataService = localContainerMetadataService;
         }
         
         [HttpPost("deployment-notifications")]
@@ -65,6 +69,46 @@ namespace Shipbot.Controller.Controllers
             );
 
             return Ok(result);
+        }
+        
+        [HttpGet("container-image-local-store")]
+        public async Task<ActionResult> GetContainerImageIntoLocalStore([FromQuery] string repository)
+        {
+            var containerImages = await _localContainerMetadataService.GetTagsForRepository(repository);
+
+            return Ok(containerImages
+                .Select(x => new ContainerImageDto()
+                {
+                    Hash = x.Hash,
+                    Repository = x.Repository,
+                    Tag = x.Tag,
+                    CreationDateTime = x.CreationDateTime
+                })
+                .ToList()
+            );
+        }
+
+        [HttpPost("container-image-local-store")]
+        public async Task<ActionResult> AddContainerImageIntoLocalStore(ContainerImageDto dto)
+        {
+            var containerImage = new ContainerImage(dto.Repository, dto.Tag, dto.Hash, dto.CreationDateTime);
+
+            await _localContainerMetadataService.AddOrUpdate(containerImage);
+            
+            var containerImages = await _localContainerMetadataService
+                .GetTagsForRepository(containerImage.Repository);
+
+            return Ok(
+                containerImages
+                    .Select(x => new ContainerImageDto()
+                    {
+                        Hash = x.Hash,
+                        Repository = x.Repository,
+                        Tag = x.Tag,
+                        CreationDateTime = x.CreationDateTime
+                    })
+                    .ToList()
+            );
         }
 
         [HttpGet("slack/user-groups")]

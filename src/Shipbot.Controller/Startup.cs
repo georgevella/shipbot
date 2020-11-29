@@ -90,7 +90,7 @@ namespace Shipbot.Controller
             services.RegisterShipbotSlackIntegrationComponents(Configuration);
 
             // setup data services
-            services.RegisterDbContext(Configuration);
+            services.RegisterDbContext(Configuration) ;
 
             services.AddTransient<IHostedService, OperatorStartup>();
             services.AddTransient<IHostedService, ShipbotApplicationsHostedService>();

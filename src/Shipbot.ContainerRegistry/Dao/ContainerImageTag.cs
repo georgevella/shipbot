@@ -11,6 +11,7 @@ namespace Shipbot.ContainerRegistry.Dao
         public Guid RepositoryId { get; set; }
         public ContainerImageRepository Repository { get; set; }
         
+        public Guid MetadataId { get; set; }
         public ContainerImageMetadata Metadata { get; set; }
         
         public string Tag { get; set; }

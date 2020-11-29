@@ -13,11 +13,13 @@ namespace Shipbot.ContainerRegistry.Internals
         public void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ContainerImageRepository>()
-                .HasIndex(repository => repository.Name);
+                .HasIndex(repository => repository.Name)
+                .IsUnique();
 
             modelBuilder.Entity<ContainerImageMetadata>()
                 .HasIndex(x => x.RepositoryId)
                 .IsUnique(false);
+
             modelBuilder.Entity<ContainerImageMetadata>()
                 .HasIndex(x => new {x.RepositoryId, x.Hash})
                 .IsUnique();
@@ -25,10 +27,10 @@ namespace Shipbot.ContainerRegistry.Internals
             modelBuilder.Entity<ContainerImageTag>()
                 .HasIndex(x => new {x.RepositoryId, x.Tag})
                 .IsUnique();
-            
+
             modelBuilder.Entity<ContainerImageTag>()
-                .HasIndex(x => new {x.RepositoryId, x.Tag})
-                .IsUnique(false);
+                .HasIndex(x => new {x.RepositoryId, x.MetadataId})
+                .IsUnique();
 
         }
     }
