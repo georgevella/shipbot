@@ -64,6 +64,36 @@ namespace Shipbot.JobScheduling
             return scheduler.ScheduleJob(jobDetail, trigger);
         }
 
+        public static Task<bool> CheckJobExists<TJob>(this IScheduler scheduler, string name, string group)
+            where TJob : IJob
+        {
+            var jobDetail = JobBuilder.Create<TJob>()
+                .WithIdentity(name, group)
+                .Build();
+
+            return scheduler.CheckExists(jobDetail.Key);
+        }
+        
+        public static Task StartRecurringJob<TJob>(this IScheduler scheduler, string name, string group, TimeSpan recurrenceSchedule) 
+            where TJob : IJob
+        {
+            var jobDetail = JobBuilder.Create<TJob>()
+                .WithIdentity(name, group)
+                .Build();
+            
+            var trigger = TriggerBuilder.Create()
+                .WithIdentity($"{jobDetail.Key}-trigger", jobDetail.Key.Group)
+                .StartNow()
+                .WithSimpleSchedule(x => x
+                    .WithInterval(recurrenceSchedule)
+                    .RepeatForever()
+                )
+                .ForJob(jobDetail)
+                .Build();
+
+            return scheduler.ScheduleJob(jobDetail, trigger);
+        }
+
         public static async Task StopRecurringJob(this IScheduler scheduler, string name, string group)
         {
             var jobKey = new JobKey(name, group);

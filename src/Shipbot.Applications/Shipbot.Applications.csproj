@@ -12,9 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
     <ProjectReference Include="..\Shipbot.Models\Shipbot.Models.csproj" />
     <ProjectReference Include="..\Shipbot.SlackIntegration\Shipbot.SlackIntegration.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Internal\Jobs" />
   </ItemGroup>
 
 </Project>

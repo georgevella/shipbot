@@ -5,8 +5,10 @@ namespace Shipbot.Contracts
 {
     public interface IRegistryWatcher
     {
-        Task StartWatchingImageRepository(Application application);
-        Task StopWatchingImageRepository(Application application);
+        Task StopWatchingImageRepository(string containerImageRepository);
         Task Shutdown();
+        Task StartWatchingImageRepository(string containerImageRepository);
+
+        Task<bool> IsWatched(string containerImageRepository);
     }
 }

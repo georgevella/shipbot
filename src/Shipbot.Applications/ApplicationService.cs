@@ -38,16 +38,30 @@ namespace Shipbot.Applications
                 throw new Exception($"An application with the name '{name}' already exists.");
             }
 
+            var applicationImages = applicationDefinition.Images.Select(imageSettings => new ApplicationImage(
+                imageSettings.Repository,
+                new TagProperty(
+                    imageSettings.TagProperty.Path,
+                    imageSettings.TagProperty.ValueFormat
+                ),
+                imageSettings.Policy switch
+                {
+                    UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
+                        imageSettings.Pattern),
+                    UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
+                    _ => throw new NotImplementedException()
+                },
+                new DeploymentSettings(applicationDefinition.AutoDeploy, applicationDefinition.AutoDeploy)
+            )).ToList();
+
             var application = new Application(
                 name,
-                applicationDefinition.Images.Select(imageSettings => (ApplicationImage) imageSettings).ToImmutableList(),
-                // applicationSource,
-                applicationDefinition.AutoDeploy,
+                applicationImages,
                 new NotificationSettings(applicationDefinition.SlackChannel)
             );
 
             _applicationStore.AddApplication(application);
-
+            
             return application;
         }
 

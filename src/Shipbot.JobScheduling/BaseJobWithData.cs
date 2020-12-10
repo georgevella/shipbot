@@ -15,4 +15,14 @@ namespace Shipbot.JobScheduling
             return Execute(data);
         }
     }
+
+    public abstract class BaseJob : IJob
+    {
+        public abstract Task Execute();
+
+        Task IJob.Execute(IJobExecutionContext context)
+        {
+            return Execute();
+        }
+    }
 }

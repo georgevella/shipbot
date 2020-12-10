@@ -15,6 +15,7 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Shipbot.Applications;
+using Shipbot.Applications.Internal;
 using Shipbot.Applications.Slack;
 using Shipbot.ContainerRegistry;
 using Shipbot.Contracts;
@@ -93,7 +94,7 @@ namespace Shipbot.Controller
             services.RegisterDbContext(Configuration) ;
 
             services.AddTransient<IHostedService, OperatorStartup>();
-            services.AddTransient<IHostedService, ShipbotApplicationsHostedService>();
+            services.AddTransient<IHostedService, ConfigurationSourceApplicationLoader>();
             services.AddTransient<IHostedService, DeploymentSourcesHostedService>();
 
             services.RegisterMediator(

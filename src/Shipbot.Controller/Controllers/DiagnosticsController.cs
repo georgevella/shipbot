@@ -21,7 +21,7 @@ namespace Shipbot.Controller.Controllers
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly INewContainerImageService _newContainerImageService;
         private readonly ISlackClient _slackClient;
-        private readonly ILocalContainerMetadataService _localContainerMetadataService;
+        private readonly IContainerImageMetadataService _containerImageMetadataService;
 
         public DiagnosticsController(
             IApplicationService applicationService,
@@ -29,7 +29,7 @@ namespace Shipbot.Controller.Controllers
             IDeploymentNotificationService deploymentNotificationService,
             INewContainerImageService newContainerImageService,
             ISlackClient slackClient,
-            ILocalContainerMetadataService localContainerMetadataService
+            IContainerImageMetadataService containerImageMetadataService
         )
         {
             _applicationService = applicationService;
@@ -37,7 +37,7 @@ namespace Shipbot.Controller.Controllers
             _deploymentNotificationService = deploymentNotificationService;
             _newContainerImageService = newContainerImageService;
             _slackClient = slackClient;
-            _localContainerMetadataService = localContainerMetadataService;
+            _containerImageMetadataService = containerImageMetadataService;
         }
         
         [HttpPost("deployment-notifications")]
@@ -74,7 +74,7 @@ namespace Shipbot.Controller.Controllers
         [HttpGet("container-image-local-store")]
         public async Task<ActionResult> GetContainerImageIntoLocalStore([FromQuery] string repository)
         {
-            var containerImages = await _localContainerMetadataService.GetTagsForRepository(repository);
+            var containerImages = await _containerImageMetadataService.GetTagsForRepository(repository);
 
             return Ok(containerImages
                 .Select(x => new ContainerImageDto()
@@ -93,9 +93,9 @@ namespace Shipbot.Controller.Controllers
         {
             var containerImage = new ContainerImage(dto.Repository, dto.Tag, dto.Hash, dto.CreationDateTime);
 
-            await _localContainerMetadataService.AddOrUpdate(containerImage);
+            await _containerImageMetadataService.AddOrUpdate(containerImage);
             
-            var containerImages = await _localContainerMetadataService
+            var containerImages = await _containerImageMetadataService
                 .GetTagsForRepository(containerImage.Repository);
 
             return Ok(

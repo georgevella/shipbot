@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Shipbot.ContainerRegistry.Internals;
+using Shipbot.ContainerRegistry.Internals.Jobs;
 using Shipbot.ContainerRegistry.Services;
 using Shipbot.ContainerRegistry.Watcher;
 using Shipbot.Contracts;
@@ -26,9 +27,10 @@ namespace Shipbot.ContainerRegistry
 
             services.AddTransient<INewContainerImageService, NewContainerImageService>();
 
-            services.AddScoped<ILocalContainerMetadataService, LocalContainerMetadataService>();
+            services.AddScoped<IContainerImageMetadataService, ContainerImageMetadataService>();
             
             services.AddTransient<ContainerRegistryPollingJob>();
+            services.AddTransient<ApplicationContainerImagePollingJob>();
 
             services.AddHostedService<ContainerRegistryHostedService>();
 

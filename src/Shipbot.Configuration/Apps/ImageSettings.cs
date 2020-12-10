@@ -12,24 +12,6 @@ namespace Shipbot.Controller.Core.Configuration.Apps
         public TagPropertySettings TagProperty { get; set; }
 
         public UpdatePolicy Policy { get; set; }
-
-        public static implicit operator ApplicationImage(ImageSettings imageSettings)
-        {
-            return new ApplicationImage(
-                imageSettings.Repository,
-                new TagProperty(
-                    imageSettings.TagProperty.Path,
-                    imageSettings.TagProperty.ValueFormat
-                ),
-                imageSettings.Policy switch
-                    {
-                    UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
-                        imageSettings.Pattern),
-                    UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
-                    _ => throw new NotImplementedException()
-                    }
-            );
-        }
     }
 
     public class TagPropertySettings

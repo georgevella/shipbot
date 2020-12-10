@@ -1,12 +1,10 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shipbot.Applications;
 using Shipbot.ContainerRegistry.Ecr;
 using Shipbot.Contracts;
 using Shipbot.Controller.Core.Configuration;
@@ -59,16 +57,16 @@ namespace Shipbot.ContainerRegistry.Internals
                 }
             } );
             
-            var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
-            var registryWatcher = scope.ServiceProvider.GetService<IRegistryWatcher>();
-            
-            var trackedApplications = applicationService.GetApplications().ToList();
-
-            foreach (var trackedApplication in trackedApplications)
-            {
-                _log.LogInformation("Adding container registry tracking tracking for {Application}", trackedApplication.Name);
-                await registryWatcher.StartWatchingImageRepository(trackedApplication);
-            }   
+            // var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
+            // var registryWatcher = scope.ServiceProvider.GetService<IRegistryWatcher>();
+            //
+            // var trackedApplications = applicationService.GetApplications().ToList();
+            //
+            // foreach (var trackedApplication in trackedApplications)
+            // {
+            //     _log.LogInformation("Adding container registry tracking tracking for {Application}", trackedApplication.Name);
+            //     await registryWatcher.StartWatchingImageRepository(trackedApplication);
+            // }   
             
             _log.LogTrace("ContainerRegistryHostedService::StartAsync() <<");
         }

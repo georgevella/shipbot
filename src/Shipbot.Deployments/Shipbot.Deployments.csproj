@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Shipbot.Applications\Shipbot.Applications.csproj" />
+    <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
     <ProjectReference Include="..\Shipbot.Data\Shipbot.Data.csproj" />
     <ProjectReference Include="..\Shipbot.Models\Shipbot.Models.csproj" />

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -14,7 +16,7 @@ namespace Shipbot.ContainerRegistry.Services
     {
         private readonly ILogger<ContainerRegistryTrackingService> _log;
         private readonly IScheduler _scheduler;
-        private readonly ConcurrentDictionary<RegistryWatcherKey, string> _jobs = new ConcurrentDictionary<RegistryWatcherKey,string>();
+        private readonly HashSet<string> _jobs = new HashSet<string>();
         
         private const string  PollingJobGroup = "containerrepowatcher";
 
@@ -23,81 +25,52 @@ namespace Shipbot.ContainerRegistry.Services
             _log = log;
             _scheduler = scheduler;
         }
-
-        public async Task StartWatchingImageRepository(Application application)
+        public async Task StartWatchingImageRepository(string containerImageRepository)
         {
-            _log.LogInformation("Adding application {name}, beginning watch of repositories", application.Name);
-            for (var imageIndex=0; imageIndex<application.Images.Count; imageIndex++)
+            var jobKey = GenerateJobKey(containerImageRepository);
+
+            if (_jobs.Add(jobKey))
             {
-                var image = application.Images[imageIndex];
-
-                var key = new RegistryWatcherKey(application, image);
-                var jobKey = $"rwatcher-{application.Name}-{image.Repository}-{imageIndex}";
-
-                if (_jobs.TryAdd(key, jobKey))
-                {
-                    await _scheduler.StartRecurringJob<ContainerRegistryPollingJob, ContainerRegistryPollingData>(
-                        jobKey, 
-                        PollingJobGroup, 
-                        new ContainerRegistryPollingData(image.Repository, application.Name, imageIndex), 
-                        TimeSpan.FromSeconds(10) 
-                    );
-                }
+                _log.LogInformation($"Adding job to track container repository '{containerImageRepository}'.");
+                await _scheduler.StartRecurringJob<ContainerRegistryPollingJob, ContainerRepositoryPollingContext>(
+                    jobKey, 
+                    PollingJobGroup, 
+                    new ContainerRepositoryPollingContext(containerImageRepository), 
+                    TimeSpan.FromSeconds(10) 
+                );
+            }
+            else
+            {
+                _log.LogWarning($"We are already tracking '{containerImageRepository}', job not added.");
             }
         }
 
-        public async Task StopWatchingImageRepository(Application application)
+        public Task<bool> IsWatched(string containerImageRepository)
         {
-            for (var imageIndex=0; imageIndex<application.Images.Count; imageIndex++)
+            var jobKey = GenerateJobKey(containerImageRepository);
+            return Task.FromResult(_jobs.Contains(jobKey));
+        }
+
+        private static string GenerateJobKey(string containerRepository)
+        {
+            var jobKey = $"rwatcher-{containerRepository.Replace('/', '-')}";
+            return jobKey;
+        }
+
+        public async Task StopWatchingImageRepository(string containerImageRepository)
+        {
+            var jobKey = GenerateJobKey(containerImageRepository);
+            if (_jobs.Remove(jobKey))
             {
-                var image = application.Images[imageIndex];
-                
-                var key = new RegistryWatcherKey(application, image);
-                if (_jobs.TryRemove(key, out var jobKey))
-                {
-                    await _scheduler.StopRecurringJob(jobKey, PollingJobGroup);
-                }
+                await _scheduler.StopRecurringJob(jobKey, PollingJobGroup);
             }
         }
 
         public async Task Shutdown()
         {
-            foreach (var keyValuePair in _jobs)
+            foreach (var jobKey in _jobs.Where(jobKey => jobKey!=null))
             {
-                await _scheduler.StopRecurringJob(keyValuePair.Value, PollingJobGroup);
-            }
-        }
-
-        private class RegistryWatcherKey
-        {
-            protected bool Equals(RegistryWatcherKey other)
-            {
-                return _application.Equals(other._application) && _image.Equals(other._image);
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return Equals((RegistryWatcherKey) obj);
-            }
-
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    return (_application.GetHashCode() * 397) ^ _image.GetHashCode();
-                }
-            }
-
-            private readonly Application _application;
-            private readonly ApplicationImage _image;
-
-            public RegistryWatcherKey(Application application, ApplicationImage image)
-            {
-                _application = application;
-                _image = image;
+                await _scheduler.StopRecurringJob(jobKey, PollingJobGroup);
             }
         }
     }

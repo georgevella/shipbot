@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
+using Shipbot.ContainerRegistry.Models;
 using Shipbot.Controller.DTOs;
 using Shipbot.Deployments;
 using Shipbot.Deployments.Models;
@@ -70,8 +71,9 @@ namespace Shipbot.Controller.Controllers
         [HttpPost]
         public async Task<ActionResult> Post([FromBody] NewDeploymentDto newDeploymentDto)
         {
-            var createdDeployments = (await _deploymentWorkflowService.StartImageDeployment(newDeploymentDto.Repository,
-                newDeploymentDto.Tag)).ToList();
+            var containerImage = new ContainerImage(newDeploymentDto.Repository,
+                newDeploymentDto.Tag);
+            var createdDeployments = (await _deploymentWorkflowService.StartImageDeployment(containerImage, false)).ToList();
 
             if (createdDeployments.Any())
             {

@@ -1,28 +1,34 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shipbot.Controller.Core.Configuration;
 
-namespace Shipbot.Applications
+namespace Shipbot.Applications.Internal
 {
-    public class ShipbotApplicationsHostedService : IHostedService
+    /// <summary>
+    ///     Service that loads applications from configuration.
+    /// </summary>
+    public class ConfigurationSourceApplicationLoader : IHostedService
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IOptions<ShipbotConfiguration> _configuration;
+        private readonly ILogger<ConfigurationSourceApplicationLoader> _log;
 
-        public ShipbotApplicationsHostedService(
+        public ConfigurationSourceApplicationLoader(
             IServiceProvider serviceProvider,
-            IOptions<ShipbotConfiguration> configuration)
+            IOptions<ShipbotConfiguration> configuration,
+            ILogger<ConfigurationSourceApplicationLoader> log
+            )
         {            
             _configuration = configuration;
-
+            _log = log;
             _serviceProvider = serviceProvider;
         }
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             var conf = _configuration.Value;
 
@@ -33,10 +39,8 @@ namespace Shipbot.Applications
             foreach (var pair in conf.Applications)
             {
                 var name = string.IsNullOrEmpty(pair.Value.Name) ? pair.Key : pair.Value.Name;
-                applicationService.AddApplication(name, pair.Value);
+                var application = applicationService.AddApplication(name, pair.Value);
             }
-
-            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

@@ -88,17 +88,19 @@ namespace Shipbot.Tests
                     .Setup(x=>x.GetRegistryClientForRepository(It.Is<string>(s => s == imageRepository)))
                     .Returns( Task.FromResult(registryClient))
             );
-            
+
             var applicationImage = new ApplicationImage(imageRepository,
                 new TagProperty("image.tag", TagPropertyValueFormat.TagOnly),
-                new GlobImageUpdatePolicy(imagePattern));
+                new GlobImageUpdatePolicy(imagePattern),
+                new DeploymentSettings(true, true)
+            );
+            
             var application = new Application(
                 applicationId,
                 new[]
                 {
                     applicationImage
-                }.ToImmutableList(),
-                true,
+                },
                 new NotificationSettings("#abc")
             );
             var applicationService = MockOf<IApplicationService>(
@@ -150,16 +152,23 @@ namespace Shipbot.Tests
                 }
                 );
 
+            var localContainerMetadataService = MockOf<IContainerImageMetadataService>(
+                mock =>
+                {
+                    mock.Setup(
+                        x => x.AddOrUpdate(It.IsAny<ContainerImage>())
+                    );
+                }
+            );
+
             var job = new ContainerRegistryPollingJob(
                 GetLogger<ContainerRegistryPollingJob>(),
                 registryClientPool,
-                applicationService,
-                deploymentService,
-                new NewContainerImageService(GetLogger<NewContainerImageService>())
+                localContainerMetadataService
             );
 
             // run
-            await job.Execute(new ContainerRegistryPollingData(imageRepository, applicationId, 0));
+            await job.Execute(new ContainerRepositoryPollingContext(imageRepository));
             
             // verify
             VerifyMocks();
