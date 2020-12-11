@@ -5,10 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Quartz;
 using Shipbot.ContainerRegistry.Ecr;
+using Shipbot.ContainerRegistry.Internals.Jobs;
 using Shipbot.Contracts;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Registry;
+using Shipbot.JobScheduling;
 
 namespace Shipbot.ContainerRegistry.Internals
 {
@@ -56,6 +59,14 @@ namespace Shipbot.ContainerRegistry.Internals
                         break;
                 }
             } );
+
+
+            var scheduler = scope.ServiceProvider.GetService<IScheduler>();
+            await scheduler.StartRecurringJob<ApplicationContainerImagePollingJob>(
+                "ApplicationContainerImagePollingJob",
+                "ContainerRegistryPollingJobs", 
+                TimeSpan.FromSeconds(2)
+                );
             
             // var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
             // var registryWatcher = scope.ServiceProvider.GetService<IRegistryWatcher>();

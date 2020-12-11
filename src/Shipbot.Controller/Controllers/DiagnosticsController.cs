@@ -16,26 +16,20 @@ namespace Shipbot.Controller.Controllers
     [ApiController]
     public class DiagnosticsController : ControllerBase
     {
-        private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
-        private readonly INewContainerImageService _newContainerImageService;
         private readonly ISlackClient _slackClient;
         private readonly IContainerImageMetadataService _containerImageMetadataService;
 
         public DiagnosticsController(
-            IApplicationService applicationService,
             IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
-            INewContainerImageService newContainerImageService,
             ISlackClient slackClient,
             IContainerImageMetadataService containerImageMetadataService
         )
         {
-            _applicationService = applicationService;
             _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
-            _newContainerImageService = newContainerImageService;
             _slackClient = slackClient;
             _containerImageMetadataService = containerImageMetadataService;
         }
@@ -50,27 +44,7 @@ namespace Shipbot.Controller.Controllers
 
             return Ok();
         }
-        
-        [HttpPost("container-registry-new-tag")]
-        public async Task<ActionResult> SubmitTagsAsContainerRegistryPoller(
-            [FromForm(Name = "application")] string applicationId,
-            [FromForm(Name = "repository")] string repository,
-            [FromForm(Name = "tag")] string tag
-        )
-        {
-            var application = _applicationService.GetApplication(applicationId);
-            var image = application.Images.First(x => x.Repository == repository);
 
-            var result = _newContainerImageService.GetLatestTagMatchingPolicy(new[]
-                {
-                    new ContainerImage(repository, tag, tag.GetHashCode().ToString()), 
-                },
-                image.Policy
-            );
-
-            return Ok(result);
-        }
-        
         [HttpGet("container-image-local-store")]
         public async Task<ActionResult> GetContainerImageIntoLocalStore([FromQuery] string repository)
         {

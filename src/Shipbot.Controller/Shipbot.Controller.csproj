@@ -37,6 +37,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Shipbot.Applications\Shipbot.Applications.csproj" />
     <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
+    <ProjectReference Include="..\Shipbot.ContainerRegistry.Dummy\Shipbot.ContainerRegistry.Dummy.csproj" />
     <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
     <ProjectReference Include="..\Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj" />

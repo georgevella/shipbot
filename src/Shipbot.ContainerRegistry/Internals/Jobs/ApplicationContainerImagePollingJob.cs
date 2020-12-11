@@ -29,7 +29,8 @@ namespace Shipbot.ContainerRegistry.Internals.Jobs
             {
                 foreach (var applicationImage in application.Images)
                 {
-                    if (!await _registryWatcher.IsWatched(applicationImage.Repository))
+                    var repositoryAlreadyTracked = await _registryWatcher.IsWatched(applicationImage.Repository);
+                    if (!repositoryAlreadyTracked)
                     {
                         await _registryWatcher.StartWatchingImageRepository(applicationImage.Repository);   
                     }

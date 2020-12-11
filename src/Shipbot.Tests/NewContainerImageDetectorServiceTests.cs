@@ -1,8 +1,12 @@
 using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Moq;
+using Shipbot.Applications;
 using Shipbot.ContainerRegistry.Models;
 using Shipbot.ContainerRegistry.Services;
+using Shipbot.Deployments;
+using Shipbot.Deployments.Internals;
 using Shipbot.Models;
 using Shipbot.Tests.Utils;
 using Xunit;
@@ -20,7 +24,13 @@ namespace Shipbot.Tests
         public void GetLatestTagMatchingPolicy_PositiveTest()
         {
             // setup
-            var x = new NewContainerImageService(GetLogger<NewContainerImageService>());
+            var x = new DeploymentWorkflowService(
+                GetLogger<DeploymentWorkflowService>(), 
+                MockOf<IContainerImageMetadataService>(), 
+                MockOf<IApplicationService>(), 
+                MockOf<IDeploymentService>(), 
+                MockOf<IDeploymentQueueService>()
+                );
             
             var imagePolicy = new GlobImageUpdatePolicy("develop-*");
 
@@ -43,7 +53,13 @@ namespace Shipbot.Tests
         public void GetLatestTagMatchingPolicy_EmptyImageList()
         {
             // setup
-            var x = new NewContainerImageService(GetLogger<NewContainerImageService>());
+            var x = new DeploymentWorkflowService(
+                GetLogger<DeploymentWorkflowService>(), 
+                MockOf<IContainerImageMetadataService>(), 
+                MockOf<IApplicationService>(), 
+                MockOf<IDeploymentService>(), 
+                MockOf<IDeploymentQueueService>()
+            );
             
             var imagePolicy = new GlobImageUpdatePolicy("develop-*");
 
@@ -58,14 +74,20 @@ namespace Shipbot.Tests
         public void ComparerTest_Glob_MoreRecentImageVsCurrentImage()
         {
             // setup
-            var x = new NewContainerImageService(GetLogger<NewContainerImageService>());
+            var x = new DeploymentWorkflowService(
+                GetLogger<DeploymentWorkflowService>(), 
+                MockOf<IContainerImageMetadataService>(), 
+                MockOf<IApplicationService>(), 
+                MockOf<IDeploymentService>(), 
+                MockOf<IDeploymentQueueService>()
+            );
             
             var currentImage = new ContainerImage("testapp", "develop-123", DateTimeOffset.Now.AddDays(-1));
             var expectedResult = new ContainerImage("testapp", "develop-256", DateTimeOffset.Now);
 
             var imagePolicy = new GlobImageUpdatePolicy("develop-*");
 
-            var comparer = x.GetComparer(imagePolicy);
+            var comparer = x.GetContainerImageComparer(imagePolicy);
 
             // test
             var compare = comparer.Compare(currentImage, expectedResult);
@@ -78,14 +100,20 @@ namespace Shipbot.Tests
         public void ComparerTest_Glob_OlderImageVsCurrentImage()
         {
             // setup
-            var x = new NewContainerImageService(GetLogger<NewContainerImageService>());
+            var x = new DeploymentWorkflowService(
+                GetLogger<DeploymentWorkflowService>(), 
+                MockOf<IContainerImageMetadataService>(), 
+                MockOf<IApplicationService>(), 
+                MockOf<IDeploymentService>(), 
+                MockOf<IDeploymentQueueService>()
+            );
             
             var currentImage = new ContainerImage("testapp", "develop-123", DateTimeOffset.Now.AddDays(-1));
             var expectedResult = new ContainerImage("testapp", "develop-256", DateTimeOffset.Now.AddDays(-2));
 
             var imagePolicy = new GlobImageUpdatePolicy("develop-*");
 
-            var comparer = x.GetComparer(imagePolicy);
+            var comparer = x.GetContainerImageComparer(imagePolicy);
 
             // test
             var compare = comparer.Compare(currentImage, expectedResult);
@@ -98,7 +126,13 @@ namespace Shipbot.Tests
         public void ComparerTest_Glob_Equality()
         {
             // setup
-            var x = new NewContainerImageService(GetLogger<NewContainerImageService>());
+            var x = new DeploymentWorkflowService(
+                GetLogger<DeploymentWorkflowService>(), 
+                MockOf<IContainerImageMetadataService>(), 
+                MockOf<IApplicationService>(), 
+                MockOf<IDeploymentService>(), 
+                MockOf<IDeploymentQueueService>()
+            );
 
             var creationDateTime = DateTimeOffset.Now.AddDays(-1);
             var currentImage = new ContainerImage("testapp", "develop-123", creationDateTime);
@@ -106,7 +140,7 @@ namespace Shipbot.Tests
 
             var imagePolicy = new GlobImageUpdatePolicy("develop-*");
 
-            var comparer = x.GetComparer(imagePolicy);
+            var comparer = x.GetContainerImageComparer(imagePolicy);
 
             // test
             var compare = comparer.Compare(currentImage, expectedResult);

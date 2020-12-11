@@ -130,7 +130,7 @@ namespace Shipbot.ContainerRegistry.Services
                 .Where(x => x.RepositoryId == r.Id && x.Tag == tag)
                 .Include(x=>x.Metadata)
                 .ToListAsync();
-
+            
             return containerImageTags
                 .Select(
                     x =>
@@ -140,8 +140,19 @@ namespace Shipbot.ContainerRegistry.Services
                         )
                     )
                 .First();
+        }
 
-
+        public async Task<(bool success, ContainerImage image)> TryGetContainerImageByTag(string repository, string tag)
+        {
+            try
+            {
+                var image = await GetContainerImageByTag(repository, tag);
+                return (true, image);
+            }
+            catch
+            {
+                return (false, ContainerImage.Empty);
+            }
         }
     }
 }

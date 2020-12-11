@@ -4,6 +4,9 @@ namespace Shipbot.ContainerRegistry.Models
 {
     public class ContainerImage
     {
+        public static ContainerImage Empty { get; } =
+            new ContainerImage(string.Empty, string.Empty, string.Empty, DateTimeOffset.MinValue);
+        
         protected bool Equals(ContainerImage other)
         {
             return Repository == other.Repository && Hash == other.Hash && Tag == other.Tag && CreationDateTime.Equals(other.CreationDateTime);

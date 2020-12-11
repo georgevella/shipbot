@@ -8,6 +8,7 @@ using Shipbot.ContainerRegistry;
 using Shipbot.ContainerRegistry.Models;
 using Shipbot.ContainerRegistry.Services;
 using Shipbot.Deployments.Models;
+using Shipbot.Models;
 
 namespace Shipbot.Deployments.Internals
 {
@@ -15,7 +16,6 @@ namespace Shipbot.Deployments.Internals
     {
         private readonly ILogger<DeploymentWorkflowService> _log;
         private readonly IContainerImageMetadataService _containerImageMetadataService;
-        private readonly INewContainerImageService _newContainerImageService;
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentQueueService _deploymentQueueService;
@@ -23,7 +23,6 @@ namespace Shipbot.Deployments.Internals
         public DeploymentWorkflowService(
             ILogger<DeploymentWorkflowService> log,
             IContainerImageMetadataService containerImageMetadataService,
-            INewContainerImageService newContainerImageService,
             IApplicationService applicationService,
             IDeploymentService deploymentService,
             IDeploymentQueueService deploymentQueueService
@@ -31,7 +30,6 @@ namespace Shipbot.Deployments.Internals
         {
             _log = log;
             _containerImageMetadataService = containerImageMetadataService;
-            _newContainerImageService = newContainerImageService;
             _applicationService = applicationService;
             _deploymentService = deploymentService;
             _deploymentQueueService = deploymentQueueService;
@@ -67,6 +65,13 @@ namespace Shipbot.Deployments.Internals
         {
             var items = newContainerImages.ToList();
             // sanity check
+
+            if (items.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "No container images where supplied for deployment.");
+            }
+            
             if (!items
                 .Select(x => x.Repository.ToLowerInvariant())
                 .All(x => x.Equals(containerImageRepository.ToLower()))
@@ -81,7 +86,6 @@ namespace Shipbot.Deployments.Internals
                 items,
                 isContainerRepositoryUpdate
                 );
-
         }      
         
         private async Task<IEnumerable<Deployment>> InternalStartImageDeployment(
@@ -129,24 +133,30 @@ namespace Shipbot.Deployments.Internals
                     
                     if (isContainerRepositoryUpdate)
                     {
-                        var currentImage = await _containerImageMetadataService.GetContainerImageByTag(item.Image.Repository, currentTag);
-            
-                        // start comparison with latest container image.
-                        var latestImage =  _newContainerImageService
-                            .GetLatestTagMatchingPolicy(newContainerImages, item.Image.Policy);
-                    
-                        var comparer = _newContainerImageService.GetComparer(item.Image.Policy);
-                        createDeployment = comparer.Compare(currentImage, latestImage) < 0;
-                        targetTag = latestImage.Tag;
+                        var latestImage = TryGetLatestTagMatchingPolicy(newContainerImages, item.Image.Policy);
+                        
+                        // we got the update from one of the polling services
+                        var currentImage = await _containerImageMetadataService.TryGetContainerImageByTag(item.Image.Repository, currentTag);
+
+                        if (currentImage.success)
+                        {
+                            // start comparison with latest container image.
+                            var comparer = GetContainerImageComparer(item.Image.Policy);
+                            createDeployment = comparer.Compare(currentImage.image, latestImage.image) < 0;
+                            targetTag = createDeployment ? latestImage.image.Tag : null;
+                        }
+                        else
+                        {
+                            createDeployment = latestImage.success;
+                            targetTag = latestImage.success ? latestImage.image.Tag : null;
+                        }
                     }
                     else
                     {
-                        var singleContainerImage = newContainerImages.Single();
-                        if (item.Image.Policy.IsMatch(singleContainerImage.Tag))
-                        {
-                            createDeployment = true;
-                            targetTag = singleContainerImage.Tag;
-                        }
+                        var latestImage = TryGetLatestTagMatchingPolicy(newContainerImages, item.Image.Policy);
+
+                        createDeployment = latestImage.success;
+                        targetTag = latestImage.success ? latestImage.image.Tag : null;
                     }
                     
                     if (createDeployment && targetTag != null)
@@ -175,6 +185,53 @@ namespace Shipbot.Deployments.Internals
             }
 
             return createdDeployments;
+        }
+
+        internal ContainerImage GetLatestTagMatchingPolicy(
+            IEnumerable<ContainerImage> images,
+            ImageUpdatePolicy imagePolicy
+        )
+        {
+            var matchingTags = images
+                .Where(
+                    tagDetails => imagePolicy.IsMatch(tagDetails.Tag)
+                ).ToList();
+
+            var latestImage = matchingTags
+                .OrderBy(i => i.CreationDateTime, Comparer<DateTimeOffset>.Default)
+                .Last();
+
+            return latestImage;
+        }
+
+        internal (bool success, ContainerImage image) TryGetLatestTagMatchingPolicy(
+            IEnumerable<ContainerImage> images,
+            ImageUpdatePolicy imagePolicy
+        )
+        {
+            try
+            {
+                var image = GetLatestTagMatchingPolicy(images, imagePolicy);
+                return (true, image);
+            }
+            catch
+            {
+                return (false, ContainerImage.Empty);
+            }
+        }
+
+        internal IComparer<ContainerImage> GetContainerImageComparer(ImageUpdatePolicy updatePolicy)
+        {
+            return updatePolicy switch
+            {
+                GlobImageUpdatePolicy globImageUpdatePolicy =>
+                    Comparer<ContainerImage>.Create(
+                        (x, y) => x.Equals(y) ? 0 : x.CreationDateTime.CompareTo(y.CreationDateTime)),
+                RegexImageUpdatePolicy regexImageUpdatePolicy =>
+                    Comparer<ContainerImage>.Create(
+                        (x, y) => x.Equals(y) ? 0 : x.CreationDateTime.CompareTo(y.CreationDateTime)),
+                _ => throw new ArgumentOutOfRangeException(nameof(updatePolicy))
+            };
         }
 
     }

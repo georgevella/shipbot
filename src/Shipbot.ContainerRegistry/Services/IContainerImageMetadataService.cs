@@ -9,5 +9,6 @@ namespace Shipbot.ContainerRegistry.Services
         Task AddOrUpdate(ContainerImage containerImage);
         Task<IEnumerable<ContainerImage>> GetTagsForRepository(string repository);
         Task<ContainerImage> GetContainerImageByTag(string repository, string tag);
+        Task<(bool success, ContainerImage image)> TryGetContainerImageByTag(string repository, string tag);
     }
 }

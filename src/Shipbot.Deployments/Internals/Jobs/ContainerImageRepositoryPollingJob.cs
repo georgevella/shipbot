@@ -54,33 +54,15 @@ namespace Shipbot.Deployments.Internals.Jobs
             }
 
             var newContainerImages = filter.ToList();
-
-            await _deploymentWorkflowService.StartImageDeployment(
-                context.ContainerImageRepository, 
-                newContainerImages,
-                true);
-            
-            LastContainerImageCheck[context.ContainerImageRepository] = DateTimeOffset.Now;
-
-            // var latestImage = _newContainerImageService.GetLatestTagMatchingPolicy(containerImages, applicationImage.Policy);
-            //
-            // // fetch current deployed image information
-            // var currentTags = _applicationService.GetCurrentImageTags(application);
-            // var currentTag = currentTags[applicationImage];
-            //
-            // var currentImage = await _containerImageMetadataService.GetContainerImageByTag(applicationImage.Repository, currentTag);
-            //
-            // // start comparison
-            // var comparer = _newContainerImageService.GetComparer(applicationImage.Policy);
-            //             
-            // if (comparer.Compare(currentImage, latestImage) < 0)
-            // {
-            //     // latest image is newer than current image
-            //     _log.LogInformation(
-            //         "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
-            //         latestImage.Tag, applicationImage.Repository, application.Name, currentTag);
-            //     await _deploymentService.AddDeployment(application, applicationImage, latestImage.Tag);
-            // }
+            if (newContainerImages.Any())
+            {
+                LastContainerImageCheck[context.ContainerImageRepository] = newContainerImages.First().CreationDateTime;
+                
+                await _deploymentWorkflowService.StartImageDeployment(
+                    context.ContainerImageRepository,
+                    newContainerImages,
+                    true);
+            }
         }
     }
 

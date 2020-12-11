@@ -9,5 +9,7 @@ namespace Shipbot.Controller.Core.Configuration.Registry
         public DockerRegistrySettings DockerRegistry { get; set; }
         
         public EcrSettings Ecr { get; set; }
+        
+        public DummyRegistrySettings Dummy { get; set; }
     }
 }

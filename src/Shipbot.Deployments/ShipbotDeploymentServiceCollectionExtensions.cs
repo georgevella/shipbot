@@ -1,8 +1,11 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Shipbot.Deployments.Internals;
 using Shipbot.Deployments.Internals.Jobs;
 using Shipbot.Deployments.Slack;
 using Shipbot.SlackIntegration.Interaction;
+
+[assembly: InternalsVisibleTo("Shipbot.Tests")]
 
 namespace Shipbot.Deployments
 {

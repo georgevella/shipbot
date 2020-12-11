@@ -18,6 +18,7 @@ using Shipbot.Applications;
 using Shipbot.Applications.Internal;
 using Shipbot.Applications.Slack;
 using Shipbot.ContainerRegistry;
+using Shipbot.ContainerRegistry.Dummy;
 using Shipbot.Contracts;
 using Shipbot.Controller.Controllers;
 using Shipbot.Controller.Core;
@@ -87,8 +88,10 @@ namespace Shipbot.Controller
             // setup modules
             services.RegisterJobSchedulerServices(Configuration);
             services.RegisterContainerRegistryComponents();
+            services.RegisterDummyContainerRegistryComponents();
             services.RegisterDeploymentComponents();
             services.RegisterShipbotSlackIntegrationComponents(Configuration);
+            
 
             // setup data services
             services.RegisterDbContext(Configuration) ;
