@@ -127,6 +127,9 @@ namespace Shipbot.Deployments.Internals
                 {
                     // fetch current deployed image information
                     var currentTags = _applicationService.GetCurrentImageTags(item.Application);
+                    if (!currentTags.ContainsKey(item.Image))
+                        continue;
+                    
                     var currentTag = currentTags[item.Image];
                     string? targetTag = null;
                     var createDeployment = false;
