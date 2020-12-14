@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
 using Shipbot.Contracts;
 using Shipbot.Controller.Core.ApplicationSources;
+using Shipbot.Controller.Core.ApplicationSources.Models;
+using Shipbot.Controller.DTOs;
 using Shipbot.Models;
 
 namespace Shipbot.Controller.Controllers
@@ -22,11 +24,20 @@ namespace Shipbot.Controller.Controllers
         }
         
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Application>>> Get()
+        public async Task<ActionResult<IEnumerable<ApplicationSourceDto>>> Get()
         {
             var activeAppications = await _applicationSourceService.GetActiveApplications();
-            
-            return Ok(activeAppications);
+
+            return Ok(
+                activeAppications
+                    .Select(applicationSource => new ApplicationSourceDto()
+                    {
+                        Path = applicationSource.Path,
+                        Ref = applicationSource.Repository.Ref,
+                        Uri = applicationSource.Repository.Uri.ToString()
+                    })
+                    .ToList()
+            );
         }
     }
 }

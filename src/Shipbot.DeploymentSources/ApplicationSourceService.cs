@@ -88,7 +88,6 @@ namespace Shipbot.Controller.Core.ApplicationSources
         public async Task<IEnumerable<ApplicationSource>> GetActiveApplications()
         {
             var jobKeys = await _scheduler.GetJobKeys(GroupMatcher<JobKey>.GroupEquals(Constants.SchedulerGroup));
-
             var jobDetails = new List<IJobDetail>();
             foreach (var key in jobKeys)
             {
@@ -98,7 +97,6 @@ namespace Shipbot.Controller.Core.ApplicationSources
             }
 
             var trackingContexts = jobDetails.Select(x => x.JobDataMap.GetJobData<ApplicationSourceTrackingContext>()).ToList();
-
             return trackingContexts.Select(x => x.ApplicationSource).ToList();
         }
 

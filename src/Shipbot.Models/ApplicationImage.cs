@@ -122,8 +122,15 @@ namespace Shipbot.Models
             }
         }
 
+        /// <summary>
+        ///     JSON/YAML Path in deployment sources where the tag of a deployed service / container
+        ///     can be read from or written to.  
+        /// </summary>
         public string Path { get; }
         
+        /// <summary>
+        ///     The contents of the value read from / written to the path in the deployment sources.
+        /// </summary>
         public TagPropertyValueFormat ValueFormat { get; }
     }
     

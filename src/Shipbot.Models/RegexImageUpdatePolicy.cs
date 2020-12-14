@@ -4,8 +4,11 @@ namespace Shipbot.Models
     {
         public RegexImageUpdatePolicy(string pattern)
         {
+            Pattern = pattern;
             throw new System.NotImplementedException();
         }
+
+        public string Pattern { get; }
 
         public override bool IsMatch(string value)
         {

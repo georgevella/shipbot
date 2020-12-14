@@ -19,6 +19,8 @@ namespace Shipbot.Models
                 ;
         }
 
+        public string Pattern => _pattern.ToString();
+
         public override bool IsMatch(string value)
         {
             return _pattern.IsMatch(value);

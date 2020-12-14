@@ -1,6 +1,6 @@
 namespace Shipbot.Models
 {
-    class SemverImageUpdatePolicy : ImageUpdatePolicy
+    public class SemverImageUpdatePolicy : ImageUpdatePolicy
     {
         public override bool IsMatch(string value)
         {
