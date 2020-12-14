@@ -43,16 +43,4 @@ namespace Shipbot.Deployments.Dao
         
         public DeploymentStatus Status { get; set; }
     }
-    
-    public enum DeploymentStatus
-    {    
-        Pending,
-        Queued,
-        Starting,
-        UpdatingManifests,
-        Synchronizing,
-        Synchronized,
-        Complete,
-        Failed
-    }
 }

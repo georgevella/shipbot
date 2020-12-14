@@ -13,5 +13,6 @@ namespace Shipbot.Data
         IQueryable<T> Query();
         T Update(T item);
         Task Save();
+        Task Delete(T item);
     }
 }

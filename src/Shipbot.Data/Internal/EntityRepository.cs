@@ -57,5 +57,11 @@ namespace Shipbot.Data
         {
             return DbSet.AsQueryable();
         }
+
+        public Task Delete(T item)
+        {
+            DbSet.Remove(item);
+            return Task.CompletedTask;
+        }
     }
 }

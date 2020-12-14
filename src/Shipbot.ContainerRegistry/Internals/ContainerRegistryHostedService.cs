@@ -34,6 +34,7 @@ namespace Shipbot.ContainerRegistry.Internals
             _log = log;
             _registryClientPool = registryClientPool;
         }
+        
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _log.LogTrace("ContainerRegistryHostedService::StartAsync() >>");
@@ -59,26 +60,14 @@ namespace Shipbot.ContainerRegistry.Internals
                         break;
                 }
             } );
-
-
+            
             var scheduler = scope.ServiceProvider.GetService<IScheduler>();
             await scheduler.StartRecurringJob<ApplicationContainerImagePollingJob>(
                 "ApplicationContainerImagePollingJob",
                 "ContainerRegistryPollingJobs", 
                 TimeSpan.FromSeconds(2)
                 );
-            
-            // var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
-            // var registryWatcher = scope.ServiceProvider.GetService<IRegistryWatcher>();
-            //
-            // var trackedApplications = applicationService.GetApplications().ToList();
-            //
-            // foreach (var trackedApplication in trackedApplications)
-            // {
-            //     _log.LogInformation("Adding container registry tracking tracking for {Application}", trackedApplication.Name);
-            //     await registryWatcher.StartWatchingImageRepository(trackedApplication);
-            // }   
-            
+
             _log.LogTrace("ContainerRegistryHostedService::StartAsync() <<");
         }
 

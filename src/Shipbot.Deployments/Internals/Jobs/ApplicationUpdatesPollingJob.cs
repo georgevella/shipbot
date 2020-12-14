@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Quartz;
 using Shipbot.Applications;
@@ -29,34 +30,33 @@ namespace Shipbot.Deployments.Internals.Jobs
         
         public override async Task Execute()
         {
-            var allApplications = _applicationService.GetApplications();
+            var polledImageRepositoriesAssociatedWithApplications = _applicationService.GetApplications()
+                .SelectMany(x => x.Images)
+                .Where( x => x.DeploymentSettings.AutomaticallyCreateDeploymentOnRepositoryUpdate )
+                .Select(x => x.Repository)
+                .Distinct()
+                .ToList();
 
-            foreach (var application in allApplications)
+            foreach (var repository in polledImageRepositoriesAssociatedWithApplications)
             {
-                foreach (var appImage in application.Images)
-                {
-                    if (appImage.DeploymentSettings.AutomaticallyCreateDeploymentOnRepositoryUpdate)
-                    {
-                        // application and image are set up to automatically track the image repository for updates.
-                        // let's check if we already have a job tracking this repository, and if not, set one up.
-                        var jobExists = await _scheduler.CheckJobExists<ContainerImageRepositoryPollingJob>(
-                            appImage.Repository,
-                            JobGroup
-                            );
-                        
-                        if (!jobExists)
-                        {
-                            await _scheduler
-                                .StartRecurringJob<ContainerImageRepositoryPollingJob,
-                                    ContainerImageRepositoryPollingJobContext>(
-                                    appImage.Repository,
-                                    JobGroup,
-                                    new ContainerImageRepositoryPollingJobContext(appImage.Repository),
-                                    TimeSpan.FromSeconds(2)
-                                );
-                        }
-                    }
-                }
+                // application and image are set up to automatically track the image repository for updates.
+                // let's check if we already have a job tracking this repository, and if not, set one up.
+                var jobExists = await _scheduler.CheckJobExists<ContainerImageRepositoryPollingJob>(
+                    repository,
+                    JobGroup
+                );
+
+                if (jobExists)
+                    continue;
+                
+                await _scheduler
+                    .StartRecurringJob<ContainerImageRepositoryPollingJob,
+                        ContainerImageRepositoryPollingJobContext>(
+                        repository,
+                        JobGroup,
+                        new ContainerImageRepositoryPollingJobContext(repository),
+                        TimeSpan.FromSeconds(10)
+                    );
             }
         }
     }

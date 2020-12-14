@@ -30,65 +30,43 @@ namespace Shipbot.ContainerRegistry.Watcher
         public override async Task Execute(ContainerRepositoryPollingContext context)
         {
             var containerRepository = context.ContainerRepository;
-            // var applicationId = context.ApplicationId;
-            // var imageIndex = context.ImageIndex;
-            //
-            // var application = _applicationService.GetApplication(applicationId);
-            // var image = application.Images[imageIndex];
 
             using (_log.BeginScope(new Dictionary<string, object>()
             {
                 {"Repository", containerRepository}
             }))
             {
-                // var currentTags = _applicationService.GetCurrentImageTags(application);
-                //
-                // if (!currentTags.ContainsKey(image))
-                // {
-                //     _log.LogInformation(
-                //         "Current Tag not available, application source watcher may have not yet run or detected the current image tag"
-                //         );
-                // }
-                // else
-                // {
-                    try
+                try
+                {
+                    _log.LogInformation("Fetching tags for {imagerepository}", containerRepository);
+
+                    var client = await _registryClientPool.GetRegistryClientForRepository(containerRepository);
+                    var remoteContainerRepositoryTags = await client.GetRepositoryTags(containerRepository);
+                    var localContainerRepositoryTags =
+                        await _containerImageMetadataService.GetTagsForRepository(containerRepository);
+
+                    // remove tags and container images that we already know about
+                    var newOrUpdatedContainerRepositoryTagsQuery = remoteContainerRepositoryTags
+                        .Except(localContainerRepositoryTags);
+
+                    // we don't need tags older than a month, so we'll truncate all the junk
+                    newOrUpdatedContainerRepositoryTagsQuery = newOrUpdatedContainerRepositoryTagsQuery
+                        .OrderByDescending(x => x.CreationDateTime)
+                        .Where(x => x.CreationDateTime >= DateTimeOffset.Now.AddDays(-30))
+                        .Take(20);
+
+                    // ReSharper disable once PossibleMultipleEnumeration
+                    var newOrUpdatedContainerRepositoryTags = newOrUpdatedContainerRepositoryTagsQuery.ToList();
+                    if (newOrUpdatedContainerRepositoryTags.Any())
                     {
-                        // var currentTag = currentTags[image];
-
-                        _log.LogInformation("Fetching tags for {imagerepository}", containerRepository);
-                        
-                        var client = await _registryClientPool.GetRegistryClientForRepository(containerRepository);
-                        // var currentImage = await client.GetImage(image.Repository, currentTag);
-                        var remoteContainerRepositoryTags = await client.GetRepositoryTags(containerRepository);
-                        var localContainerRepositoryTags = await _containerImageMetadataService.GetTagsForRepository(containerRepository);
-
-                        var newOrUpdatedContainerRepositoryTags = remoteContainerRepositoryTags
-                            .Except(localContainerRepositoryTags).ToList();
-                        
                         _log.LogInformation($"Adding '{newOrUpdatedContainerRepositoryTags.Count}' new image tags ...");
-                        foreach (var tag in newOrUpdatedContainerRepositoryTags)
-                        {
-                            await _containerImageMetadataService.AddOrUpdate(tag);
-                        }
-                        
-                        // var latestImage = _newContainerImageService.GetLatestTagMatchingPolicy(remoteContainerRepositoryTags, image.Policy);
-                        
-                        // var comparer = _newContainerImageService.GetComparer(image.Policy);
-                        
-                        // if (comparer.Compare(currentImage, latestImage) < 0)
-                        // {
-                        //     // latest image is newer than current image
-                        //     _log.LogInformation(
-                        //         "A new image {latestImageTag} is available for image {imagename} on app {application} (replacing {currentTag})",
-                        //         latestImage.Tag, image.Repository, application.Name, currentTag);
-                        //     await _deploymentService.AddDeployment(application, image, latestImage.Tag);
-                        // }
+                        await _containerImageMetadataService.AddOrUpdate(newOrUpdatedContainerRepositoryTags);
                     }
-                    catch (Exception e)
-                    {
-                        _log.LogWarning(e, "An error occured when fetching the latest image tags from the registry.");
-                    }
-                // }
+                }
+                catch (Exception e)
+                {
+                    _log.LogWarning(e, "An error occured when fetching the latest image tags from the registry.");
+                }
             }
         }
     }

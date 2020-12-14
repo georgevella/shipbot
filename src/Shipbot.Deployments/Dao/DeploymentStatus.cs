@@ -1,6 +1,6 @@
-namespace Shipbot.Controller.DTOs
+namespace Shipbot.Deployments.Dao
 {
-    public enum DeploymentStatusDto
+    public enum DeploymentStatus
     {    
         Pending,
         Queued,

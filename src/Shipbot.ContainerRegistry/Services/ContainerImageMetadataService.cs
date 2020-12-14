@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Schema;
@@ -12,16 +13,25 @@ namespace Shipbot.ContainerRegistry.Services
 {
     public class ContainerImageMetadataService : IContainerImageMetadataService
     {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IRegistryClientPool _registryClientPool;
         private readonly IEntityRepository<ContainerImageMetadata> _containerImageMetadata;
         private readonly IEntityRepository<ContainerImageRepository> _containerImageRepository;
         private readonly IEntityRepository<ContainerImageTag> _containerImageTagRepository;
 
+        private static readonly IReadOnlyCollection<ContainerImage> EmptyContainerImageCollection =
+            new ReadOnlyCollection<ContainerImage>(Enumerable.Empty<ContainerImage>().ToList());
+
         public ContainerImageMetadataService(
+            IUnitOfWork unitOfWork,
+            IRegistryClientPool registryClientPool,
             IEntityRepository<ContainerImageMetadata> containerImageMetadata,
             IEntityRepository<ContainerImageRepository> containerImageRepository,
             IEntityRepository<ContainerImageTag> containerImageTagRepository
         )
         {
+            _unitOfWork = unitOfWork;
+            _registryClientPool = registryClientPool;
             _containerImageMetadata = containerImageMetadata;
             _containerImageRepository = containerImageRepository;
             _containerImageTagRepository = containerImageTagRepository;
@@ -32,20 +42,33 @@ namespace Shipbot.ContainerRegistry.Services
             return repository.ToLower();
         }
 
+        public async Task AddOrUpdate(IEnumerable<ContainerImage> containerImages)
+        {
+            if (containerImages == null) throw new ArgumentNullException(nameof(containerImages));
+            if (containerImages.Count() == 0)
+                throw new ArgumentOutOfRangeException(nameof(containerImages), "Empty container image list");
+            
+            foreach (var containerImage in containerImages)
+            {
+                await AddOrUpdateWorker(containerImage);
+            }
+            
+            await _unitOfWork.Commit();
+        }
+
         public async Task AddOrUpdate(ContainerImage containerImage)
         {
+            if (containerImage == null) 
+                throw new ArgumentNullException(nameof(containerImage));
+            
+            await AddOrUpdateWorker(containerImage);
+            await _unitOfWork.Commit();
+        }
+
+        private async Task AddOrUpdateWorker(ContainerImage containerImage)
+        {
             var normalizedContainerRepository = NormalizeContainerRepository(containerImage.Repository);
-            var repository = await _containerImageRepository
-                                 .Query()
-                                 .FirstOrDefaultAsync(
-                                     x => x.Name == normalizedContainerRepository
-                                 ) 
-                             ??
-                             await _containerImageRepository.Add(new ContainerImageRepository()
-                             {
-                                 Id = Guid.NewGuid(),
-                                 Name = normalizedContainerRepository
-                             });
+            var repository = await GetRepositoryDao(normalizedContainerRepository);
 
             var metadata = await _containerImageMetadata
                                .Query()
@@ -53,7 +76,7 @@ namespace Shipbot.ContainerRegistry.Services
                                    x =>
                                        x.RepositoryId == repository.Id &&
                                        x.Hash == containerImage.Hash
-                               ) 
+                               )
                            ??
                            await _containerImageMetadata.Add(new ContainerImageMetadata()
                            {
@@ -86,33 +109,51 @@ namespace Shipbot.ContainerRegistry.Services
                     tag.Metadata = metadata;
                 }
             }
-
-            await _containerImageRepository.Save();
-            await _containerImageMetadata.Save();
-            await _containerImageTagRepository.Save();
-
         }
 
-        public async Task<IEnumerable<ContainerImage>> GetTagsForRepository(string repository)
+        private async Task<ContainerImageRepository> GetRepositoryDao(string normalizedContainerRepository)
+        {
+            var repository = await _containerImageRepository
+                .Query()
+                .FirstOrDefaultAsync(
+                    x => x.Name == normalizedContainerRepository
+                );
+
+            if (repository == null)
+            {
+                repository = await _containerImageRepository.Add(new ContainerImageRepository()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = normalizedContainerRepository
+                });
+
+                await _containerImageRepository.Save();
+            } 
+                             
+            return repository;
+        }
+
+        public async Task<IReadOnlyCollection<ContainerImage>> GetTagsForRepository(string repository)
         {
             var normalizedContainerRepository = NormalizeContainerRepository(repository);
 
-            var r = await _containerImageRepository.Query()
-                .FirstOrDefaultAsync(x => x.Name.Equals(normalizedContainerRepository));
-
-            if (r == null) return Enumerable.Empty<ContainerImage>();
+            // var r = await _containerImageRepository.Query()
+            //     .FirstOrDefaultAsync(x => x.Name.Equals(normalizedContainerRepository));
+            //
+            // if (r == null) return EmptyContainerImageCollection;
 
             var containerImageTags = await _containerImageTagRepository.Query()
-                .Where(x => x.RepositoryId == r.Id)
+                .Where(x => x.Repository.Name == normalizedContainerRepository)
+                .Include(x=>x.Repository)
                 .Include(x=>x.Metadata)
                 .ToListAsync();
             
-            if (containerImageTags == null) return Enumerable.Empty<ContainerImage>();
+            if (containerImageTags == null) return EmptyContainerImageCollection;
 
             return containerImageTags
                 .Select(x =>
                     new ContainerImage(
-                        r.Name, x.Tag, x.Metadata.Hash, 
+                        x.Repository.Name, x.Tag, x.Metadata.Hash, 
                         DateTime.SpecifyKind(x.Metadata.CreatedDateTime, DateTimeKind.Utc)
                     )
                 )
@@ -130,16 +171,32 @@ namespace Shipbot.ContainerRegistry.Services
                 .Where(x => x.RepositoryId == r.Id && x.Tag == tag)
                 .Include(x=>x.Metadata)
                 .ToListAsync();
-            
-            return containerImageTags
-                .Select(
-                    x =>
-                        new ContainerImage(
-                            r.Name, x.Tag, x.Metadata.Hash,
-                            DateTime.SpecifyKind(x.Metadata.CreatedDateTime, DateTimeKind.Utc)
-                        )
+
+            if (containerImageTags.Any())
+            {
+                return containerImageTags
+                    .Select(
+                        x =>
+                            new ContainerImage(
+                                r.Name, x.Tag, x.Metadata.Hash,
+                                DateTime.SpecifyKind(x.Metadata.CreatedDateTime, DateTimeKind.Utc)
+                            )
                     )
-                .First();
+                    .First();
+            }
+            
+            // we did not find the tag into the local cache, try to get the tag information from remote
+            var client = await _registryClientPool.GetRegistryClientForRepository(repository);
+            var remoteContainerRepositoryTags = await client.GetRepositoryTags(repository);
+
+            var remoteContainerImage = remoteContainerRepositoryTags.FirstOrDefault(x => x.Tag == tag);
+            if (remoteContainerImage != null)
+            {
+                await AddOrUpdate(remoteContainerImage);
+                return remoteContainerImage;
+            }
+
+            throw new InvalidOperationException("Could not find container image tag");
         }
 
         public async Task<(bool success, ContainerImage image)> TryGetContainerImageByTag(string repository, string tag)

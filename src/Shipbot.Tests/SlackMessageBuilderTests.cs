@@ -40,7 +40,7 @@ namespace Shipbot.Tests
                 options, 
                 new[] {new SlackIntegrationDbContextConfigurator()}
                 );
-            var repo = new EntityRepository<SlackMessage>(context, new UnitOfWork(context));
+            var repo = new EntityRepository<SlackMessage>(context, new UnitOfWork(_loggerFactory.CreateLogger<UnitOfWork>(), context));
             
             var log = _loggerFactory.CreateLogger<SlackClient>();
             var slackConfiguration = new OptionsWrapper<SlackConfiguration>(new SlackConfiguration()
