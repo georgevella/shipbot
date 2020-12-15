@@ -61,56 +61,35 @@ namespace Shipbot.Controller.Controllers
             }
         }
 
+        [HttpGet("{id}/services/")]
+        public async Task<ActionResult<ApplicationServiceDto>> GetApplicationServices(string id)
+        {
+            try
+            {
+                var application = _applicationService.GetApplication(id);
+                var applicationImages = application.Images
+                    .Select(ConvertApplicationImageToApplicationServiceDto)
+                    .ToList();
+                return Ok(applicationImages);
+            }
+            catch (Exception e)
+            {
+                return NotFound();
+            }
+        }
+
         private async Task<ApplicationDto> ConvertApplicationToDto(Application application)
         {
             var sources = await _applicationSourceService.GetActiveApplications();
 
-            var applicationSource = sources.FirstOrDefault(x => x.Application.Equals(application.Name));
-                
-                
-            var applicationImages = new List<ApplicationServiceDto>();
-            foreach (var image in application.Images)
-            {
-                var item = new ApplicationServiceDto()
-                {
-                    ContainerRepository = image.Repository,
-                    DeploymentSettings = new DeploymentSettingsDto()
-                    {
-                        TagProperty = new TagPropertyDto()
-                        {
-                            Path = image.TagProperty.Path,
-                            ValueFormat = image.TagProperty.ValueFormat
-                        },
-                        Policy = image.Policy switch
-                        {
-                            GlobImageUpdatePolicy globImageUpdatePolicy => new ImageUpdatePolicyDto()
-                            {
-                                Glob = new GlobImageUpdatePolicyDto()
-                                {
-                                    Pattern = globImageUpdatePolicy.Pattern
-                                }
-                            },
-                            RegexImageUpdatePolicy regexImageUpdatePolicy => new ImageUpdatePolicyDto()
-                            {
-                                Regex = new RegexImageUpdatePolicyDto()
-                                {
-                                    Pattern = regexImageUpdatePolicy.Pattern
-                                }
-                            },
-                            SemverImageUpdatePolicy semverImageUpdatePolicy => new ImageUpdatePolicyDto()
-                            {
-                                Semver = new SemverImageUpdatePolicyDto()
-                            },
-                            _ => throw new ArgumentOutOfRangeException()
-                        },
-                        AutomaticallySubmitDeploymentToQueue = image.DeploymentSettings.AutomaticallySubmitDeploymentToQueue,
-                        AutomaticallyCreateDeploymentOnRepositoryUpdate =
-                            image.DeploymentSettings.AutomaticallyCreateDeploymentOnRepositoryUpdate
-                    },
-                };
-
-                applicationImages.Add(item);
-            }
+            var applicationSource = sources.FirstOrDefault(
+                x => x.Application.Equals(application.Name)
+            );
+            var applicationImages = application.Images
+                .Select(
+                    image => ConvertApplicationImageToApplicationServiceDto(image)
+                )
+                .ToList();
 
             var dto = new ApplicationDto()
             {
@@ -126,6 +105,48 @@ namespace Shipbot.Controller.Controllers
                 Services = applicationImages
             };
             return dto;
+        }
+
+        private static ApplicationServiceDto ConvertApplicationImageToApplicationServiceDto(ApplicationImage image)
+        {
+            var item = new ApplicationServiceDto()
+            {
+                ContainerRepository = image.Repository,
+                DeploymentSettings = new DeploymentSettingsDto()
+                {
+                    TagProperty = new TagPropertyDto()
+                    {
+                        Path = image.TagProperty.Path,
+                        ValueFormat = image.TagProperty.ValueFormat
+                    },
+                    Policy = image.Policy switch
+                    {
+                        GlobImageUpdatePolicy globImageUpdatePolicy => new ImageUpdatePolicyDto()
+                        {
+                            Glob = new GlobImageUpdatePolicyDto()
+                            {
+                                Pattern = globImageUpdatePolicy.Pattern
+                            }
+                        },
+                        RegexImageUpdatePolicy regexImageUpdatePolicy => new ImageUpdatePolicyDto()
+                        {
+                            Regex = new RegexImageUpdatePolicyDto()
+                            {
+                                Pattern = regexImageUpdatePolicy.Pattern
+                            }
+                        },
+                        SemverImageUpdatePolicy semverImageUpdatePolicy => new ImageUpdatePolicyDto()
+                        {
+                            Semver = new SemverImageUpdatePolicyDto()
+                        },
+                        _ => throw new ArgumentOutOfRangeException()
+                    },
+                    AutomaticallySubmitDeploymentToQueue = image.DeploymentSettings.AutomaticallySubmitDeploymentToQueue,
+                    AutomaticallyCreateDeploymentOnRepositoryUpdate =
+                        image.DeploymentSettings.AutomaticallyCreateDeploymentOnRepositoryUpdate
+                },
+            };
+            return item;
         }
 
         [HttpGet("{id}/current-tags")]

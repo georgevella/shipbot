@@ -110,6 +110,8 @@ namespace Shipbot.Applications
                 var replacementApp = new Application(app.Name, replacementImages, app.Notifications);
                 _applicationStore.ReplaceApplication(replacementApp);
             }
+            
+            return Task.CompletedTask;
         }
 
         [Obsolete]

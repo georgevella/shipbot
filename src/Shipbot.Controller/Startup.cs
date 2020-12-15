@@ -90,14 +90,8 @@ namespace Shipbot.Controller
             services.AddTransient<GitRepositorySyncJob>();
             services.AddTransient<GitRepositoryCheckoutJob>();
             
-            // applications
-            services.AddSingleton<IApplicationStore, InMemoryApplicationStore>();
-            services.AddScoped<IApplicationService, ApplicationService>();
-            services.AddTransient<ISlackCommandHandler, GetCurrentApplicationTags>();
-            services.AddTransient<ISlackExternalOptionsSource, ApplicationIdsExternalOptionsSource>();
-            services.AddTransient<ISlackExternalOptionsSource, ApplicationRepositoriesExternalOptionsSource>();
-
             // setup modules
+            services.RegisterApplicationManagementComponents();
             services.RegisterJobSchedulerServices(Configuration);
             services.RegisterContainerRegistryComponents();
             services.RegisterDummyContainerRegistryComponents();
@@ -106,7 +100,6 @@ namespace Shipbot.Controller
             
             // setup local hosted services
             services.AddTransient<IHostedService, OperatorStartup>();
-            services.AddTransient<IHostedService, ConfigurationSourceApplicationLoader>();
             services.AddTransient<IHostedService, DeploymentSourcesHostedService>();
 
             services.RegisterMediator(
