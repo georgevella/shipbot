@@ -114,5 +114,17 @@ namespace Shipbot.Applications
                 );
             }
         }
+
+        public void ReplaceApplication(Application application)
+        {
+            lock (_lock)
+            {
+                if (!_applications.ContainsKey(application.Name)) 
+                    return;
+                
+                var ctx = _applications[application.Name];
+                ctx.Application = application;
+            }
+        }
     }
 }

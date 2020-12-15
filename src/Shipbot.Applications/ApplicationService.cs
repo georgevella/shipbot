@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shipbot.Controller.Core.Configuration;
@@ -51,7 +52,7 @@ namespace Shipbot.Applications
                     UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
                     _ => throw new NotImplementedException()
                 },
-                new DeploymentSettings(applicationDefinition.AutoDeploy, applicationDefinition.AutoDeploy)
+                new DeploymentSettings(true, applicationDefinition.AutoDeploy)
             )).ToList();
 
             var application = new Application(
@@ -75,6 +76,40 @@ namespace Shipbot.Applications
             }
             
             throw new Exception($"Application '{id}' not found in store");
+        }
+
+        public Task ChangeApplicationDeploymentSettings(
+            string application, 
+            ApplicationImage image,
+            DeploymentSettings deploymentSettings)
+        {
+            var app = _applicationStore.GetApplication(application);
+            var images = app.Images.ToHashSet();
+            if (images.Contains(image))
+            {
+                var replacementImages = new List<ApplicationImage>();
+
+                foreach (var i in images)
+                {
+                    if (i.Equals(image))
+                    {
+                        replacementImages.Add(
+                            new ApplicationImage(
+                                image.Repository, 
+                                image.TagProperty, 
+                                image.Policy,
+                                deploymentSettings)
+                            );
+                    }
+                    else
+                    {
+                        replacementImages.Add(i);
+                    }
+                }
+
+                var replacementApp = new Application(app.Name, replacementImages, app.Notifications);
+                _applicationStore.ReplaceApplication(replacementApp);
+            }
         }
 
         [Obsolete]

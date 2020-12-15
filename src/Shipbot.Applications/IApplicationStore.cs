@@ -14,5 +14,7 @@ namespace Shipbot.Applications
         IReadOnlyDictionary<ApplicationImage, string> GetCurrentImageTags(Application application);
         [Obsolete]
         void SetCurrentImageTag(Application application, ApplicationImage image, string tag);
+
+        void ReplaceApplication(Application application);
     }
 }

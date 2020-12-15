@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
 
@@ -15,5 +16,10 @@ namespace Shipbot.Applications
         void SetCurrentImageTag(Application application, ApplicationImage image, string tag);
         [Obsolete]
         IReadOnlyDictionary<ApplicationImage, string> GetCurrentImageTags(Application application);
+
+        Task ChangeApplicationDeploymentSettings(
+            string application, 
+            ApplicationImage image,
+            DeploymentSettings deploymentSettings);
     }
 }
