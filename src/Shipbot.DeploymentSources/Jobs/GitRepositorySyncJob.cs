@@ -235,7 +235,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             var yamlUtilities = new YamlUtilities();
 
             // build map of images -> yaml file that defines them and image -> current tag
-            _log.LogInformation("Beginning to parse value files defined in application source ...");
+            _log.LogTrace("Beginning to parse value files defined in application source ...");
 
             var imageToFilenameMap = new Dictionary<ApplicationImage, string>();
             var imageToTagInManifest = new Dictionary<ApplicationImage, string>();
@@ -266,7 +266,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 }
             }
             
-            _log.LogInformation("Completing parsing value files defined in application source ...");
+            _log.LogTrace("Completing parsing value files defined in application source ...");
 
             // start updating files
             var manifestsChanged = false;
@@ -277,7 +277,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                     nextPendingDeployment.Id,
                     DeploymentStatus.Starting
                     );
-                _log.LogInformation("Executing pending deployment update ...");
+                _log.LogTrace("Executing pending deployment update ...");
                 
                 await _deploymentService.ChangeDeploymentUpdateStatus(
                     nextPendingDeployment.Id,
@@ -342,7 +342,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 return false;
             }
 
-            _log.LogInformation("Upgrading {Repository} to {NewTag} from {Tag}",
+            _log.LogTrace("Upgrading {Repository} to {NewTag} from {Tag}",
                 deploymentUpdate.Image.Repository,
                 deploymentUpdate.TargetTag,
                 currentImageTag
@@ -364,11 +364,11 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
                 if (tagInManifest == deploymentUpdate.TargetTag)
                 {
-                    _log.LogInformation("Tag for {Repository} matches new tag {NewTag}", image.Repository, deploymentUpdate.TargetTag);
+                    _log.LogTrace("Tag for {Repository} matches new tag {NewTag}", image.Repository, deploymentUpdate.TargetTag);
                     continue;
                 }
 
-                _log.LogInformation("Setting current-tag for {Repository} to {Tag}", image.Repository,
+                _log.LogTrace("Setting current-tag for {Repository} to {Tag}", image.Repository,
                     deploymentUpdate.TargetTag);
                 yamlUtilities.SetValueInDoc(image.TagProperty.Path, doc, deploymentUpdate.TargetTag);
 
@@ -380,7 +380,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
             yamlUtilities.WriteYamlStream(yaml, filePath);
 
-            _log.LogInformation("Adding {Path} to repository staging", filePath);
+            _log.LogTrace("Adding {Path} to repository staging", filePath);
             var gitFilePath = Path.Combine(relativePath, file);
             Commands.Stage(gitRepository, gitFilePath);
             
