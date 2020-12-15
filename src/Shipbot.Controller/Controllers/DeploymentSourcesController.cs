@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
 using Shipbot.Contracts;
@@ -24,6 +25,7 @@ namespace Shipbot.Controller.Controllers
         }
         
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<ApplicationSourceDto>>> Get()
         {
             var activeAppications = await _applicationSourceService.GetActiveApplications();

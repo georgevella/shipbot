@@ -1,9 +1,14 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Net.Http;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using Mediator.Net;
 using Mediator.Net.MicrosoftDependencyInjection;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -103,6 +108,44 @@ namespace Shipbot.Controller
             services.RegisterMediator(
                 new MediatorBuilder().RegisterHandlers(Assembly.GetExecutingAssembly())
             );
+            
+            // Add Authentication services
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddCookie(setup => setup.ExpireTimeSpan = TimeSpan.FromMinutes(30))
+                .AddOpenIdConnect(options =>
+                {
+                    // var handler = new HttpClientHandler();
+                    // handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
+                    // {
+                    //     return true;
+                    // }; // HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
+                    
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.Authority = "http://localhost:5556/";
+                    //options.SignedOutRedirectUri = callBackUrl.ToString();
+                    options.ClientId = "example-app";
+                    options.ClientSecret = "ZXhhbXBsZS1hcHAtc2VjcmV0";
+                    options.ResponseType = "code";
+                    options.SaveTokens = true;
+                    options.GetClaimsFromUserInfoEndpoint = true;
+                    options.RequireHttpsMetadata = false;
+                    options.Scope.Add("openid");
+                    options.Scope.Add("profile");
+                    
+                    // options.BackchannelHttpHandler = handler;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.Authority = "http://localhost:5556/";
+                    options.RequireHttpsMetadata = false;
+                    options.Audience = "example-app";
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -111,6 +154,13 @@ namespace Shipbot.Controller
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                
+                // required for when running Dex/IDP locally and setting auth cookies to 'localhost'
+                // (due to how Chrome handles localhost cookies)
+                app.UseCookiePolicy(new CookiePolicyOptions()
+                {
+                    MinimumSameSitePolicy = SameSiteMode.Lax
+                });
             }
             else
             {
@@ -119,7 +169,7 @@ namespace Shipbot.Controller
             }
 
             app.UseHealthChecks("/health");
-
+            
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -128,6 +178,10 @@ namespace Shipbot.Controller
 
             app.UseHttpsRedirection();
             app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+            
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

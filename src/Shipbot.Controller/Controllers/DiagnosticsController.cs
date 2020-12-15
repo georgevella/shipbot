@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
 using Shipbot.ContainerRegistry;
@@ -35,6 +36,7 @@ namespace Shipbot.Controller.Controllers
         }
         
         [HttpPost("deployment-notifications")]
+        [Authorize]
         public async Task<ActionResult> ResendDeploymentNotification(
             [FromForm(Name = "deploymentId")] Guid deploymentId
             )
@@ -46,6 +48,7 @@ namespace Shipbot.Controller.Controllers
         }
 
         [HttpGet("container-image-local-store")]
+        [Authorize]
         public async Task<ActionResult> GetContainerImageIntoLocalStore([FromQuery] string repository)
         {
             var containerImages = await _containerImageMetadataService.GetTagsForRepository(repository);
@@ -63,6 +66,7 @@ namespace Shipbot.Controller.Controllers
         }
 
         [HttpPost("container-image-local-store")]
+        [Authorize]
         public async Task<ActionResult> AddContainerImageIntoLocalStore(ContainerImageDto dto)
         {
             var containerImage = new ContainerImage(dto.Repository, dto.Tag, dto.Hash, dto.CreationDateTime);
@@ -86,6 +90,7 @@ namespace Shipbot.Controller.Controllers
         }
 
         [HttpGet("slack/user-groups")]
+        [Authorize]
         public async Task<ActionResult> GetSlackUserGroups()
         {
             var result = await _slackClient.GetAllUserGroupNames();

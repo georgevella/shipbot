@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
@@ -34,6 +35,7 @@ namespace Shipbot.Controller.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<ApplicationDeploymentDto>>> GetDeployments([FromQuery(Name = "application")] string applicationName, [FromQuery(Name = "status")] DeploymentStatus? status)
         {
             try
@@ -69,6 +71,7 @@ namespace Shipbot.Controller.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult> Post([FromBody] NewDeploymentDto newDeploymentDto)
         {
             var containerImage = new ContainerImage(newDeploymentDto.Repository,

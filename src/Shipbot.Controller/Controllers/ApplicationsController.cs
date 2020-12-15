@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Amazon.Util.Internal.PlatformServices;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
 using Shipbot.Controller.Core.ApplicationSources;
@@ -29,6 +32,7 @@ namespace Shipbot.Controller.Controllers
         }
         
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<ApplicationDto>>> Get()
         {
             var apps = _applicationService.GetApplications();
@@ -42,6 +46,7 @@ namespace Shipbot.Controller.Controllers
         }
         
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<ApplicationDto>> Get(string id)
         {
             try
@@ -124,6 +129,7 @@ namespace Shipbot.Controller.Controllers
         }
 
         [HttpGet("{id}/current-tags")]
+        [Authorize]
         public ActionResult<Dictionary<string, string>> GetCurrentImageTags(string id)
         {
             var application = _applicationService.GetApplication(id);
