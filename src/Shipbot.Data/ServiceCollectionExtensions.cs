@@ -1,25 +1,23 @@
 using System;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using Shipbot.Data;
+using Shipbot.Data.Internal;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
-        // public static readonly ILoggerFactory MyLoggerFactory
-        //     = LoggerFactory.Create(builder =>
-        //     {
-        //         builder
-        //             .AddFilter((category, level) =>
-        //                 category == DbLoggerCategory.Database.Command.Name
-        //                 && level == LogLevel.Information)
-        //             .AddConsole();
-        //     });
-        //
+        /// <summary>
+        ///     Registers a db context configurator.
+        /// </summary>
+        /// <param name="serviceCollection"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public static IServiceCollection AddDbContextConfigurator<T>(this IServiceCollection serviceCollection)
             where T: class, IDbContextConfigurator
         {
@@ -39,6 +37,12 @@ namespace Microsoft.Extensions.DependencyInjection
                     // .EnableSensitiveDataLogging()
                     .UseNpgsql(configuration.GetShipbotConnectionString())
             );
+        }
+
+        public static IServiceCollection RegisterDataMigrationStartupService(this IServiceCollection serviceCollection)
+        {
+            serviceCollection.AddHostedService<ShipbotDatabaseMigrationHostedService>();
+            return serviceCollection;
         }
         
         public static IServiceCollection RegisterDbContext(this IServiceCollection serviceCollection, IConfiguration configuration, Action<NpgsqlDbContextOptionsBuilder> optionsBuilderFunc)

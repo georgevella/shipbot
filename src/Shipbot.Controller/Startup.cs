@@ -77,6 +77,13 @@ namespace Shipbot.Controller
 
             services.AddSwaggerGenNewtonsoftSupport();
             services.Configure<ShipbotConfiguration>(Configuration.GetSection("Shipbot"));
+            
+            // setup data services
+            services.RegisterDataMigrationStartupService()
+                .RegisterDbContext(
+                    Configuration,
+                    builder => builder.MigrationsAssembly(typeof(Shipbot.DbMigrations.Program).Assembly.FullName)
+                );
 
             // application sources
             services.AddScoped<IApplicationSourceService, ApplicationSourceService>();
@@ -97,10 +104,7 @@ namespace Shipbot.Controller
             services.RegisterDeploymentComponents();
             services.RegisterShipbotSlackIntegrationComponents(Configuration);
             
-
-            // setup data services
-            services.RegisterDbContext(Configuration) ;
-
+            // setup local hosted services
             services.AddTransient<IHostedService, OperatorStartup>();
             services.AddTransient<IHostedService, ConfigurationSourceApplicationLoader>();
             services.AddTransient<IHostedService, DeploymentSourcesHostedService>();

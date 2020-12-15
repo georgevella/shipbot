@@ -42,6 +42,7 @@
     <ProjectReference Include="..\Shipbot.ContainerRegistry.Dummy\Shipbot.ContainerRegistry.Dummy.csproj" />
     <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
     <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
+    <ProjectReference Include="..\Shipbot.DbMigrations\Shipbot.DbMigrations.csproj" />
     <ProjectReference Include="..\Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj" />
     <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
     <ProjectReference Include="..\Shipbot.JobScheduling\Shipbot.JobScheduling.csproj" />
