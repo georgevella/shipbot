@@ -11,10 +11,11 @@ namespace Shipbot.JobScheduling
     {
         public static IServiceCollection RegisterJobSchedulerServices(this IServiceCollection services, IConfiguration configuration)
         {
-            var connectionString = configuration?.GetSection("ConnectionStrings")?["Quartz"];
-
-            if (connectionString == null)
-                throw new InvalidOperationException("Quartz connection string not setup.");
+            // TODO: impelement job scheduler persistence
+            // var connectionString = configuration?.GetSection("ConnectionStrings")?["Quartz"];
+            //
+            // if (connectionString == null)
+            //     throw new InvalidOperationException("Quartz connection string not setup.");
             
             services.AddSingleton<ISchedulerFactory>(provider =>
             {
