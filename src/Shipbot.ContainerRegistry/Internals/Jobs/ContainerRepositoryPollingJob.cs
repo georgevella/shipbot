@@ -38,7 +38,7 @@ namespace Shipbot.ContainerRegistry.Watcher
             {
                 try
                 {
-                    _log.LogInformation("Fetching tags for {imagerepository}", containerRepository);
+                    _log.LogTrace("Fetching tags for {imagerepository}", containerRepository);
 
                     var client = await _registryClientPool.GetRegistryClientForRepository(containerRepository);
                     var remoteContainerRepositoryTags = await client.GetRepositoryTags(containerRepository);

@@ -93,7 +93,7 @@ namespace Shipbot.ContainerRegistry.Ecr
                 {"Repository", repository}
             }))
             {
-                _log.LogInformation("Getting repository tags");
+                _log.LogTrace("Getting repository tags");
 
                 var repositories = await GetRepositoriesInternal();
                 // var repositories = await _client.DescribeRepositoriesAsync(new DescribeRepositoriesRequest());
@@ -128,7 +128,7 @@ namespace Shipbot.ContainerRegistry.Ecr
                     );
                 }
                 
-                _log.LogInformation("Found {ImageCount} images for {Repository}", imageList.Count, repository);
+                _log.LogTrace("Found {ImageCount} images for {Repository}", imageList.Count, repository);
 
                 return imageList;
             }

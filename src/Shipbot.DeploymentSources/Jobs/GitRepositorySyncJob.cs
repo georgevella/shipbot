@@ -114,7 +114,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
         private Branch CheckoutDeploymentManifest(Repository gitRepository, ApplicationSourceRepository repository,
             UsernamePasswordGitCredentials credentials)
         {
-            _log.LogInformation("CheckoutDeploymentManifest ...");
+            _log.LogTrace("CheckoutDeploymentManifest ...");
             
             var branchNames = gitRepository.Branches.Select(x => x.CanonicalName).ToList();
 
@@ -143,10 +143,13 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
                 var currentHash = gitRepository.Head.Tip.Sha;
 
-                _log.LogInformation("Fetching latest sources for {branch} [{currentHash}] ...",
+                _log.LogTrace("Fetching latest sources for {branch} [{currentHash}] ...",
                     branch.CanonicalName, currentHash);
 
-                // TODO maybe this needs to be a fetch
+                // TODO: there is a problem here - if the remote is updated and we have local changes, we need to determine
+                // an automated way to either:
+                // 1. rebase on the remote
+                // 2. if there are conflicts, ignore all changes, clone again and reapply the changes.
                 Commands.Pull(gitRepository,
                     new Signature("rig-deploy-bot", "devops@riverigaming.com", DateTimeOffset.Now),
                     new PullOptions()
@@ -158,17 +161,17 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                             {
                                 Username = credentials.Username,
                                 Password = credentials.Password
-                            }
+                            },
                         },
                         MergeOptions = new MergeOptions()
                         {
-                            FastForwardStrategy = FastForwardStrategy.FastForwardOnly
-                        }
+                            FastForwardStrategy = FastForwardStrategy.FastForwardOnly,
+                        },
                     });
 
                 if (gitRepository.Head.Tip.Sha != currentHash)
                 {
-                    _log.LogInformation("Branch changed, triggered application refresh");
+                    _log.LogTrace("Branch changed, triggered application refresh");
                 }
             }
             else
