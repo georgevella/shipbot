@@ -123,18 +123,7 @@ namespace Shipbot.Controller
                 .AddCookie(setup => setup.ExpireTimeSpan = TimeSpan.FromMinutes(30))
                 .AddOpenIdConnect(options =>
                 {
-                    // var handler = new HttpClientHandler();
-                    // handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
-                    // {
-                    //     return true;
-                    // }; // HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-
-                    
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.Authority = "http://localhost:5556/";
-                    //options.SignedOutRedirectUri = callBackUrl.ToString();
-                    options.ClientId = "example-app";
-                    options.ClientSecret = "ZXhhbXBsZS1hcHAtc2VjcmV0";
                     options.ResponseType = "code";
                     options.SaveTokens = true;
                     options.GetClaimsFromUserInfoEndpoint = true;
@@ -142,13 +131,12 @@ namespace Shipbot.Controller
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     
-                    // options.BackchannelHttpHandler = handler;
+                    Configuration.Bind("OpenIdConnect", options);
                 })
                 .AddJwtBearer(options =>
                 {
-                    options.Authority = "http://localhost:5556/";
                     options.RequireHttpsMetadata = false;
-                    options.Audience = "example-app";
+                    Configuration.Bind("JwtBearer", options);
                 });
         }
 
