@@ -20,7 +20,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	
 WORKDIR /app
 COPY --from=build-env /app/output .
-COPY --from=build-env /root/.nuget/packages/libgit2sharp.nativebinaries/2.0.306/runtimes/linux-x64/native/*.so .
+
+# required to find correct version of libgit
+ENV LD_LIBRARY_PATH=/app/runtimes/debian.9-x64/native/
 
 ENTRYPOINT ["dotnet", "Shipbot.Controller.dll"]
 
