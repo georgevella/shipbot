@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shipbot.Applications.Models;
 using Shipbot.Models;
 
 namespace Shipbot.Applications

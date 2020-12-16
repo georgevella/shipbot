@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Util;
 using Shipbot.Applications;
+using Shipbot.Applications.Models;
 using Shipbot.Controller.Core.ApplicationSources.Models;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Deployments;

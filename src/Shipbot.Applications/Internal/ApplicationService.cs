@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Shipbot.Applications.Models;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
+using TagPropertyValueFormat = Shipbot.Applications.Models.TagPropertyValueFormat;
 
 namespace Shipbot.Applications.Internal
 {
@@ -41,7 +43,7 @@ namespace Shipbot.Applications.Internal
                     imageSettings.Repository,
                     new TagProperty(
                         imageSettings.TagProperty.Path,
-                        imageSettings.TagProperty.ValueFormat
+                        (TagPropertyValueFormat)imageSettings.TagProperty.ValueFormat
                     ),
                     imageSettings.Policy switch
                     {

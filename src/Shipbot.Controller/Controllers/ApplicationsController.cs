@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
+using Shipbot.Applications.Models;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.DTOs;
 using Shipbot.Models;

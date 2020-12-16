@@ -1,8 +1,7 @@
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 
-namespace Shipbot.Models
+namespace Shipbot.Applications.Models
 {
     public class Application
     {

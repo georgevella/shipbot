@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Shipbot.Applications.Models;
 using Shipbot.Models;
 using Shipbot.SlackIntegration;
 using Shipbot.SlackIntegration.Commands;

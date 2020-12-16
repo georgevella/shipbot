@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Shipbot.Applications.Models;
 using Shipbot.Models;
 
 namespace Shipbot.Controller.DTOs

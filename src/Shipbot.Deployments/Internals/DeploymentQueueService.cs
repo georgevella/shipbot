@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Shipbot.Applications;
+using Shipbot.Applications.Models;
 using Shipbot.Data;
 using Shipbot.Deployments.Dao;
 using Shipbot.Deployments.Internals;

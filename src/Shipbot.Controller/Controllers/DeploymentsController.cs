@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shipbot.Applications;
+using Shipbot.Applications.Models;
 using Shipbot.ContainerRegistry.Models;
 using Shipbot.Controller.DTOs;
 using Shipbot.Deployments;

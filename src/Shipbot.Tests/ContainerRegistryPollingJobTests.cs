@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Shipbot.Applications;
+using Shipbot.Applications.Models;
 using Shipbot.ContainerRegistry;
 using Shipbot.ContainerRegistry.Internals;
 using Shipbot.ContainerRegistry.Models;

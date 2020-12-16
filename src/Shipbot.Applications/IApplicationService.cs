@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Shipbot.Applications.Models;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
 

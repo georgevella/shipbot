@@ -1,4 +1,5 @@
 using System;
+using Shipbot.Applications.Models;
 
 namespace Shipbot.Models
 {

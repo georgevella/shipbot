@@ -1,7 +1,8 @@
 using System;
 using System.Linq;
+using Shipbot.Models;
 
-namespace Shipbot.Models
+namespace Shipbot.Applications.Models
 {
     public class ApplicationImage
     {

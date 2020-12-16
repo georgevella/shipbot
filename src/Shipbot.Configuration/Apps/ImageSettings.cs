@@ -20,4 +20,10 @@ namespace Shipbot.Controller.Core.Configuration.Apps
 
         public TagPropertyValueFormat ValueFormat { get; set; }
     }
+    
+    public enum TagPropertyValueFormat
+    {
+        TagOnly,
+        TagAndRepository
+    }
 }

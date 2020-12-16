@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
+using Shipbot.Applications.Models;
 using Shipbot.Data;
 using Shipbot.Deployments.Internals;
 using Shipbot.Deployments.Models;
