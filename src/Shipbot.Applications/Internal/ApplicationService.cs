@@ -1,17 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shipbot.Controller.Core.Configuration;
-using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
-// using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
 
-namespace Shipbot.Applications
+namespace Shipbot.Applications.Internal
 {
     public class ApplicationService : IApplicationService
     {
@@ -39,21 +36,23 @@ namespace Shipbot.Applications
                 throw new Exception($"An application with the name '{name}' already exists.");
             }
 
-            var applicationImages = applicationDefinition.Images.Select(imageSettings => new ApplicationImage(
-                imageSettings.Repository,
-                new TagProperty(
-                    imageSettings.TagProperty.Path,
-                    imageSettings.TagProperty.ValueFormat
-                ),
-                imageSettings.Policy switch
-                {
-                    UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
-                        imageSettings.Pattern),
-                    UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
-                    _ => throw new NotImplementedException()
-                },
-                new DeploymentSettings(true, applicationDefinition.AutoDeploy)
-            )).ToList();
+            var applicationImages = applicationDefinition.Images
+                .Select(imageSettings => new ApplicationImage(
+                    imageSettings.Repository,
+                    new TagProperty(
+                        imageSettings.TagProperty.Path,
+                        imageSettings.TagProperty.ValueFormat
+                    ),
+                    imageSettings.Policy switch
+                    {
+                        UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
+                            imageSettings.Pattern),
+                        UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
+                        _ => throw new NotImplementedException()
+                    },
+                    new DeploymentSettings(true, applicationDefinition.AutoDeploy)
+                ))
+                .ToList();
 
             var application = new Application(
                 name,
