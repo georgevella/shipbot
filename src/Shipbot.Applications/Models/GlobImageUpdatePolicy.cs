@@ -1,8 +1,7 @@
-using System.Text;
 using System.Text.RegularExpressions;
 using DotNet.Globbing;
 
-namespace Shipbot.Models
+namespace Shipbot.Applications.Models
 {
     public class GlobImageUpdatePolicy : ImageUpdatePolicy
     {

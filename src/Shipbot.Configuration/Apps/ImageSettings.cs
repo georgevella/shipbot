@@ -1,6 +1,3 @@
-using System;
-using Shipbot.Models;
-
 namespace Shipbot.Controller.Core.Configuration.Apps
 {
     public class ImageSettings

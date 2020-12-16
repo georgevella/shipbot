@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
+using Shipbot.Applications.Models;
 using Shipbot.ContainerRegistry;
 using Shipbot.ContainerRegistry.Models;
 using Shipbot.ContainerRegistry.Services;

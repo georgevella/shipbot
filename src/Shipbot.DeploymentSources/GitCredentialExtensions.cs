@@ -1,7 +1,7 @@
 using Shipbot.Controller.Core.Configuration.Git;
 using Shipbot.Models;
 
-namespace Shipbot.Controller.Core.Configuration
+namespace Shipbot.Controller.Core.ApplicationSources
 {
     public static class GitCredentialExtensions {
         public static GitCredentials ConvertToGitCredentials(this GitCredentialSettings gitCredentialSettings)

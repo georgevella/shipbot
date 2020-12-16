@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shipbot.Models;
 using SlackAPI;
 
 namespace Shipbot.SlackIntegration

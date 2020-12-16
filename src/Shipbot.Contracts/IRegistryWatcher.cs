@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using Shipbot.Models;
 
 namespace Shipbot.Contracts
 {

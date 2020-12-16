@@ -1,4 +1,4 @@
-namespace Shipbot.Models
+namespace Shipbot.Applications.Models
 {
     public class SemverImageUpdatePolicy : ImageUpdatePolicy
     {
