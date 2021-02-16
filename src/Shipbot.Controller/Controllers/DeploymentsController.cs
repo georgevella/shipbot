@@ -75,8 +75,11 @@ namespace Shipbot.Controller.Controllers
         [Authorize]
         public async Task<ActionResult> Post([FromBody] NewDeploymentDto newDeploymentDto)
         {
-            var containerImage = new ContainerImage(newDeploymentDto.Repository,
-                newDeploymentDto.Tag);
+            var containerImage = new ContainerImage(
+                newDeploymentDto.Repository,
+                newDeploymentDto.Tag
+                );
+            
             var createdDeployments = (await _deploymentWorkflowService.StartImageDeployment(containerImage, false)).ToList();
 
             if (createdDeployments.Any())
