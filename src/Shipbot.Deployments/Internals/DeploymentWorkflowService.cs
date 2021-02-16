@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.ECR.Model;
 using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
 using Shipbot.Applications.Models;
@@ -51,13 +52,35 @@ namespace Shipbot.Deployments.Internals
             bool isContainerRepositoryUpdate = false
         )
         {
+            var allApplicationsTrackingThisRepository = GetAllApplicationsTrackingThisRepository(latestImage.Repository);
+            
             return InternalStartImageDeployment(
+                allApplicationsTrackingThisRepository,
                 latestImage.Repository, 
                 new List<ContainerImage>{latestImage}, 
                 isContainerRepositoryUpdate
                 );
         }
-        
+
+        public Task<IEnumerable<Deployment>> StartImageDeployment(
+            string applicationName, 
+            ContainerImage containerImage,
+            bool isContainerRepositoryUpdate = false)
+        {
+            var application = _applicationService.GetApplication(applicationName);
+            var targetImages = application.Images
+                .Where(image => image.Repository.Equals(containerImage.Repository))
+                .Select(image => (image, application))
+                .ToList();
+            
+            return InternalStartImageDeployment(
+                targetImages,
+                containerImage.Repository, 
+                new List<ContainerImage>{containerImage}, 
+                isContainerRepositoryUpdate
+            );
+        }
+
         public Task<IEnumerable<Deployment>> StartImageDeployment(
             string containerImageRepository,
             IEnumerable<ContainerImage> newContainerImages,
@@ -82,37 +105,26 @@ namespace Shipbot.Deployments.Internals
                     "Not all container images supplied are within the same container repository.");
             }
             
+            var allApplicationsTrackingThisRepository = GetAllApplicationsTrackingThisRepository(containerImageRepository);
+            
             return InternalStartImageDeployment(
+                allApplicationsTrackingThisRepository,
                 containerImageRepository, 
                 items,
                 isContainerRepositoryUpdate
                 );
-        }      
+        } 
         
         private async Task<IEnumerable<Deployment>> InternalStartImageDeployment(
+            IEnumerable<(ApplicationImage Image, Application Application)> targetApplicationsAndImages, 
             string containerImageRepository,
             IReadOnlyCollection<ContainerImage> newContainerImages,
             bool isContainerRepositoryUpdate = false
         )
         {
-            var applications = _applicationService.GetApplications();
-            var allApplicationsTrackingThisRepository = applications
-                .SelectMany(
-                    x => x.Images,
-                    (app, img) =>
-                        new
-                        {
-                            Image = img,
-                            Application = app
-                        }
-                )
-                .Where(x =>
-                    x.Image.Repository.Equals(containerImageRepository)
-                );
-
             var createdDeployments = new List<Deployment>();
 
-            foreach (var item in allApplicationsTrackingThisRepository)
+            foreach (var item in targetApplicationsAndImages)
             {
                 if (
                     isContainerRepositoryUpdate &&
@@ -189,6 +201,27 @@ namespace Shipbot.Deployments.Internals
             }
 
             return createdDeployments;
+        }
+
+        private IEnumerable<(ApplicationImage Image, Application Application)> GetAllApplicationsTrackingThisRepository(string containerImageRepository)
+        {
+            var applications = _applicationService.GetApplications();
+            var allApplicationsTrackingThisRepository = applications
+                .SelectMany(
+                    x => x.Images,
+                    (app, img) =>
+                        new
+                        {
+                            Image = img,
+                            Application = app
+                        }
+                )
+                .Where(x =>
+                    x.Image.Repository.Equals(containerImageRepository)
+                )
+                .Select( x => ( x.Image, x.Application ) )
+                .ToList();
+            return allApplicationsTrackingThisRepository;
         }
 
         internal ContainerImage GetLatestTagMatchingPolicy(

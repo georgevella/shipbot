@@ -26,6 +26,12 @@ namespace Shipbot.Deployments
         );
 
         Task<IEnumerable<Deployment>> StartImageDeployment(
+            string applicationName,
+            ContainerImage containerImage,
+            bool isContainerRepositoryUpdate = false
+            );
+
+        Task<IEnumerable<Deployment>> StartImageDeployment(
             string containerImageRepository,
             IEnumerable<ContainerImage> newContainerImages,
             bool isContainerRepositoryUpdate = false
