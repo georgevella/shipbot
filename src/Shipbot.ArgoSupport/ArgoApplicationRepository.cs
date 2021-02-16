@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using AutoDeploy.ArgoSupport.Crd;
+using AutoDeploy.ArgoSupport.Models.K8s.Crd;
 
 namespace AutoDeploy.ArgoSupport
 {
