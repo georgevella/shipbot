@@ -2,6 +2,8 @@
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using System.Xml;
+using k8s;
 using Mediator.Net;
 using Mediator.Net.MicrosoftDependencyInjection;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -14,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Converters;
 using Quartz;
@@ -62,11 +65,11 @@ namespace Shipbot.Controller
                     }
                 )
                 .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
-                // .AddJsonOptions(options =>
-                // {
-                //     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                //     options.JsonSerializerOptions.Converters.Add(new SlackIncomingPayloadConverterFactory());
-                // });
+            // .AddJsonOptions(options =>
+            // {
+            //     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            //     options.JsonSerializerOptions.Converters.Add(new SlackIncomingPayloadConverterFactory());
+            // });
 
             services.AddHealthChecks();
 
@@ -77,7 +80,7 @@ namespace Shipbot.Controller
 
             services.AddSwaggerGenNewtonsoftSupport();
             services.Configure<ShipbotConfiguration>(Configuration.GetSection("Shipbot"));
-            
+
             // setup data services
             services.RegisterDataMigrationStartupService()
                 .RegisterDbContext(
@@ -89,7 +92,7 @@ namespace Shipbot.Controller
             services.AddScoped<IApplicationSourceService, ApplicationSourceService>();
             services.AddTransient<GitRepositorySyncJob>();
             services.AddTransient<GitRepositoryCheckoutJob>();
-            
+
             // setup modules
             services.RegisterApplicationManagementComponents();
             services.RegisterJobSchedulerServices(Configuration);
@@ -97,7 +100,7 @@ namespace Shipbot.Controller
             services.RegisterDummyContainerRegistryComponents();
             services.RegisterDeploymentComponents();
             services.RegisterShipbotSlackIntegrationComponents(Configuration);
-            
+
             // setup local hosted services
             services.AddTransient<IHostedService, OperatorStartup>();
             services.AddTransient<IHostedService, DeploymentSourcesHostedService>();
@@ -105,7 +108,7 @@ namespace Shipbot.Controller
             services.RegisterMediator(
                 new MediatorBuilder().RegisterHandlers(Assembly.GetExecutingAssembly())
             );
-            
+
             // Add Authentication services
             services.AddAuthentication(options =>
                 {
@@ -123,7 +126,7 @@ namespace Shipbot.Controller
                     options.RequireHttpsMetadata = false;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
-                    
+
                     Configuration.Bind("OpenIdConnect", options);
                 })
                 .AddJwtBearer(options =>
@@ -131,6 +134,16 @@ namespace Shipbot.Controller
                     options.RequireHttpsMetadata = false;
                     Configuration.Bind("JwtBearer", options);
                 });
+            
+            
+            // kubernetes
+            
+
+            services.AddSingleton<IKubernetes>(provider =>
+            {
+                var config = KubernetesClientConfiguration.BuildConfigFromConfigFile();
+                return new Kubernetes(config);
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -139,7 +152,7 @@ namespace Shipbot.Controller
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                
+
                 // required for when running Dex/IDP locally and setting auth cookies to 'localhost'
                 // (due to how Chrome handles localhost cookies)
                 app.UseCookiePolicy(new CookiePolicyOptions()
@@ -154,23 +167,17 @@ namespace Shipbot.Controller
             }
 
             app.UseHealthChecks("/health");
-            
+
             app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Shipbot API V1");
-            });
+            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "Shipbot API V1"); });
 
             app.UseHttpsRedirection();
             app.UseRouting();
 
             app.UseAuthentication();
             app.UseAuthorization();
-            
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }

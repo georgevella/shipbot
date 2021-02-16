@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="KubernetesClient" Version="1.5.19" />
+    <PackageReference Include="KubernetesClient" Version="4.0.5" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.7" />
   </ItemGroup>
 

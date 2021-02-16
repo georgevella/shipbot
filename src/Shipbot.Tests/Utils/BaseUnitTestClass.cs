@@ -45,6 +45,11 @@ namespace Shipbot.Tests.Utils
         {
             return _loggerFactory.CreateLogger<T>();
         }
+        
+        protected ILogger GetLogger(string? category = null)
+        {
+            return _loggerFactory.CreateLogger(category ?? "Unnamed");
+        }
 
         protected void UseStrictMocks()
         {

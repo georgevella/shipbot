@@ -4,7 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <LangVersion>8</LangVersion>
-    <Nullable>disable</Nullable>
+    <Nullable>warnings</Nullable>
     <UseAppHost>false</UseAppHost>
 <!--    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>-->
 <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
@@ -15,6 +15,7 @@
     <PackageReference Include="AWSSDK.ECR" Version="3.3.107.4" />
     <PackageReference Include="CommandLineParser" Version="2.8.0" />
     <PackageReference Include="DotNet.Glob" Version="3.0.9" />
+    <PackageReference Include="KubernetesClient" Version="4.0.5" />
     <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
     <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.306" PrivateAssets="All" IncludeAssets="All">
       <SendToOutputDir>runtimes/fedora-x64/native/*</SendToOutputDir>
