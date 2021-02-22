@@ -38,7 +38,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             _scheduler = scheduler;
         }
         
-        public async Task AddApplicationSource(string applicationName, ApplicationSourceSettings applicationSourceSettings)
+        public async Task AddApplicationSource(string applicationName, DeploymentManifestSettings deploymentManifestSettings)
         {
             var jobKey = new JobKey($"gitclone-{applicationName}", Constants.SchedulerGroup);
             if (await _scheduler.CheckExists(jobKey))
@@ -52,22 +52,22 @@ namespace Shipbot.Controller.Core.ApplicationSources
             }
             
             var conf = _configuration.Value;
-            var applicationSource = applicationSourceSettings.Type switch {
-                ApplicationSourceType.Helm => (ApplicationSource) new HelmApplicationSource(
+            var applicationSource = deploymentManifestSettings.Type switch {
+                DeploymentManifestType.Helm => (ApplicationSource) new HelmApplicationSource(
                     applicationName,
                     new ApplicationSourceRepository()
                     {
                         // TODO: handle config changes
                         Credentials = conf.GitCredentials.First(
                             x =>
-                                x.Name.Equals(applicationSourceSettings.Repository.Credentials)
+                                x.Name.Equals(deploymentManifestSettings.Repository.Credentials)
                         ).ConvertToGitCredentials(),
-                        Ref = applicationSourceSettings.Repository.Ref,
-                        Uri = new Uri(applicationSourceSettings.Repository.Uri)
+                        Ref = deploymentManifestSettings.Repository.Ref,
+                        Uri = new Uri(deploymentManifestSettings.Repository.Uri)
                     },
-                    applicationSourceSettings.Path,
-                    applicationSourceSettings.Helm.ValueFiles,
-                    applicationSourceSettings.Helm.Secrets
+                    deploymentManifestSettings.Path,
+                    deploymentManifestSettings.Helm.ValueFiles,
+                    deploymentManifestSettings.Helm.Secrets
                 ),
                 _ => throw new InvalidOperationException() 
             };

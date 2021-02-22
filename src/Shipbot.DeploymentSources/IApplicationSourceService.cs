@@ -8,7 +8,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
 {
     public interface IApplicationSourceService
     {
-        Task AddApplicationSource(string applicationName, ApplicationSourceSettings applicationSourceSettings);
+        Task AddApplicationSource(string applicationName, DeploymentManifestSettings deploymentManifestSettings);
         Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate);
         Task<IEnumerable<ApplicationSource>> GetActiveApplications();
     }

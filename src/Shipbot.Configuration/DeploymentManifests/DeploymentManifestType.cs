@@ -1,6 +1,6 @@
 namespace Shipbot.Controller.Core.Configuration.ApplicationSources
 {
-    public enum ApplicationSourceType
+    public enum DeploymentManifestType
     {
         Helm,
         Manifests,

@@ -1,6 +1,6 @@
 namespace Shipbot.Controller.Core.Configuration.ApplicationSources
 {
-    public class ApplicationSourceRepository
+    public class DeploymentManifestRepositorySettings
     {
         public string Uri { get; set; }
         

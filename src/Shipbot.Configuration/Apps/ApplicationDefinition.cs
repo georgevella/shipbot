@@ -10,7 +10,7 @@ namespace Shipbot.Controller.Core.Configuration.Apps
         [Obsolete("This should not be used anymore since the configuration schema has changed to use a map instead of list")]
         public string Name { get; set; }
         
-        public ApplicationSourceSettings Source { get; set; }
+        public DeploymentManifestSettings Source { get; set; }
 
         public List<ImageSettings> Images { get; set; }
 
