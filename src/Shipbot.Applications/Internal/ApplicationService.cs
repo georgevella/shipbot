@@ -50,6 +50,7 @@ namespace Shipbot.Applications.Internal
                         UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
                             imageSettings.Pattern),
                         UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
+                        UpdatePolicy.Semver => new SemverImageUpdatePolicy(imageSettings.Pattern),
                         _ => throw new NotImplementedException()
                     },
                     new DeploymentSettings(true, applicationDefinition.AutoDeploy)

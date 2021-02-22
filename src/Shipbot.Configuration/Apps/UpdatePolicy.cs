@@ -8,6 +8,7 @@ namespace Shipbot.Controller.Core.Configuration.Apps
         Patch,
         Tag,
         Glob,
-        Regex
+        Regex,
+        Semver
     }
 }
