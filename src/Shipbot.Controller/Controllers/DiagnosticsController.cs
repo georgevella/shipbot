@@ -22,21 +22,19 @@ namespace Shipbot.Controller.Controllers
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly ISlackClient _slackClient;
         private readonly IContainerImageMetadataService _containerImageMetadataService;
-        private readonly IKubernetes _kubernetes;
+        // private readonly IKubernetes _kubernetes;
 
         public DiagnosticsController(
             IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
             ISlackClient slackClient,
-            IContainerImageMetadataService containerImageMetadataService,
-            IKubernetes kubernetes
+            IContainerImageMetadataService containerImageMetadataService
         )
         {
             _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
             _slackClient = slackClient;
             _containerImageMetadataService = containerImageMetadataService;
-            _kubernetes = kubernetes;
         }
         
         [HttpPost("deployment-notifications")]

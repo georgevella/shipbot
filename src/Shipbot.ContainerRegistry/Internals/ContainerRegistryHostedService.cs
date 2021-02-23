@@ -65,7 +65,7 @@ namespace Shipbot.ContainerRegistry.Internals
             await scheduler.StartRecurringJob<ApplicationContainerImagePollingJob>(
                 "ApplicationContainerImagePollingJob",
                 "ContainerRegistryPollingJobs", 
-                TimeSpan.FromSeconds(2)
+                TimeSpan.FromSeconds(60)
                 );
 
             _log.LogTrace("ContainerRegistryHostedService::StartAsync() <<");

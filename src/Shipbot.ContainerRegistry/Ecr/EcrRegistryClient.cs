@@ -113,6 +113,7 @@ namespace Shipbot.ContainerRegistry.Ecr
                         i => i.ImageTags,
                         (i, tag) => new ContainerImage(repository, tag, i.ImageDigest, i.ImagePushedAt)
                     )
+                    
                     .ToList();
                 
                 while (images.NextToken != null)

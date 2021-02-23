@@ -137,8 +137,6 @@ namespace Shipbot.Controller
             
             
             // kubernetes
-            
-
             services.AddSingleton<IKubernetes>(provider =>
             {
                 var config = KubernetesClientConfiguration.BuildConfigFromConfigFile();

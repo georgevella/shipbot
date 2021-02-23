@@ -6,7 +6,8 @@ using Shipbot.JobScheduling;
 namespace Shipbot.ContainerRegistry.Internals.Jobs
 {
     /// <summary>
-    ///     
+    ///     Enumerates applications and adds any new image repository detected.  Really effective when
+    ///     we implement dynamic application management (for now Applications are loaded on startup from config files)
     /// </summary>
     internal class ApplicationContainerImagePollingJob : BaseJob
     {
