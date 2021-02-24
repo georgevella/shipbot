@@ -1,4 +1,4 @@
-namespace Shipbot.Controller.Core.Configuration.ApplicationSources
+namespace Shipbot.Controller.Core.Configuration.DeploymentManifests
 {
     public enum DeploymentManifestType
     {

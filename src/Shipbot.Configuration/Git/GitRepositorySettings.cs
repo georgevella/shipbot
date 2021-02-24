@@ -1,6 +1,6 @@
-namespace Shipbot.Controller.Core.Configuration.ApplicationSources
+namespace Shipbot.Controller.Core.Configuration.Git
 {
-    public class DeploymentManifestRepositorySettings
+    public class GitRepositorySettings
     {
         public string Uri { get; set; }
         

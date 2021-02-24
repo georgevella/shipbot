@@ -31,8 +31,7 @@ namespace Shipbot.Applications.Models
 
         public string Name { get; }
         public IEnumerable<ApplicationImage> Images { get; }
-
-
+        
         public NotificationSettings Notifications { get; }
 
         public Application(

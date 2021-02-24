@@ -12,16 +12,16 @@ using Shipbot.Controller.Core.Configuration;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {
-    public class DeploymentSourcesHostedService : IHostedService
+    public class DeploymentRepositoryHostedService : IHostedService
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IOptions<ShipbotConfiguration> _configuration;
-        private readonly ILogger<DeploymentSourcesHostedService> _log;
+        private readonly ILogger<DeploymentRepositoryHostedService> _log;
 
-        public DeploymentSourcesHostedService(
+        public DeploymentRepositoryHostedService(
             IServiceProvider serviceProvider,
             IOptions<ShipbotConfiguration> configuration,
-            ILogger<DeploymentSourcesHostedService> log
+            ILogger<DeploymentRepositoryHostedService> log
             )
         {
             _serviceProvider = serviceProvider;
@@ -44,13 +44,13 @@ namespace Shipbot.Controller.Core.ApplicationSources
             using var scope = _serviceProvider.CreateScope();
             
             var applicationService = scope.ServiceProvider.GetService<IApplicationService>();
-            var applicationSourceService = scope.ServiceProvider.GetService<IApplicationSourceService>();
+            var applicationSourceService = scope.ServiceProvider.GetService<IDeploymentManifestSourceService>();
             
             var trackedApplications = applicationService.GetApplications().ToList();
             foreach (var trackedApplication in trackedApplications)
             {
                 _log.LogInformation("Adding deployment source tracking for {Application}", trackedApplication.Name);
-                await applicationSourceService.AddApplicationSource(trackedApplication.Name, map[trackedApplication.Name].Source);
+                await applicationSourceService.Add(trackedApplication.Name, map[trackedApplication.Name].Source);
             }
             
             _log.LogTrace("DeploymentSourcesHostedService::StartAsync() <<");

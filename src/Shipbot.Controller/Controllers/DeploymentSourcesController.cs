@@ -17,18 +17,18 @@ namespace Shipbot.Controller.Controllers
     [ApiController]
     public class DeploymentSourcesController : ControllerBase
     {
-        private readonly IApplicationSourceService _applicationSourceService;
+        private readonly IDeploymentManifestSourceService _deploymentManifestSourceService;
 
-        public DeploymentSourcesController(IApplicationSourceService applicationSourceService)
+        public DeploymentSourcesController(IDeploymentManifestSourceService deploymentManifestSourceService)
         {
-            _applicationSourceService = applicationSourceService;
+            _deploymentManifestSourceService = deploymentManifestSourceService;
         }
         
         [HttpGet]
         [Authorize]
         public async Task<ActionResult<IEnumerable<ApplicationSourceDto>>> Get()
         {
-            var activeAppications = await _applicationSourceService.GetActiveApplications();
+            var activeAppications = await _deploymentManifestSourceService.GetActiveApplications();
 
             return Ok(
                 activeAppications

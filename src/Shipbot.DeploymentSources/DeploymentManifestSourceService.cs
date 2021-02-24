@@ -14,21 +14,21 @@ using Shipbot.Contracts;
 using Shipbot.Controller.Core.ApplicationSources.Jobs;
 using Shipbot.Controller.Core.ApplicationSources.Models;
 using Shipbot.Controller.Core.Configuration;
-using Shipbot.Controller.Core.Configuration.ApplicationSources;
+using Shipbot.Controller.Core.Configuration.DeploymentManifests;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
 using ApplicationSourceRepository = Shipbot.Controller.Core.ApplicationSources.Models.ApplicationSourceRepository;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {
-    public class ApplicationSourceService : IApplicationSourceService
+    public class DeploymentManifestSourceService : IDeploymentManifestSourceService
     {
-        private readonly ILogger<ApplicationSourceService> _log;
+        private readonly ILogger<DeploymentManifestSourceService> _log;
         private readonly IOptions<ShipbotConfiguration> _configuration;
         private readonly IScheduler _scheduler;
 
-        public ApplicationSourceService(
-            ILogger<ApplicationSourceService> log, 
+        public DeploymentManifestSourceService(
+            ILogger<DeploymentManifestSourceService> log, 
             IOptions<ShipbotConfiguration> configuration,
             IScheduler scheduler
             )
@@ -38,7 +38,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             _scheduler = scheduler;
         }
         
-        public async Task AddApplicationSource(string applicationName, DeploymentManifestSettings deploymentManifestSettings)
+        public async Task Add(string applicationName, DeploymentManifestSourceSettings deploymentManifestSourceSettings)
         {
             var jobKey = new JobKey($"gitclone-{applicationName}", Constants.SchedulerGroup);
             if (await _scheduler.CheckExists(jobKey))
@@ -52,7 +52,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             }
             
             var conf = _configuration.Value;
-            var applicationSource = deploymentManifestSettings.Type switch {
+            var applicationSource = deploymentManifestSourceSettings.Type switch {
                 DeploymentManifestType.Helm => (ApplicationSource) new HelmApplicationSource(
                     applicationName,
                     new ApplicationSourceRepository()
@@ -60,25 +60,25 @@ namespace Shipbot.Controller.Core.ApplicationSources
                         // TODO: handle config changes
                         Credentials = conf.GitCredentials.First(
                             x =>
-                                x.Name.Equals(deploymentManifestSettings.Repository.Credentials)
+                                x.Name.Equals(deploymentManifestSourceSettings.Repository.Credentials)
                         ).ConvertToGitCredentials(),
-                        Ref = deploymentManifestSettings.Repository.Ref,
-                        Uri = new Uri(deploymentManifestSettings.Repository.Uri)
+                        Ref = deploymentManifestSourceSettings.Repository.Ref,
+                        Uri = new Uri(deploymentManifestSourceSettings.Repository.Uri)
                     },
-                    deploymentManifestSettings.Path,
-                    deploymentManifestSettings.Helm.ValueFiles,
-                    deploymentManifestSettings.Helm.Secrets
+                    deploymentManifestSourceSettings.Path,
+                    deploymentManifestSourceSettings.Helm.ValueFiles,
+                    deploymentManifestSourceSettings.Helm.Secrets
                 ),
                 _ => throw new InvalidOperationException() 
             };
             
-            var context = new ApplicationSourceTrackingContext(
+            var context = new DeploymentManifestSourceTrackingContext(
                 applicationName, 
                 applicationSource,
                 Path.Combine(Path.GetTempPath(), $"sb-{Guid.NewGuid()}-{applicationName}-{applicationSource.Repository.Ref}")
                 );
 
-            await _scheduler.TriggerJobOnce<GitRepositoryCheckoutJob, ApplicationSourceTrackingContext>(
+            await _scheduler.TriggerJobOnce<GitRepositoryCheckoutJob, DeploymentManifestSourceTrackingContext>(
                 $"gitclone-{applicationName}",
                 Constants.SchedulerGroup,
                 context
@@ -96,7 +96,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
                     jobDetails.Add(detail);
             }
 
-            var trackingContexts = jobDetails.Select(x => x.JobDataMap.GetJobData<ApplicationSourceTrackingContext>()).ToList();
+            var trackingContexts = jobDetails.Select(x => x.JobDataMap.GetJobData<DeploymentManifestSourceTrackingContext>()).ToList();
             return trackingContexts.Select(x => x.ApplicationSource).ToList();
         }
 

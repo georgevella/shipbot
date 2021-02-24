@@ -89,7 +89,7 @@ namespace Shipbot.Controller
                 );
 
             // application sources
-            services.AddScoped<IApplicationSourceService, ApplicationSourceService>();
+            services.AddScoped<IDeploymentManifestSourceService, DeploymentManifestSourceService>();
             services.AddTransient<GitRepositorySyncJob>();
             services.AddTransient<GitRepositoryCheckoutJob>();
 
@@ -103,7 +103,7 @@ namespace Shipbot.Controller
 
             // setup local hosted services
             services.AddTransient<IHostedService, OperatorStartup>();
-            services.AddTransient<IHostedService, DeploymentSourcesHostedService>();
+            services.AddTransient<IHostedService, DeploymentRepositoryHostedService>();
 
             services.RegisterMediator(
                 new MediatorBuilder().RegisterHandlers(Assembly.GetExecutingAssembly())

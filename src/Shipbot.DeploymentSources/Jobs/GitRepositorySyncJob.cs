@@ -21,7 +21,7 @@ using YamlDotNet.RepresentationModel;
 namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
-    public class GitRepositorySyncJob : BaseJobWithData<ApplicationSourceTrackingContext>
+    public class GitRepositorySyncJob : BaseJobWithData<DeploymentManifestSourceTrackingContext>
     {
         private readonly ILogger<GitRepositorySyncJob> _log;
         private readonly IApplicationService _applicationService;
@@ -44,7 +44,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _configuration = configuration;
         }
 
-        public override async Task Execute(ApplicationSourceTrackingContext context)
+        public override async Task Execute(DeploymentManifestSourceTrackingContext context)
         {
             using (_log.BeginScope(new Dictionary<string, object>
             {
@@ -248,7 +248,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
         }
 
         private async Task<bool> SynchronizeHelmApplicationSource(Repository gitRepository,
-            ApplicationSourceTrackingContext context,
+            DeploymentManifestSourceTrackingContext context,
             HelmApplicationSource helmApplicationSource)
         {
             var relativePath = helmApplicationSource.Path;

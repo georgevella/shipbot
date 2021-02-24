@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Shipbot.Controller.Core.Configuration.ApplicationSources;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Git;
 using Shipbot.Controller.Core.Configuration.Registry;
@@ -19,7 +18,7 @@ namespace Shipbot.Controller.Core.Configuration
         
         public List<GitCredentialSettings> GitCredentials { get; set; } = new List<GitCredentialSettings>();
 
-        public List<DeploymentManifestRepositorySettings> GitRepositories { get; set; } =
-            new List<DeploymentManifestRepositorySettings>();
+        public List<GitRepositorySettings> GitRepositories { get; set; } =
+            new List<GitRepositorySettings>();
     }
 }

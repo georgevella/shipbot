@@ -9,7 +9,7 @@ using Shipbot.Models;
 namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
-    public class GitRepositoryCheckoutJob : BaseJobWithData<ApplicationSourceTrackingContext>
+    public class GitRepositoryCheckoutJob : BaseJobWithData<DeploymentManifestSourceTrackingContext>
     {
         private readonly ILogger<GitRepositoryCheckoutJob> _log;
         private readonly IScheduler _scheduler;
@@ -22,7 +22,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _scheduler = scheduler;
         }
 
-        public override async Task Execute(ApplicationSourceTrackingContext context)
+        public override async Task Execute(DeploymentManifestSourceTrackingContext context)
         {
             var repository = context.ApplicationSource.Repository;
             
@@ -58,7 +58,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 context.GitRepositoryPath
             );
 
-            var job = JobFactory.BuildJobWithData<GitRepositorySyncJob, ApplicationSourceTrackingContext>(
+            var job = JobFactory.BuildJobWithData<GitRepositorySyncJob, DeploymentManifestSourceTrackingContext>(
                 $"gitwatch-{context.ApplicationName}", 
                 Constants.SchedulerGroup, 
                 context

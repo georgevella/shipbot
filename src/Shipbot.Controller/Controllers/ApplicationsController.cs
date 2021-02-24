@@ -20,16 +20,16 @@ namespace Shipbot.Controller.Controllers
     public class ApplicationsController : ControllerBase
     {
         private readonly IApplicationService _applicationService;
-        private readonly IApplicationSourceService _applicationSourceService;
+        private readonly IDeploymentManifestSourceService _deploymentManifestSourceService;
 
         public ApplicationsController(
             IApplicationService applicationService,
-            IApplicationSourceService applicationSourceService
+            IDeploymentManifestSourceService deploymentManifestSourceService
             
             )
         {
             _applicationService = applicationService;
-            _applicationSourceService = applicationSourceService;
+            _deploymentManifestSourceService = deploymentManifestSourceService;
         }
         
         [HttpGet]
@@ -81,7 +81,7 @@ namespace Shipbot.Controller.Controllers
 
         private async Task<ApplicationDto> ConvertApplicationToDto(Application application)
         {
-            var sources = await _applicationSourceService.GetActiveApplications();
+            var sources = await _deploymentManifestSourceService.GetActiveApplications();
 
             var applicationSource = sources.FirstOrDefault(
                 x => x.Application.Equals(application.Name)
