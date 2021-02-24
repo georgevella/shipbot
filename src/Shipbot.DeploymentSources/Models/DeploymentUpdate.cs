@@ -53,15 +53,4 @@ namespace Shipbot.Models
             TargetTag = targetTag;
         }
     }
-
-    public enum DeploymentUpdateStatus
-    {
-        Pending,
-        Starting,
-        UpdatingManifests,
-        Synchronizing,
-        Synchronized,
-        Complete,
-        Failed
-    }
 }
