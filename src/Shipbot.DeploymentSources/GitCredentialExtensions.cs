@@ -1,3 +1,4 @@
+using Shipbot.Controller.Core.ApplicationSources.Models;
 using Shipbot.Controller.Core.Configuration.Git;
 using Shipbot.Models;
 

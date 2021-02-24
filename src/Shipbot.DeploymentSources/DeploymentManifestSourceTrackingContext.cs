@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.IO;
 using Shipbot.Controller.Core.ApplicationSources.Models;
 using Shipbot.Models;
-using ApplicationSourceRepository = Shipbot.Controller.Core.ApplicationSources.Models.ApplicationSourceRepository;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {
@@ -10,7 +9,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
     {
         public string ApplicationName { get; }
         
-        public ApplicationSource ApplicationSource { get; set; }
+        public DeploymentManifest DeploymentManifest { get; set; }
 
         public bool AutoDeploy { get; set; } = true;
 
@@ -18,11 +17,11 @@ namespace Shipbot.Controller.Core.ApplicationSources
 
         public string GitSyncJobId { get; } 
 
-        public DeploymentManifestSourceTrackingContext(string applicationName, ApplicationSource applicationSource, string checkoutPath)
+        public DeploymentManifestSourceTrackingContext(string applicationName, DeploymentManifest deploymentManifest, string checkoutPath)
         {
             GitRepositoryPath = checkoutPath;
             ApplicationName = applicationName;
-            ApplicationSource = applicationSource;
+            DeploymentManifest = deploymentManifest;
             GitSyncJobId = $"{ApplicationName}-gitsync-job";
         }
     }

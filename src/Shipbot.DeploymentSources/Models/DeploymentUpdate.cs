@@ -1,7 +1,7 @@
 using System;
 using Shipbot.Applications.Models;
 
-namespace Shipbot.Models
+namespace Shipbot.Controller.Core.ApplicationSources.Models
 {
     public class DeploymentUpdate
     {

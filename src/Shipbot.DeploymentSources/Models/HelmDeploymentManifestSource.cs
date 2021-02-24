@@ -3,15 +3,15 @@ using System.Linq;
 
 namespace Shipbot.Controller.Core.ApplicationSources.Models
 {
-    public class HelmApplicationSource : ApplicationSource
+    public class HelmDeploymentManifest : DeploymentManifest
     {
         public IEnumerable<string> ValuesFiles { get; }
         
         public IEnumerable<string> Secrets { get; }
 
-        public HelmApplicationSource(
+        public HelmDeploymentManifest(
             string application, 
-            ApplicationSourceRepository repository, 
+            DeploymentManifestSource repository, 
             string path,
             IEnumerable<string> valueFiles,
             IEnumerable<string> secretFiles

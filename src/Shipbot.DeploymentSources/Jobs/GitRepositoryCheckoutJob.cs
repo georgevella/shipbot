@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shipbot.Controller.Core.ApplicationSources.Models;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
 
@@ -24,7 +25,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
         public override async Task Execute(DeploymentManifestSourceTrackingContext context)
         {
-            var repository = context.ApplicationSource.Repository;
+            var repository = context.DeploymentManifest.Repository;
             
             _log.LogInformation("Checkout repository containing application declaration");
             var credentials = (UsernamePasswordGitCredentials) repository.Credentials;

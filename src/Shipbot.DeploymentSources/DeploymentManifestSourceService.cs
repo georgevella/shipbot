@@ -17,7 +17,6 @@ using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.DeploymentManifests;
 using Shipbot.JobScheduling;
 using Shipbot.Models;
-using ApplicationSourceRepository = Shipbot.Controller.Core.ApplicationSources.Models.ApplicationSourceRepository;
 
 namespace Shipbot.Controller.Core.ApplicationSources
 {
@@ -53,9 +52,9 @@ namespace Shipbot.Controller.Core.ApplicationSources
             
             var conf = _configuration.Value;
             var applicationSource = deploymentManifestSourceSettings.Type switch {
-                DeploymentManifestType.Helm => (ApplicationSource) new HelmApplicationSource(
+                DeploymentManifestType.Helm => (DeploymentManifest) new HelmDeploymentManifest(
                     applicationName,
-                    new ApplicationSourceRepository()
+                    new DeploymentManifestSource()
                     {
                         // TODO: handle config changes
                         Credentials = conf.GitCredentials.First(
@@ -85,7 +84,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             );
         }
 
-        public async Task<IEnumerable<ApplicationSource>> GetActiveApplications()
+        public async Task<IEnumerable<DeploymentManifest>> GetActiveApplications()
         {
             var jobKeys = await _scheduler.GetJobKeys(GroupMatcher<JobKey>.GroupEquals(Constants.SchedulerGroup));
             var jobDetails = new List<IJobDetail>();
@@ -97,7 +96,7 @@ namespace Shipbot.Controller.Core.ApplicationSources
             }
 
             var trackingContexts = jobDetails.Select(x => x.JobDataMap.GetJobData<DeploymentManifestSourceTrackingContext>()).ToList();
-            return trackingContexts.Select(x => x.ApplicationSource).ToList();
+            return trackingContexts.Select(x => x.DeploymentManifest).ToList();
         }
 
         public async Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate)

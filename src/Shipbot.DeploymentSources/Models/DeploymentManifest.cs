@@ -1,8 +1,8 @@
 namespace Shipbot.Controller.Core.ApplicationSources.Models
 {
-    public abstract class ApplicationSource
+    public abstract class DeploymentManifest
     {
-        protected ApplicationSource(string application, ApplicationSourceRepository repository, string path)
+        protected DeploymentManifest(string application, DeploymentManifestSource repository, string path)
         {
             Application = application;
             Repository = repository;
@@ -10,7 +10,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Models
         }
 
         public string Application { get; }
-        public ApplicationSourceRepository Repository { get;  }
+        public DeploymentManifestSource Repository { get;  }
         
         public string Path { get; }
     }

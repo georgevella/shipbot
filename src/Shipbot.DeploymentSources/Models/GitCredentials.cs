@@ -1,5 +1,5 @@
 
-namespace Shipbot.Models
+namespace Shipbot.Controller.Core.ApplicationSources.Models
 {
     public abstract class GitCredentials
     {

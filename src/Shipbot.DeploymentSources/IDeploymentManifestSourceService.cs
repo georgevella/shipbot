@@ -16,6 +16,6 @@ namespace Shipbot.Controller.Core.ApplicationSources
         /// <returns></returns>
         Task Add(string applicationName, DeploymentManifestSourceSettings deploymentManifestSourceSettings);
         Task StartDeploymentUpdateJob(DeploymentUpdate deploymentUpdate);
-        Task<IEnumerable<ApplicationSource>> GetActiveApplications();
+        Task<IEnumerable<DeploymentManifest>> GetActiveApplications();
     }
 }

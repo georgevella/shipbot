@@ -49,11 +49,11 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             using (_log.BeginScope(new Dictionary<string, object>
             {
                 {"Application", context.ApplicationName},
-                {"Ref", context.ApplicationSource.Repository.Ref},
-                {"Path", context.ApplicationSource.Path}
+                {"Ref", context.DeploymentManifest.Repository.Ref},
+                {"Path", context.DeploymentManifest.Path}
             }))
             {
-                var repository = context.ApplicationSource.Repository;
+                var repository = context.DeploymentManifest.Repository;
 
                 // TODO: improve this to not have passwords in memory / use SecureStrings
                 var credentials = (UsernamePasswordGitCredentials) repository.Credentials;
@@ -63,7 +63,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 var branch = CheckoutDeploymentManifest(gitRepository, repository, credentials);
                 
                 // TODO: handle scenario when we are tracking a git commit or a tag
-                if (context.ApplicationSource is HelmApplicationSource helmApplicationSource)
+                if (context.DeploymentManifest is HelmDeploymentManifest helmApplicationSource)
                 {
                     if (
                         await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
@@ -136,7 +136,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             }
         }
 
-        private Branch CheckoutDeploymentManifest(Repository gitRepository, ApplicationSourceRepository repository,
+        private Branch CheckoutDeploymentManifest(Repository gitRepository, DeploymentManifestSource repository,
             UsernamePasswordGitCredentials credentials)
         {
             _log.LogTrace("CheckoutDeploymentManifest ...");
@@ -249,9 +249,9 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
         private async Task<bool> SynchronizeHelmApplicationSource(Repository gitRepository,
             DeploymentManifestSourceTrackingContext context,
-            HelmApplicationSource helmApplicationSource)
+            HelmDeploymentManifest helmDeploymentManifest)
         {
-            var relativePath = helmApplicationSource.Path;
+            var relativePath = helmDeploymentManifest.Path;
             var applicationSourcePath = Path.Combine(context.GitRepositoryPath, relativePath);
 
 
@@ -268,7 +268,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             var imageToFilenameMap = new Dictionary<ApplicationImage, string>();
             var imageToTagInManifest = new Dictionary<ApplicationImage, string>();
 
-            foreach (var file in helmApplicationSource.ValuesFiles)
+            foreach (var file in helmDeploymentManifest.ValuesFiles)
             {
                 var yaml = new YamlStream();
                 var filePath = Path.Combine(applicationSourcePath, file);
