@@ -74,7 +74,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 
                         while (attempt > 0)
                         {
-                            _log.LogInformation("Pushing repository changes for {application}", context.ApplicationName);
+                            _log.LogInformation("Pushing repository changes for {Application}", context.ApplicationName);
                         
                             try
                             {
@@ -95,13 +95,37 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                                 var remote = gitRepository.Network.Remotes["origin"];
                                 var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
                                 Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
+                                
+                                var rebaseIdentity = new Identity("deploy-bot", "deploy-bot@riverigaming.com");
+                                var rebaseOptions = new RebaseOptions()
+                                {
+                                    FileConflictStrategy = CheckoutFileConflictStrategy.Theirs
+                                };
                             
                                 _log.LogInformation("Rebasing on remote branch prior to trying to re-push changes ...");
                                 var upstream = gitRepository.Head.TrackedBranch;
-                                gitRepository.Rebase.Start(gitRepository.Head, upstream, upstream, new Identity("deploy-bot", "deploy-bot@riverigaming.com"), new RebaseOptions()
+                                var rebaseResult = gitRepository.Rebase.Start(
+                                    gitRepository.Head,
+                                    upstream,
+                                    upstream,
+                                    rebaseIdentity,
+                                    rebaseOptions
+                                    );
+                                
+                                // TODO: handle rebaseResult nulliness
+                                while (rebaseResult.Status != RebaseStatus.Complete)
                                 {
-                                    FileConflictStrategy = CheckoutFileConflictStrategy.Theirs,
-                                });
+                                    // we should hit here only if we find a conflict, since we don't use interactive mode on rebase
+                                    var step = rebaseResult.CurrentStepInfo ?? gitRepository.Rebase.GetCurrentStepInfo();
+                                    
+                                    var currentStatus = gitRepository.RetrieveStatus();
+                                    foreach (var item in currentStatus)
+                                    {
+                                        Commands.Stage(gitRepository, item.FilePath);
+                                    }
+
+                                    rebaseResult = gitRepository.Rebase.Continue(rebaseIdentity, rebaseOptions);
+                                }
                                 
                                 --attempt;
                             }
@@ -126,7 +150,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             {
                 if (branch == null)
                 {
-                    // checkout branch from origin and make sure we are tracking the remote branchb
+                    // checkout branch from origin and make sure we are tracking the remote branch
                     branch = gitRepository.CreateBranch(repository.Ref, originBranch.Tip);
                     branch = gitRepository.Branches.Update(branch,
                         b => b.TrackedBranch = originBranch.CanonicalName
@@ -312,6 +336,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                     imageToTagInManifest[image] = nextPendingDeployment.TargetTag;
                 }
                 
+                // TODO: rework this so that failures to push get indicated
                 await _deploymentService.FinishDeploymentUpdate(
                     nextPendingDeployment.Id,
                     manifestsChanged ? DeploymentStatus.Complete : DeploymentStatus.Failed
