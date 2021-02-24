@@ -41,8 +41,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CLI", "CLI", "{90AE6D86-DF20-4309-8A9D-9500AB0289D7}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{30BD484D-A90B-4643-81BE-25C6FF73B3F2}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shipbot.ContainerRegistry.Dummy", "src\Shipbot.ContainerRegistry.Dummy\Shipbot.ContainerRegistry.Dummy.csproj", "{F99FCD81-FF31-4D8E-B93F-98EDF9E779D3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "K8s", "K8s", "{7979C76C-1918-44E2-990C-CB08C9B40F77}"
