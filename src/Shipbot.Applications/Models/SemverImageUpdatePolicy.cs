@@ -90,18 +90,42 @@ namespace Shipbot.Applications.Models
         {
             var semver = GetSourceSemVer(semverString);
 
+            // TODO: think about this logic down here: when we include a pre-relase tag, do we need to have conditions
+            // or just include any release with a tag ?
             if (semver.Major > 0)
             {
                 // ^1.2.3 := >=1.2.3 <2.0.0-0
-                return (version) => version.Major == semver.Major &&
-                                    version >= semver;
+                if (string.IsNullOrEmpty(semver.Prerelease))
+                {
+                    return (version) => version.Major == semver.Major &&
+                                     string.IsNullOrEmpty(version.Prerelease) &&
+                                     version >= semver;
+                }
+                else
+                {
+                    // if caret version specifies a pre-release filter, we should accept
+                    // prereleases only from matching minor versions.
+                    return (version) => version.Major == semver.Major &&
+                                        (version.Minor == semver.Minor || (version.Minor > semver.Minor && string.IsNullOrEmpty(version.Prerelease))) &&
+                                        version >= semver;
+                }
             }
             else if (semver.Major == 0 && semver.Minor > 0)
             {
                 // ^0.2.3 := >=0.2.3 <0.3.0-0
-                return (version) => version.Major == 0 && 
-                                    version.Minor == semver.Minor && 
-                                    version >= semver;
+                if (string.IsNullOrEmpty(semver.Prerelease))
+                {
+                    return (version) => version.Major == 0 &&
+                                        version.Minor == semver.Minor &&
+                                        string.IsNullOrEmpty(version.Prerelease) &&
+                                        version >= semver;
+                }
+                else
+                {
+                    return (version) => version.Major == 0 &&
+                                        (version.Minor == semver.Minor || (version.Minor > semver.Minor && string.IsNullOrEmpty(version.Prerelease))) &&
+                                        version >= semver;
+                }
             }
             else if (semver.Major == semver.Minor && semver.Major == 0)
             {
