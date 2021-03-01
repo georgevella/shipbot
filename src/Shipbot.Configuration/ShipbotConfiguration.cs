@@ -20,5 +20,12 @@ namespace Shipbot.Controller.Core.Configuration
 
         public List<GitRepositorySettings> GitRepositories { get; set; } =
             new List<GitRepositorySettings>();
+
+        public GithubClientSettings Github { get; set; } = new GithubClientSettings();
+    }
+
+    public class GithubClientSettings
+    {
+        public string Token { get; set; }
     }
 }

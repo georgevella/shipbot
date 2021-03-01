@@ -1,5 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Newtonsoft.Json;
 using Shipbot.Data;
 
 namespace Shipbot.Deployments.Internals
@@ -20,6 +25,28 @@ namespace Shipbot.Deployments.Internals
                 .HasConversion(
                     v => v.ToString(),
                     v => (Dao.DeploymentStatus) Enum.Parse(typeof(Dao.DeploymentStatus), v)
+                );
+            
+            modelBuilder.Entity<Dao.Deployment>()
+                .Property(e => e.Type)
+                .HasConversion(
+                    v => v.ToString(),
+                    v => (Dao.DeploymentType) Enum.Parse(typeof(Dao.DeploymentType), v)
+                );
+
+            modelBuilder.Entity<Dao.Deployment>()
+                .Property(e => e.Parameters)
+                .HasConversion(
+                    dictionary => JsonConvert.SerializeObject(dictionary, Formatting.None),
+                    s => JsonConvert.DeserializeObject<Dictionary<string, string>>(s)
+                )
+                .Metadata.SetValueComparer(
+                    new ValueComparer<Dictionary<string, string>>(
+                        (x, y) => x.Comparer.Equals(y.Comparer) && x.Count == y.Count && x.Keys.Equals(y.Keys) &&
+                                  x.Values.Equals(y.Values),
+                        obj => obj.Count ^ (397 * obj.Keys.Sum(s => s.GetHashCode() * 487)) ^
+                               (687 * obj.Values.Sum(s => s.GetHashCode() * 985))
+                    )
                 );
 
             modelBuilder.Entity<Dao.Deployment>()

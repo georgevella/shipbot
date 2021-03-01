@@ -7,6 +7,7 @@ using k8s;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Octokit;
 using Shipbot.Applications;
 using Shipbot.Applications.Models;
 using Shipbot.ContainerRegistry;
@@ -27,19 +28,23 @@ namespace Shipbot.Controller.Controllers
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly ISlackClient _slackClient;
         private readonly IContainerImageMetadataService _containerImageMetadataService;
+
+        private readonly IGitHubClient _gitHubClient;
         // private readonly IKubernetes _kubernetes;
 
         public DiagnosticsController(
             IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
             ISlackClient slackClient,
-            IContainerImageMetadataService containerImageMetadataService
+            IContainerImageMetadataService containerImageMetadataService,
+            IGitHubClient gitHubClient
         )
         {
             _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
             _slackClient = slackClient;
             _containerImageMetadataService = containerImageMetadataService;
+            _gitHubClient = gitHubClient;
         }
         
         [HttpPost("deployment-notifications")]

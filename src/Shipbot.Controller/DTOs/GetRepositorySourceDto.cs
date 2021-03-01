@@ -1,6 +1,6 @@
 namespace Shipbot.Controller.DTOs
 {
-    public class ApplicationSourceDto
+    public class GetRepositorySourceDto
     {
         public string Uri { get; set; }
         

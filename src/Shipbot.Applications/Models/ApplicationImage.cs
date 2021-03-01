@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Models;
 
 namespace Shipbot.Applications.Models
@@ -10,13 +11,16 @@ namespace Shipbot.Applications.Models
             string repository, 
             TagProperty tagProperty, 
             ImageUpdatePolicy policy,
-            DeploymentSettings deploymentSettings
-            )
+            DeploymentSettings deploymentSettings,
+            ApplicationImageSourceCode sourceCode, 
+            ApplicationImageIngress ingress)
         {
             Repository = repository;
             TagProperty = tagProperty;
             Policy = policy;
             DeploymentSettings = deploymentSettings;
+            SourceCode = sourceCode;
+            Ingress = ingress;
         }
 
         public override string ToString()
@@ -56,15 +60,106 @@ namespace Shipbot.Applications.Models
         public ImageUpdatePolicy Policy { get; }
 
         public DeploymentSettings DeploymentSettings { get; }
+        
+        public ApplicationImageIngress Ingress { get; }
+        
+        public ApplicationImageSourceCode SourceCode { get; }
 
         public string ShortRepository => Repository.Any() ? Repository.Substring(Repository.IndexOf('/') + 1) : string.Empty; 
+    }
+
+    public class ApplicationImageIngress
+    {
+        public static readonly ApplicationImageIngress Empty = new ApplicationImageIngress();
+        
+        private ApplicationImageIngress(bool isAvailable, string domain)
+        {
+            if (domain == null)
+                throw new ArgumentNullException(nameof(domain));
+            
+            if (isAvailable && string.IsNullOrWhiteSpace(domain))
+                throw new ArgumentOutOfRangeException(nameof(domain));
+            
+            IsAvailable = isAvailable;
+            Domain = domain;
+        }
+
+        public bool IsAvailable { get; }
+        
+        public string Domain { get; }
+
+        private ApplicationImageIngress() : this(false, string.Empty)
+        {
+            
+        }
+        
+        public ApplicationImageIngress(string domain): this(true, domain)
+        {
+            
+        }
+    }
+
+    public class ApplicationImageSourceCode
+    {
+        public readonly static ApplicationImageSourceCode Empty = new ApplicationImageSourceCode();
+
+        private ApplicationImageSourceCode()
+        {
+            Enabled = false;
+            Github = GithubApplicationSourceCodeRepository.Empty;
+            RepositoryType = ApplicationSourceCodeRepositoryType.None;
+        }
+        public ApplicationImageSourceCode(bool enabled, GithubApplicationSourceCodeRepository github)
+        {
+            Enabled = enabled;
+            RepositoryType = ApplicationSourceCodeRepositoryType.Github;
+            Github = github;
+        }
+
+        public bool Enabled { get; }
+        
+        public ApplicationSourceCodeRepositoryType RepositoryType { get; }
+        
+        public GithubApplicationSourceCodeRepository Github { get; }
+
+        public bool IsAvailable => Enabled && RepositoryType != ApplicationSourceCodeRepositoryType.None;
+    }
+
+    public class GithubApplicationSourceCodeRepository
+    {
+        public static GithubApplicationSourceCodeRepository Empty =
+            new GithubApplicationSourceCodeRepository();
+
+        private GithubApplicationSourceCodeRepository()
+        {
+            Owner = string.Empty;
+            Repository = string.Empty;
+        }
+        
+        public GithubApplicationSourceCodeRepository(string owner, string repository)
+        {
+            Owner = !string.IsNullOrWhiteSpace(owner) ? owner : throw new ArgumentOutOfRangeException(nameof(owner));
+            Repository = !string.IsNullOrWhiteSpace(repository) ? repository : throw new ArgumentOutOfRangeException(nameof(repository));
+        }
+
+        public string Owner { get; }
+        
+        public string Repository { get; }
+
+        public bool IsValid => (Owner.Length > 0 && Repository.Length > 0);
+    }
+
+    public enum ApplicationSourceCodeRepositoryType
+    {
+        None,
+        Github
     }
 
     public class DeploymentSettings
     {
         protected bool Equals(DeploymentSettings other)
         {
-            return AutomaticallyCreateDeploymentOnRepositoryUpdate == other.AutomaticallyCreateDeploymentOnRepositoryUpdate && AutomaticallySubmitDeploymentToQueue == other.AutomaticallySubmitDeploymentToQueue;
+            return AutomaticallyCreateDeploymentOnImageRepositoryUpdate == other.AutomaticallyCreateDeploymentOnImageRepositoryUpdate && AutomaticallySubmitDeploymentToQueue == other.AutomaticallySubmitDeploymentToQueue;
         }
 
         public override bool Equals(object obj)
@@ -77,21 +172,53 @@ namespace Shipbot.Applications.Models
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(AutomaticallyCreateDeploymentOnRepositoryUpdate, AutomaticallySubmitDeploymentToQueue);
+            return HashCode.Combine(AutomaticallyCreateDeploymentOnImageRepositoryUpdate, AutomaticallySubmitDeploymentToQueue);
         }
 
-        public bool AutomaticallyCreateDeploymentOnRepositoryUpdate { get; }
+        public bool AutomaticallyCreateDeploymentOnImageRepositoryUpdate { get; }
         
         public bool AutomaticallySubmitDeploymentToQueue { get; }
+        
+        public PreviewReleaseDeploymentSettings PreviewReleases { get; }
 
         public DeploymentSettings(
-            bool automaticallyCreateDeploymentOnRepositoryUpdate, 
-            bool automaticallySubmitDeploymentToQueue
-            )
+            bool automaticallyCreateDeploymentOnImageRepositoryUpdate, 
+            bool automaticallySubmitDeploymentToQueue,
+            PreviewReleaseDeploymentSettings? previewReleases = null)
         {
-            AutomaticallyCreateDeploymentOnRepositoryUpdate = automaticallyCreateDeploymentOnRepositoryUpdate;
+            AutomaticallyCreateDeploymentOnImageRepositoryUpdate = automaticallyCreateDeploymentOnImageRepositoryUpdate;
             AutomaticallySubmitDeploymentToQueue = automaticallySubmitDeploymentToQueue;
+            PreviewReleases = previewReleases ?? 
+                              new PreviewReleaseDeploymentSettings(
+                                   false, 
+                                  ImageUpdatePolicy.NoOp, 
+                                  string.Empty);
         }
+    }
+
+    public class PreviewReleaseDeploymentSettings
+    {
+        public PreviewReleaseDeploymentSettings(bool enabled, ImageUpdatePolicy policy, string tagPatternRegex)
+        {
+            Enabled = enabled;
+            Policy = policy;
+            TagPatternRegex = tagPatternRegex;
+        }
+
+        /// <summary>
+        ///     Set to true if preview release management is enabled or not.
+        /// </summary>
+        public bool Enabled { get; }
+        
+        /// <summary>
+        ///     Policy used to detect which docker images are preview release images
+        /// </summary>
+        public ImageUpdatePolicy Policy { get; }
+        
+        /// <summary>
+        ///     Regex that extracts parameters from the image tag.
+        /// </summary>
+        public string TagPatternRegex { get; }
     }
 
     public class TagProperty

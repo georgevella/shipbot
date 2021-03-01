@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shipbot.Data;
@@ -9,9 +10,10 @@ using Shipbot.Data;
 namespace Shipbot.DbMigrations.Migrations
 {
     [DbContext(typeof(ShipbotDbContext))]
-    partial class ShipbotDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210225153243_DeploymentTypes")]
+    partial class DeploymentTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -116,18 +118,10 @@ namespace Shipbot.DbMigrations.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("InstanceId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsAutomaticDeployment")
                         .HasColumnType("boolean");
 
                     b.Property<string>("NameSuffix")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Parameters")
                         .IsRequired()
                         .HasColumnType("text");
 

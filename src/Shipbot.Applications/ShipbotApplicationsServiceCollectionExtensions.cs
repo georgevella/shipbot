@@ -25,7 +25,7 @@ namespace Shipbot.Applications
             services.AddTransient<ISlackCommandHandler, GetCurrentApplicationTags>();
             services.AddTransient<ISlackExternalOptionsSource, ApplicationIdsExternalOptionsSource>();
             services.AddTransient<ISlackExternalOptionsSource, ApplicationRepositoriesExternalOptionsSource>();
-            
+            services.AddTransient<IApplicationImageInstanceService, ApplicationImageInstanceService>(); 
             services.AddHostedService<ConfigurationSourceApplicationLoader>();
 
             return services.RegisterApplicationManagementDataServices();

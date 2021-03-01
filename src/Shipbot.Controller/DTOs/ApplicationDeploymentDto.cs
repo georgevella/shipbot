@@ -15,7 +15,8 @@ namespace Shipbot.Controller.DTOs
         public DeploymentStatusDto Status { get; set; }
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public Guid Id { get; set; }
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        public string Application { get; set; }
+        public DateTime CreatedOn { get; set; }
+        
+        public DateTime? DeployedOn { get; set; }
     }
 }

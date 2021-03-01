@@ -7,11 +7,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Octokit;
 using Shipbot.Applications;
 using Shipbot.Applications.Models;
 using Shipbot.Controller.Core.ApplicationSources;
 using Shipbot.Controller.DTOs;
 using Shipbot.Models;
+using Application = Shipbot.Applications.Models.Application;
 
 namespace Shipbot.Controller.Controllers
 {
@@ -21,15 +23,17 @@ namespace Shipbot.Controller.Controllers
     {
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentManifestSourceService _deploymentManifestSourceService;
+        private readonly IApplicationImageInstanceService _applicationImageInstanceService;
 
         public ApplicationsController(
             IApplicationService applicationService,
-            IDeploymentManifestSourceService deploymentManifestSourceService
-            
+            IDeploymentManifestSourceService deploymentManifestSourceService,
+            IApplicationImageInstanceService applicationImageInstanceService
             )
         {
             _applicationService = applicationService;
             _deploymentManifestSourceService = deploymentManifestSourceService;
+            _applicationImageInstanceService = applicationImageInstanceService;
         }
         
         [HttpGet]
@@ -63,7 +67,7 @@ namespace Shipbot.Controller.Controllers
         }
 
         [HttpGet("{id}/services/")]
-        public async Task<ActionResult<ApplicationServiceDto>> GetApplicationServices(string id)
+        public async Task<ActionResult<ApplicationImageDto>> GetApplicationServices(string id)
         {
             try
             {
@@ -95,22 +99,59 @@ namespace Shipbot.Controller.Controllers
             var dto = new ApplicationDto()
             {
                 Name = application.Name,
-                Source = applicationSource != null
-                    ? new ApplicationSourceDto()
+                DeploymentManifestSource = applicationSource != null
+                    ? new GetRepositorySourceDto()
                     {
                         Path = applicationSource.Path,
                         Ref = applicationSource.Repository.Ref,
                         Uri = applicationSource.Repository.Uri.ToString()
                     }
-                    : new ApplicationSourceDto(),
-                Services = applicationImages
+                    : new GetRepositorySourceDto(),
+                Services = applicationImages,
+                
             };
             return dto;
         }
 
-        private static ApplicationServiceDto ConvertApplicationImageToApplicationServiceDto(ApplicationImage image)
+        private static ApplicationImageDto ConvertApplicationImageToApplicationServiceDto(ApplicationImage image)
         {
-            var item = new ApplicationServiceDto()
+            var imagePreviewReleaseConfig = image.DeploymentSettings.PreviewReleases;
+            var previewReleaseSettingsDto = imagePreviewReleaseConfig.Enabled
+                ? new PreviewReleaseSettingsDto()
+                {
+                    Enabled = true,
+                    UpdatePolicy = imagePreviewReleaseConfig.Policy switch
+                    {
+                        GlobImageUpdatePolicy globImageUpdatePolicy => new ImageUpdatePolicyDto()
+                        {
+                            Glob = new GlobImageUpdatePolicyDto()
+                            {
+                                Pattern = globImageUpdatePolicy.Pattern
+                            }
+                        },
+                        RegexImageUpdatePolicy regexImageUpdatePolicy => new ImageUpdatePolicyDto()
+                        {
+                            Regex = new RegexImageUpdatePolicyDto()
+                            {
+                                Pattern = regexImageUpdatePolicy.Pattern
+                            }
+                        },
+                        SemverImageUpdatePolicy semverImageUpdatePolicy => new ImageUpdatePolicyDto()
+                        {
+                            Semver = new SemverImageUpdatePolicyDto()
+                            {
+                                Constraint = semverImageUpdatePolicy.Constraint
+                            }
+                        },
+                        _ => throw new ArgumentOutOfRangeException()
+                    }
+                }
+                : new PreviewReleaseSettingsDto()
+                {
+                    Enabled = false
+                };
+            
+            var item = new ApplicationImageDto()
             {
                 ContainerRepository = image.Repository,
                 DeploymentSettings = new DeploymentSettingsDto()
@@ -144,22 +185,35 @@ namespace Shipbot.Controller.Controllers
                     },
                     AutomaticallySubmitDeploymentToQueue = image.DeploymentSettings.AutomaticallySubmitDeploymentToQueue,
                     AutomaticallyCreateDeploymentOnRepositoryUpdate =
-                        image.DeploymentSettings.AutomaticallyCreateDeploymentOnRepositoryUpdate
+                        image.DeploymentSettings.AutomaticallyCreateDeploymentOnImageRepositoryUpdate,
+                    PreviewRelease = previewReleaseSettingsDto
                 },
             };
             return item;
         }
 
-        [HttpGet("{id}/current-tags")]
+        [HttpGet("{id}/current-tags/{instanceId?}")]
         [Authorize]
-        public ActionResult<Dictionary<string, string>> GetCurrentImageTags(string id)
+        public async Task<ActionResult<Dictionary<string, string>>> GetCurrentImageTags(string id, string instanceId = "")
         {
             var application = _applicationService.GetApplication(id);
-            var result = _applicationService.GetCurrentImageTags(application)
-                .ToDictionary(
-                    x => x.Key.TagProperty.Path, 
-                    x => x.Key.TagProperty.ValueFormat == TagPropertyValueFormat.TagOnly ? $"{x.Key.Repository}:{x.Value}" : $"{x.Value}"
-                    );
+            var result = new Dictionary<string, string>();
+
+            foreach (var image in application.Images)
+            {
+                var currentTag = await _applicationImageInstanceService.GetCurrentTag(application, image, instanceId);
+                if (!currentTag.available)
+                {
+                    result[image.TagProperty.Path] = "not-available-yet";
+                }
+                else
+                {
+                    result[image.TagProperty.Path] = image.TagProperty.ValueFormat == TagPropertyValueFormat.TagOnly
+                        ? $"{image.Repository}:{currentTag.tag}"
+                        : $"{currentTag.tag}";
+                }
+            }
+            
             return Ok(result);
         }
     }

@@ -11,14 +11,17 @@ namespace Shipbot.Applications.Slack
     public class GetCurrentApplicationTags : ISlackCommandHandler
     {
         private readonly IApplicationService _applicationService;
+        private readonly IApplicationImageInstanceService _applicationImageInstanceService;
         private readonly ISlackClient _slackClient;
 
         public GetCurrentApplicationTags(
             IApplicationService applicationService,
+            IApplicationImageInstanceService applicationImageInstanceService,
             ISlackClient slackClient
             )
         {
             _applicationService = applicationService;
+            _applicationImageInstanceService = applicationImageInstanceService;
             _slackClient = slackClient;
         }
         
@@ -26,7 +29,7 @@ namespace Shipbot.Applications.Slack
         {
             var id = args[0];
             var application = _applicationService.GetApplication(id);
-            var result = _applicationService.GetCurrentImageTags(application)
+            var result = _applicationImageInstanceService.GetAllCurrentTagsForPrimary(application)
                 .ToDictionary(
                     x => x.Key.TagProperty.Path, 
                     x => x.Key.TagProperty.ValueFormat == TagPropertyValueFormat.TagOnly ? $"{x.Key.Repository}:{x.Value}" : $"{x.Value}"

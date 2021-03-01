@@ -32,7 +32,7 @@ namespace Shipbot.Deployments.Internals.Jobs
         {
             var polledImageRepositoriesAssociatedWithApplications = _applicationService.GetApplications()
                 .SelectMany(x => x.Images)
-                .Where( x => x.DeploymentSettings.AutomaticallyCreateDeploymentOnRepositoryUpdate )
+                .Where( x => x.DeploymentSettings.AutomaticallyCreateDeploymentOnImageRepositoryUpdate )
                 .Select(x => x.Repository)
                 .Distinct()
                 .ToList();

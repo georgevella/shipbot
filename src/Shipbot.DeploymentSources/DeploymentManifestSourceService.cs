@@ -68,6 +68,22 @@ namespace Shipbot.Controller.Core.ApplicationSources
                     deploymentManifestSourceSettings.Helm.ValueFiles,
                     deploymentManifestSourceSettings.Helm.Secrets
                 ),
+                DeploymentManifestType.Raw => (DeploymentManifest) new RawDeploymentManifest(
+                    applicationName,
+                    new DeploymentManifestSource()
+                    {
+                        // TODO: handle config changes
+                        Credentials = conf.GitCredentials.First(
+                            x =>
+                                x.Name.Equals(deploymentManifestSourceSettings.Repository.Credentials)
+                        ).ConvertToGitCredentials(),
+                        Ref = deploymentManifestSourceSettings.Repository.Ref,
+                        Uri = new Uri(deploymentManifestSourceSettings.Repository.Uri)
+                    },
+                    deploymentManifestSourceSettings.Path,
+                    new [] { deploymentManifestSourceSettings.Raw.File },
+                    deploymentManifestSourceSettings.Raw.PreviewRelease
+                    ),
                 _ => throw new InvalidOperationException() 
             };
             

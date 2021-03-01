@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -41,6 +42,14 @@ namespace Shipbot.Deployments.Dao
         
         public bool IsAutomaticDeployment { get; set; }
         
+        public string NameSuffix { get; set; }
+        
         public DeploymentStatus Status { get; set; }
+        
+        public DeploymentType Type { get; set; }
+        
+        public string InstanceId { get; set; }
+        
+        public Dictionary<string, string> Parameters { get; set; }
     }
 }

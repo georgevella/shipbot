@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Shipbot.Deployments.Internals
 {
     internal static class Converters
@@ -10,6 +12,12 @@ namespace Shipbot.Deployments.Internals
                 deploymentDao.UpdatePath,
                 deploymentDao.CurrentImageTag,
                 deploymentDao.TargetImageTag,
-                (Models.DeploymentStatus) deploymentDao.Status);
+                (Models.DeploymentStatus) deploymentDao.Status,
+                (Models.DeploymentType) deploymentDao.Type,
+                deploymentDao.NameSuffix,
+                deploymentDao.CreationDateTime,
+                deploymentDao.DeploymentDateTime,
+                deploymentDao.InstanceId,
+                deploymentDao.Parameters);
     }
 }

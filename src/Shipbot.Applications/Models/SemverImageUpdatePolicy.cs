@@ -10,6 +10,8 @@ namespace Shipbot.Applications.Models
     
     public class SemverImageUpdatePolicy : ImageUpdatePolicy
     {
+        public string Constraint { get; }
+
         delegate bool EqualityFunc(SemanticVersion target);
         delegate bool StandardEqualityTemplate(SemanticVersion x, SemanticVersion y);
         //
@@ -22,24 +24,25 @@ namespace Shipbot.Applications.Models
         // private readonly SemanticVersion _baseSemanticVersion;
         private readonly EqualityFunc _equalityFunc;
 
-        public SemverImageUpdatePolicy(string semver)
+        public SemverImageUpdatePolicy(string constraint)
         {
-            var first = semver[0];
-            var second = semver[1];
+            Constraint = constraint;
+            var first = constraint[0];
+            var second = constraint[1];
 
             _equalityFunc = first switch
             {
                 '<' => second == '=' 
-                    ? BuildStandardEqualityFunc(semver.Substring(2), LessThenOrEqual) 
-                    : BuildStandardEqualityFunc(semver.Substring(1), LessThen),
+                    ? BuildStandardEqualityFunc(constraint.Substring(2), LessThenOrEqual) 
+                    : BuildStandardEqualityFunc(constraint.Substring(1), LessThen),
                 '>' => second == '=' 
-                    ? BuildStandardEqualityFunc(semver.Substring(2), GreaterThanOrEqual) 
-                    : BuildStandardEqualityFunc(semver.Substring(1), GreaterThan),
-                '=' => BuildStandardEqualityFunc(semver.Substring(1), Match),
-                '~' => BuildTildeEqualityFunc(semver.Substring(1)),
-                '^' => BuildCaretEqualityFunc(semver.Substring(1)),
+                    ? BuildStandardEqualityFunc(constraint.Substring(2), GreaterThanOrEqual) 
+                    : BuildStandardEqualityFunc(constraint.Substring(1), GreaterThan),
+                '=' => BuildStandardEqualityFunc(constraint.Substring(1), Match),
+                '~' => BuildTildeEqualityFunc(constraint.Substring(1)),
+                '^' => BuildCaretEqualityFunc(constraint.Substring(1)),
                 _ => char.IsDigit(first) 
-                    ? BuildStandardEqualityFunc(semver, Match) 
+                    ? BuildStandardEqualityFunc(constraint, Match) 
                     : throw new InvalidOperationException()
             };
             

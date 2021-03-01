@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
+using Octokit;
 using Shipbot.Applications;
 using Shipbot.Applications.Models;
 using Shipbot.ContainerRegistry.Models;
@@ -29,8 +30,10 @@ namespace Shipbot.Tests
                 GetLogger<DeploymentWorkflowService>(), 
                 MockOf<IContainerImageMetadataService>(), 
                 MockOf<IApplicationService>(), 
+                Mock.Of<IApplicationImageInstanceService>(),
                 MockOf<IDeploymentService>(), 
-                MockOf<IDeploymentQueueService>()
+                MockOf<IDeploymentQueueService>(),
+                Mock.Of<IGitHubClient>()
                 );
             
             var imagePolicy = new GlobImageUpdatePolicy("develop-*");
@@ -58,8 +61,11 @@ namespace Shipbot.Tests
                 GetLogger<DeploymentWorkflowService>(), 
                 MockOf<IContainerImageMetadataService>(), 
                 MockOf<IApplicationService>(), 
+                Mock.Of<IApplicationImageInstanceService>(),
                 MockOf<IDeploymentService>(), 
-                MockOf<IDeploymentQueueService>()
+                MockOf<IDeploymentQueueService>(),
+                Mock.Of<IGitHubClient>()
+
             );
             
             var imagePolicy = new GlobImageUpdatePolicy("develop-*");
@@ -79,8 +85,11 @@ namespace Shipbot.Tests
                 GetLogger<DeploymentWorkflowService>(), 
                 MockOf<IContainerImageMetadataService>(), 
                 MockOf<IApplicationService>(), 
+                Mock.Of<IApplicationImageInstanceService>(),
                 MockOf<IDeploymentService>(), 
-                MockOf<IDeploymentQueueService>()
+                MockOf<IDeploymentQueueService>(),
+            Mock.Of<IGitHubClient>()
+
             );
             
             var currentImage = new ContainerImage("testapp", "develop-123", DateTimeOffset.Now.AddDays(-1));
@@ -105,8 +114,10 @@ namespace Shipbot.Tests
                 GetLogger<DeploymentWorkflowService>(), 
                 MockOf<IContainerImageMetadataService>(), 
                 MockOf<IApplicationService>(), 
+                Mock.Of<IApplicationImageInstanceService>(),
                 MockOf<IDeploymentService>(), 
-                MockOf<IDeploymentQueueService>()
+                MockOf<IDeploymentQueueService>(),
+                Mock.Of<IGitHubClient>()
             );
             
             var currentImage = new ContainerImage("testapp", "develop-123", DateTimeOffset.Now.AddDays(-1));
@@ -131,8 +142,10 @@ namespace Shipbot.Tests
                 GetLogger<DeploymentWorkflowService>(), 
                 MockOf<IContainerImageMetadataService>(), 
                 MockOf<IApplicationService>(), 
+                Mock.Of<IApplicationImageInstanceService>(),
                 MockOf<IDeploymentService>(), 
-                MockOf<IDeploymentQueueService>()
+                MockOf<IDeploymentQueueService>(),
+                Mock.Of<IGitHubClient>()
             );
 
             var creationDateTime = DateTimeOffset.Now.AddDays(-1);

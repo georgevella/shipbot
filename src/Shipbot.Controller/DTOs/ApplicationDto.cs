@@ -9,11 +9,11 @@ namespace Shipbot.Controller.DTOs
     {
         public string Name { get; set; }
         
-        public ApplicationSourceDto Source { get; set; }
-        public List<ApplicationServiceDto> Services { get; set; }
+        public GetRepositorySourceDto DeploymentManifestSource { get; set; }
+        public List<ApplicationImageDto> Services { get; set; }
     }
 
-    public class ApplicationServiceDto
+    public class ApplicationImageDto
     {
         public string ContainerRepository { get; set; }
 
@@ -29,6 +29,15 @@ namespace Shipbot.Controller.DTOs
         public bool AutomaticallyCreateDeploymentOnRepositoryUpdate { get; set; }
         
         public bool AutomaticallySubmitDeploymentToQueue { get; set; }
+        
+        public PreviewReleaseSettingsDto PreviewRelease { get; set; }
+    }
+
+    public class PreviewReleaseSettingsDto
+    {
+        public bool Enabled { get; set; }
+        
+        public ImageUpdatePolicyDto UpdatePolicy { get; set; }
     }
 
     public class ImageUpdatePolicyDto
@@ -45,6 +54,7 @@ namespace Shipbot.Controller.DTOs
 
     public class SemverImageUpdatePolicyDto
     {
+        public string Constraint { get; set; }
     }
 
     public class RegexImageUpdatePolicyDto

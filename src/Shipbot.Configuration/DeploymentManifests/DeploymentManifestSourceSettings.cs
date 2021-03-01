@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Shipbot.Controller.Core.Configuration.Git;
 
 namespace Shipbot.Controller.Core.Configuration.DeploymentManifests
@@ -19,6 +20,22 @@ namespace Shipbot.Controller.Core.Configuration.DeploymentManifests
         
         public string Path { get; set; }
         
-        public HelmDepoymentManifestSettings Helm { get; set; }
+        public HelmDeploymentManifestSettings Helm { get; set; }
+        public RawDeploymentManifestSettings Raw { get; set; }
+    }
+
+    public class PreviewReleaseSettings
+    {
+        private bool? _basePreleaseOnFile;
+        public string TemplateFile { get; set; }
+
+        public bool Enabled { get; set; }
+        public bool BasePreleaseOnFile
+        {
+            get => _basePreleaseOnFile ?? string.IsNullOrEmpty(TemplateFile);
+            set => _basePreleaseOnFile = value;
+        }
+
+        public string GeneratedFilename { get; set; } = "{Application}-{NameSuffix}";
     }
 }

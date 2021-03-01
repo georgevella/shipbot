@@ -93,7 +93,9 @@ namespace Shipbot.Tests
             var applicationImage = new ApplicationImage(imageRepository,
                 new TagProperty("image.tag", TagPropertyValueFormat.TagOnly),
                 new GlobImageUpdatePolicy(imagePattern),
-                new DeploymentSettings(true, true)
+                new DeploymentSettings(true, true),
+                ApplicationImageSourceCode.Empty,
+                ApplicationImageIngress.Empty
             );
             
             var application = new Application(
@@ -117,12 +119,12 @@ namespace Shipbot.Tests
                         }
                         : new Dictionary<ApplicationImage, string>();
 
-                    mock.Setup(
-                            x => x.GetCurrentImageTags(
-                                It.Is<Application>(p => p.Equals(application))
-                            )
-                        )
-                        .Returns(currentImageTags);
+                    // mock.Setup(
+                    //         x => x.GetCurrentImageTags(
+                    //             It.Is<Application>(p => p.Equals(application))
+                    //         )
+                    //     )
+                    //     .Returns(currentImageTags);
                 });
 
             var deploymentService = MockOf<IDeploymentService>(
@@ -132,12 +134,24 @@ namespace Shipbot.Tests
                             x => x.AddDeployment(
                                 It.Is<Application>(p => p.Equals(application)),
                                 It.Is<ApplicationImage>(p => p.Equals(applicationImage)),
-                                It.Is<string>(s => s.Equals(newerImageTag))
+                                It.Is<string>(s => s.Equals(newerImageTag)),
+                                It.Is<DeploymentType>( t => t.Equals(DeploymentType.ImageUpdate)),
+                                It.Is<string>( s => s == string.Empty),
+                                It.IsAny<IReadOnlyDictionary<string,string>>()
                             )
                         )
                         .Callback<Application,ApplicationImage,string>((application,image,newTag) => {})
                         .ReturnsAsync(
-                            new Deployment(deploymentId, applicationId, imageRepository, "image.tag", currentImageTag, newerImageTag, DeploymentStatus.Pending)
+                            new Deployment(
+                                deploymentId, 
+                                applicationId, 
+                                imageRepository, 
+                                "image.tag", currentImageTag, newerImageTag, DeploymentStatus.Pending,
+                                DeploymentType.ImageUpdate,
+                                string.Empty,
+                                DateTime.Now.AddMinutes(-1),
+                                DateTime.Now,
+                                string.Empty)
                         );
                 },
                 mock =>
@@ -146,7 +160,10 @@ namespace Shipbot.Tests
                         x => x.AddDeployment(
                             It.Is<Application>(p => p.Equals(application)),
                             It.Is<ApplicationImage>(p => p.Equals(applicationImage)),
-                            It.Is<string>(s => s.Equals(newerImageTag))
+                            It.Is<string>(s => s.Equals(newerImageTag)),
+                            It.Is<DeploymentType>( t => t.Equals(DeploymentType.ImageUpdate)),
+                            It.Is<string>( s => s == string.Empty),
+                            It.IsAny<IReadOnlyDictionary<string,string>>()
                         ),
                         Times.Exactly(createdDeployments)
                         );

@@ -13,10 +13,10 @@ namespace Shipbot.Applications
         IEnumerable<Application> GetApplications();
         Application GetApplication(string id);
 
-        [Obsolete]
-        void SetCurrentImageTag(Application application, ApplicationImage image, string tag);
-        [Obsolete]
-        IReadOnlyDictionary<ApplicationImage, string> GetCurrentImageTags(Application application);
+        // [Obsolete]
+        // void SetCurrentImageTag(Application application, ApplicationImage image, string tag);
+        // [Obsolete]
+        // IReadOnlyDictionary<ApplicationImage, string> GetCurrentImageTags(Application application);
 
         Task ChangeApplicationDeploymentSettings(
             string application, 

@@ -67,7 +67,9 @@ namespace Shipbot.Controller.Controllers
                 Tag = x.TargetTag,
                 UpdatePath = x.UpdatePath,
                 Status = (DeploymentStatusDto) x.Status,
-                Application = x.ApplicationId
+                Application = x.ApplicationId,
+                CreatedOn = x.CreationDateTime,
+                DeployedOn = x.DeploymentDateTime
             };
         }
 

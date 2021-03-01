@@ -39,22 +39,66 @@ namespace Shipbot.Applications.Internal
             }
 
             var applicationImages = applicationDefinition.Images
-                .Select(imageSettings => new ApplicationImage(
-                    imageSettings.Repository,
-                    new TagProperty(
-                        imageSettings.TagProperty.Path,
-                        (TagPropertyValueFormat)imageSettings.TagProperty.ValueFormat
-                    ),
-                    imageSettings.Policy switch
+                .Select(imageSettings =>
+                {
+                    PreviewReleaseDeploymentSettings? previewReleaseDeploymentSettings = null;
+                    if (imageSettings.PreviewRelease != null)
                     {
-                        UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
-                            imageSettings.Pattern),
-                        UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
-                        UpdatePolicy.Semver => new SemverImageUpdatePolicy(imageSettings.Pattern),
-                        _ => throw new NotImplementedException()
-                    },
-                    new DeploymentSettings(true, applicationDefinition.AutoDeploy)
-                ))
+                        previewReleaseDeploymentSettings = new PreviewReleaseDeploymentSettings(
+                            true,
+                            imageSettings.PreviewRelease.UpdatePolicy.Type switch
+                            {
+                                UpdatePolicy.Glob => new GlobImageUpdatePolicy(
+                                    imageSettings.PreviewRelease.UpdatePolicy.Pattern),
+                                UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.PreviewRelease
+                                    .UpdatePolicy.Pattern),
+                                UpdatePolicy.Semver => new SemverImageUpdatePolicy(imageSettings.PreviewRelease
+                                    .UpdatePolicy.Pattern),
+                                _ => throw new NotImplementedException()
+                            },
+                            imageSettings.PreviewRelease.Parameters.Regex.Tag
+                        );
+                    }
+
+                    ApplicationImageSourceCode applicationImageSourceCode = ApplicationImageSourceCode.Empty;
+
+                    if (imageSettings.ApplicationSource != null)
+                    {
+                        if (imageSettings.ApplicationSource.Github != null)
+                        {
+                            applicationImageSourceCode = new ApplicationImageSourceCode(
+                                true,
+                                new GithubApplicationSourceCodeRepository(
+                                    imageSettings.ApplicationSource.Github.Owner,
+                                    imageSettings.ApplicationSource.Github.Repository
+                                )
+                            );
+                        }
+                    }
+
+                    return new ApplicationImage(
+                        imageSettings.Repository,
+                        new TagProperty(
+                            imageSettings.TagProperty.Path,
+                            (TagPropertyValueFormat) imageSettings.TagProperty.ValueFormat
+                        ),
+                        imageSettings.Policy switch
+                        {
+                            UpdatePolicy.Glob => (ImageUpdatePolicy) new GlobImageUpdatePolicy(
+                                imageSettings.Pattern),
+                            UpdatePolicy.Regex => new RegexImageUpdatePolicy(imageSettings.Pattern),
+                            UpdatePolicy.Semver => new SemverImageUpdatePolicy(imageSettings.Pattern),
+                            _ => throw new NotImplementedException()
+                        },
+                        new DeploymentSettings(
+                            true,
+                            applicationDefinition.AutoDeploy,
+                            previewReleaseDeploymentSettings
+                            ),
+                        applicationImageSourceCode,
+                        (imageSettings.Ingress != null) ? new ApplicationImageIngress(imageSettings.Ingress.Domain) : ApplicationImageIngress.Empty
+                    );
+                })
                 .ToList();
 
             var application = new Application(
@@ -100,7 +144,9 @@ namespace Shipbot.Applications.Internal
                                 image.Repository, 
                                 image.TagProperty, 
                                 image.Policy,
-                                deploymentSettings)
+                                deploymentSettings,
+                                image.SourceCode,
+                                image.Ingress)
                             );
                     }
                     else

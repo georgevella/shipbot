@@ -3,21 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Logging;
 using Shipbot.Applications;
 using Shipbot.Applications.Models;
 using Shipbot.Data;
 using Shipbot.Deployments.Internals;
 using Shipbot.Deployments.Models;
-using Shipbot.Models;
-using Shipbot.SlackIntegration;
 using Deployment = Shipbot.Deployments.Models.Deployment;
+using DaoDeploymentType = Shipbot.Deployments.Dao.DeploymentType;
 
 namespace Shipbot.Deployments
 {
     public class DeploymentService : IDeploymentService
     {
         private readonly IApplicationService _applicationService;
+        private readonly IApplicationImageInstanceService _applicationImageInstanceService;
 
         private readonly ILogger _log;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
@@ -26,49 +27,92 @@ namespace Shipbot.Deployments
         public DeploymentService(
             ILogger<DeploymentService> log,
             IApplicationService applicationService,
+            IApplicationImageInstanceService applicationImageInstanceService,
             IDeploymentNotificationService deploymentNotificationService,
             ShipbotDbContext deploymentsDbContextConfigurator
         )
         {
             _log = log;
             _applicationService = applicationService;
+            _applicationImageInstanceService = applicationImageInstanceService;
             _deploymentNotificationService = deploymentNotificationService;
             _deploymentsDbContextConfigurator = deploymentsDbContextConfigurator;
         }
-        
-        public async Task<Deployment> AddDeployment(Application application, ApplicationImage image, string newTag)
-        {
-            var currentTags = _applicationService.GetCurrentImageTags(application);
 
-            if (!currentTags.TryGetValue(image, out var currentTag))
-            {
-                currentTag = "<new image>";
-            }
-            
+        public async Task<Deployment> AddDeployment(
+            Application application,
+            ApplicationImage image,
+            string newTag,
+            DeploymentType type = DeploymentType.ImageUpdate,
+            string instanceId = "",
+            IReadOnlyDictionary<string, string>? parameters = null)
+        {
+            var currentTagInStore = await _applicationImageInstanceService.GetCurrentTag(application, image, instanceId);
+            var currentTag = currentTagInStore.available ? currentTagInStore.tag : "";
+
             var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
-            
-            var deploymentExists = deployments.Any(
-                x =>
-                    x.ApplicationId == application.Name &&
-                    x.ImageRepository == image.Repository &&
-                    x.UpdatePath == image.TagProperty.Path &&
-                    x.CurrentImageTag == currentTag &&
-                    x.TargetImageTag == newTag
-                    );
+
+            var deploymentExists = await IsDeploymentPresent(
+                application,
+                image,
+                newTag,
+                type,
+                instanceId
+            );
 
             if (deploymentExists)
             {
                 _log.LogInformation(
                     "Image tag update operation already in queue for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
                     image.Repository,
-                    currentTags[image],
+                    currentTag,
                     application.Name,
                     newTag
                 );
 
                 throw new Exception($"Deployment for {image} with {newTag} already exists.");
             }
+
+            var entity = await CreateAndStoreDeploymentDao(
+                deployments,
+                application,
+                image,
+                type == DeploymentType.ImageUpdate ? DaoDeploymentType.ImageUpdate : DaoDeploymentType.PreviewRelease,
+                newTag,
+                currentTag,
+                string.Empty,
+                instanceId,
+                parameters
+            );
+
+            _log.LogInformation(
+                "Adding image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
+                image.Repository, 
+                currentTag,
+                application.Name,
+                newTag
+            );
             
+            await _deploymentsDbContextConfigurator.SaveChangesAsync();
+
+            var deployment = entity.Entity.ConvertToDeploymentModel();
+
+            await _deploymentNotificationService.CreateNotification(deployment);
+
+            return deployment;
+        }
+
+        private static async Task<EntityEntry<Dao.Deployment>> CreateAndStoreDeploymentDao(
+            DbSet<Dao.Deployment> deployments,
+            Application application, 
+            ApplicationImage image,
+            DaoDeploymentType type,
+            string newTag,
+            string currentTag = "",
+            string nameSuffix = "",
+            string instanceId = "", 
+            IReadOnlyDictionary<string, string>? parameters = null)
+        {
             var entity = await deployments.AddAsync(new Dao.Deployment()
             {
                 Id = Guid.NewGuid(),
@@ -80,24 +124,33 @@ namespace Shipbot.Deployments
                 UpdatePath = image.TagProperty.Path,
                 CurrentImageTag = currentTag,
                 TargetImageTag = newTag,
-                IsAutomaticDeployment = true
+                IsAutomaticDeployment = true,
+                Type = type,
+                NameSuffix = nameSuffix,
+                InstanceId = instanceId,
+                Parameters = new Dictionary<string, string>(parameters ?? new Dictionary<string, string>())
             });
+            return entity;
+        }
 
-            _log.LogInformation(
-                "Adding image tag update operation for '{Repository}' with {Tag} for application {Application} with new tag {NewTag}",
-                image.Repository, 
-                currentTags[image],
-                application.Name,
-                newTag
+        public Task<bool> IsDeploymentPresent( 
+            Application application, 
+            ApplicationImage image, 
+            string newTag, 
+            DeploymentType type = DeploymentType.ImageUpdate,
+            string instanceId = "")
+        {
+            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
+            
+            return deployments.AnyAsync(
+                x =>
+                    x.ApplicationId == application.Name &&
+                    x.ImageRepository == image.Repository &&
+                    x.UpdatePath == image.TagProperty.Path &&
+                    x.TargetImageTag == newTag &&
+                    x.Type == (type == DeploymentType.ImageUpdate ? DaoDeploymentType.ImageUpdate : DaoDeploymentType.PreviewRelease ) &&
+                    x.InstanceId == instanceId
             );
-            
-            await _deploymentsDbContextConfigurator.SaveChangesAsync();
-
-            var deployment = entity.Entity.ConvertToDeploymentModel();
-            
-            await _deploymentNotificationService.CreateNotification(deployment);
-
-            return deployment;
         }
 
         public Task<IEnumerable<Deployment>> GetDeployments(Application? application, DeploymentStatus? status)
@@ -174,8 +227,8 @@ namespace Shipbot.Deployments
         {
             await ChangeDeploymentUpdateStatus(deploymentId, finalStatus);
             
-            var deployments = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
-            var deploymentDao = await deployments.FindAsync(deploymentId);
+            var deploymentsDbSet = _deploymentsDbContextConfigurator.Set<Dao.Deployment>();
+            var deploymentDao = await deploymentsDbSet.FindAsync(deploymentId);
             var application = _applicationService.GetApplication(deploymentDao.ApplicationId);
             var imageMap = application.Images.ToDictionary(
                 x => $"{x.Repository}-{x.TagProperty.Path}"
@@ -183,7 +236,7 @@ namespace Shipbot.Deployments
             var image = imageMap[$"{deploymentDao.ImageRepository}-{deploymentDao.UpdatePath}"];
             
             // TODO: trigger git refresh instead of explicitly setting the tag
-            _applicationService.SetCurrentImageTag(application, image, deploymentDao.TargetImageTag);
+            await _applicationImageInstanceService.SetCurrentTag(application, image, deploymentDao.InstanceId, deploymentDao.TargetImageTag);
         }
     }
 }

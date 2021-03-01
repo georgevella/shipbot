@@ -16,9 +16,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Converters;
+using Octokit;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
@@ -134,6 +136,22 @@ namespace Shipbot.Controller
                     options.RequireHttpsMetadata = false;
                     Configuration.Bind("JwtBearer", options);
                 });
+            
+            // add github cient
+            services.AddScoped<IGitHubClient>(
+                provider =>
+                {
+                    var shipbotConfiguration = provider.GetService<IOptions<ShipbotConfiguration>>();
+
+                    var connection = new Connection(
+                        new ProductHeaderValue("Shipbot", "v0.1.0")
+                        )
+                    {
+                        Credentials = new Credentials(shipbotConfiguration.Value.Github.Token)
+                    };
+                    return new GitHubClient(connection);
+                }
+            );
             
             
             // kubernetes

@@ -26,13 +26,13 @@ namespace Shipbot.Controller.Controllers
         
         [HttpGet]
         [Authorize]
-        public async Task<ActionResult<IEnumerable<ApplicationSourceDto>>> Get()
+        public async Task<ActionResult<IEnumerable<GetRepositorySourceDto>>> Get()
         {
             var activeAppications = await _deploymentManifestSourceService.GetActiveApplications();
 
             return Ok(
                 activeAppications
-                    .Select(applicationSource => new ApplicationSourceDto()
+                    .Select(applicationSource => new GetRepositorySourceDto()
                     {
                         Path = applicationSource.Path,
                         Ref = applicationSource.Repository.Ref,

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using LibGit2Sharp;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -21,20 +23,22 @@ using YamlDotNet.RepresentationModel;
 namespace Shipbot.Controller.Core.ApplicationSources.Jobs
 {
     [DisallowConcurrentExecution]
-    public class GitRepositorySyncJob : BaseJobWithData<DeploymentManifestSourceTrackingContext>
+    public partial class GitRepositorySyncJob : BaseJobWithData<DeploymentManifestSourceTrackingContext>
     {
         private readonly ILogger<GitRepositorySyncJob> _log;
         private readonly IApplicationService _applicationService;
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentQueueService _deploymentQueueService;
         private readonly IOptions<ShipbotConfiguration> _configuration;
+        private readonly IApplicationImageInstanceService _applicationImageInstanceService;
 
         public GitRepositorySyncJob(
             ILogger<GitRepositorySyncJob> log,
             IApplicationService applicationService,
             IDeploymentService deploymentService,
             IDeploymentQueueService deploymentQueueService,
-            IOptions<ShipbotConfiguration> configuration
+            IOptions<ShipbotConfiguration> configuration,
+            IApplicationImageInstanceService applicationImageInstanceService
         )
         {
             _log = log;
@@ -42,6 +46,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             _deploymentService = deploymentService;
             _deploymentQueueService = deploymentQueueService;
             _configuration = configuration;
+            _applicationImageInstanceService = applicationImageInstanceService;
         }
 
         public override async Task Execute(DeploymentManifestSourceTrackingContext context)
@@ -63,79 +68,85 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 var branch = CheckoutDeploymentManifest(gitRepository, repository, credentials);
                 
                 // TODO: handle scenario when we are tracking a git commit or a tag
-                if (context.DeploymentManifest is HelmDeploymentManifest helmApplicationSource)
+                var changesDone = context.DeploymentManifest switch
                 {
-                    if (
-                        await SynchronizeHelmApplicationSource(gitRepository, context, helmApplicationSource) &&
-                        context.AutoDeploy &&
-                        !_configuration.Value.Dryrun)
+                    HelmDeploymentManifest helmDeploymentManifest => await SynchronizeHelmApplicationSource(
+                        gitRepository, context, helmDeploymentManifest),
+                    RawDeploymentManifest rawDeploymentManifest => await SynchronizeRawDeploymentManifestSource(
+                        gitRepository, context, rawDeploymentManifest),
+                    _ => false
+                };
+                
+                if (
+                    changesDone &&
+                    context.AutoDeploy &&
+                    !_configuration.Value.Dryrun)
+                {
+                    var attempt = 3;
+
+                    while (attempt > 0)
                     {
-                        int attempt = 3;
+                        _log.LogInformation("Pushing repository changes for {Application}", context.ApplicationName);
 
-                        while (attempt > 0)
+                        try
                         {
-                            _log.LogInformation("Pushing repository changes for {Application}", context.ApplicationName);
-                        
-                            try
+                            gitRepository.Network.Push(branch, new PushOptions()
                             {
-                                gitRepository.Network.Push(branch, new PushOptions()
+                                CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
                                 {
-                                    CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
-                                    {
-                                        Username = credentials.Username,
-                                        Password = credentials.Password
-                                    }
-                                });
-
-                                break;
-                            }
-                            catch (NonFastForwardException e)
-                            {
-                                _log.LogInformation("Remote has newer commits, re-fetching");
-                                var remote = gitRepository.Network.Remotes["origin"];
-                                var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
-                                Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
-                                
-                                var rebaseIdentity = new Identity("deploy-bot", "deploy-bot@riverigaming.com");
-                                var rebaseOptions = new RebaseOptions()
-                                {
-                                    FileConflictStrategy = CheckoutFileConflictStrategy.Theirs
-                                };
-                            
-                                _log.LogInformation("Rebasing on remote branch prior to trying to re-push changes ...");
-                                var upstream = gitRepository.Head.TrackedBranch;
-                                var rebaseResult = gitRepository.Rebase.Start(
-                                    gitRepository.Head,
-                                    upstream,
-                                    upstream,
-                                    rebaseIdentity,
-                                    rebaseOptions
-                                    );
-                                
-                                // TODO: handle rebaseResult nulliness
-                                while (rebaseResult.Status != RebaseStatus.Complete)
-                                {
-                                    // we should hit here only if we find a conflict, since we don't use interactive mode on rebase
-                                    var step = rebaseResult.CurrentStepInfo ?? gitRepository.Rebase.GetCurrentStepInfo();
-                                    
-                                    var currentStatus = gitRepository.RetrieveStatus();
-                                    foreach (var item in currentStatus)
-                                    {
-                                        Commands.Stage(gitRepository, item.FilePath);
-                                    }
-
-                                    rebaseResult = gitRepository.Rebase.Continue(rebaseIdentity, rebaseOptions);
+                                    Username = credentials.Username,
+                                    Password = credentials.Password
                                 }
-                                
-                                --attempt;
-                            }
+                            });
+
+                            break;
                         }
-                        
+                        catch (NonFastForwardException e)
+                        {
+                            _log.LogInformation("Remote has newer commits, re-fetching");
+                            var remote = gitRepository.Network.Remotes["origin"];
+                            var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
+                            Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
+
+                            var rebaseIdentity = new Identity("deploy-bot", "deploy-bot@riverigaming.com");
+                            var rebaseOptions = new RebaseOptions()
+                            {
+                                FileConflictStrategy = CheckoutFileConflictStrategy.Theirs
+                            };
+
+                            _log.LogInformation("Rebasing on remote branch prior to trying to re-push changes ...");
+                            var upstream = gitRepository.Head.TrackedBranch;
+                            var rebaseResult = gitRepository.Rebase.Start(
+                                gitRepository.Head,
+                                upstream,
+                                upstream,
+                                rebaseIdentity,
+                                rebaseOptions
+                            );
+
+                            // TODO: handle rebaseResult nulliness
+                            while (rebaseResult.Status != RebaseStatus.Complete)
+                            {
+                                // we should hit here only if we find a conflict, since we don't use interactive mode on rebase
+                                var step = rebaseResult.CurrentStepInfo ?? gitRepository.Rebase.GetCurrentStepInfo();
+
+                                var currentStatus = gitRepository.RetrieveStatus();
+                                foreach (var item in currentStatus)
+                                {
+                                    Commands.Stage(gitRepository, item.FilePath);
+                                }
+
+                                rebaseResult = gitRepository.Rebase.Continue(rebaseIdentity, rebaseOptions);
+                            }
+
+                            --attempt;
+                        }
                     }
+
                 }
             }
         }
-
+        
         private Branch CheckoutDeploymentManifest(Repository gitRepository, DeploymentManifestSource repository,
             UsernamePasswordGitCredentials credentials)
         {
@@ -247,181 +258,70 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
             return branch;
         }
 
-        private async Task<bool> SynchronizeHelmApplicationSource(Repository gitRepository,
-            DeploymentManifestSourceTrackingContext context,
-            HelmDeploymentManifest helmDeploymentManifest)
+        class DeploymentManifestSourceSyncContext
         {
-            var relativePath = helmDeploymentManifest.Path;
-            var applicationSourcePath = Path.Combine(context.GitRepositoryPath, relativePath);
-
-
-            var application = _applicationService.GetApplication(context.ApplicationName);
-            var imageMap = application.Images.ToDictionary(
-                x => $"{x.Repository}-{x.TagProperty.Path}"
-            );
-            
-            var yamlUtilities = new YamlUtilities();
-
-            // build map of images -> yaml file that defines them and image -> current tag
-            _log.LogTrace("Beginning to parse value files defined in application source ...");
-
-            var imageToFilenameMap = new Dictionary<ApplicationImage, string>();
-            var imageToTagInManifest = new Dictionary<ApplicationImage, string>();
-
-            foreach (var file in helmDeploymentManifest.ValuesFiles)
+            public DeploymentManifestSourceSyncContext(
+                IReadOnlyDictionary<ApplicationImage, FileInfo> applicationImageToFileMapping, 
+                IReadOnlyDictionary<ApplicationImage, string> manifestTags
+                )
             {
-                var yaml = new YamlStream();
-                var filePath = Path.Combine(applicationSourcePath, file);
-                yamlUtilities.ReadYamlStream(yaml, filePath);
+                ApplicationImageToFileMapping = applicationImageToFileMapping;
+                ManifestTags = manifestTags;
+            }
 
-                foreach (var doc in yaml.Documents)
+            /// <summary>
+            ///     Contains a map between every application image and the file that stores it's tag
+            /// </summary>
+            public IReadOnlyDictionary<ApplicationImage, FileInfo> ApplicationImageToFileMapping { get; }
+            
+            /// <summary>
+            ///     Contains the application image tags defined in the manifest. 
+            /// </summary>
+            public IReadOnlyDictionary<ApplicationImage, string> ManifestTags { get; }
+            
+            public static DeploymentManifestSourceSyncContext Build(
+                Application application,
+                IEnumerable<FileInfo> files
+            )
+            {
+                // _log.LogTrace("Beginning to parse value files defined in application source ...");
+                
+                var yamlUtilities = new YamlUtilities();
+                var imageToFilenameMap = new Dictionary<ApplicationImage, FileInfo>();
+                var imageToTagInManifest = new Dictionary<ApplicationImage, string>();
+                
+                foreach (var file in files)
                 {
-                    foreach (var image in application.Images)
+                    var yaml = new YamlStream();
+                    //var filePath = Path.Combine(applicationSourcePath, file);
+                    yamlUtilities.ReadYamlStream(yaml, file.FullName);
+
+                    foreach (var doc in yaml.Documents)
                     {
-                        var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
-
-                        if (tagInManifest == null)
-                            continue;
-
-                        if (imageToFilenameMap.ContainsKey(image))
+                        foreach (var image in application.Images)
                         {
-                            // TODO: handle situation where multiple files define the same image tag (ERROR and warn user)
-                        }
+                            var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
 
-                        imageToFilenameMap[image] = file;
-                        imageToTagInManifest[image] = tagInManifest;
+                            if (tagInManifest == null)
+                                continue;
+
+                            if (imageToFilenameMap.ContainsKey(image))
+                            {
+                                // TODO: handle situation where multiple files define the same image tag (ERROR and warn user)
+                            }
+
+                            imageToFilenameMap[image] = file;
+                            imageToTagInManifest[image] = tagInManifest;
+                        }
                     }
                 }
-            }
-            
-            _log.LogTrace("Completing parsing value files defined in application source ...");
 
-            // start updating files
-            var manifestsChanged = false;
-            Deployment? nextPendingDeployment = null;
-            while ((nextPendingDeployment = await _deploymentQueueService.GetNextPendingDeploymentUpdate(application)) != null)
-            {
-                await _deploymentService.ChangeDeploymentUpdateStatus(
-                    nextPendingDeployment.Id,
-                    DeploymentStatus.Starting
-                    );
-                _log.LogTrace("Executing pending deployment update ...");
-                
-                await _deploymentService.ChangeDeploymentUpdateStatus(
-                    nextPendingDeployment.Id,
-                    DeploymentStatus.UpdatingManifests
-                );
-                
-                // build a deployment update object
-                var image = imageMap[$"{nextPendingDeployment.ImageRepository}-{nextPendingDeployment.UpdatePath}"];
-                // send notification out
-                var deploymentUpdate = new DeploymentUpdate(
-                    nextPendingDeployment.Id,
-                    application, 
-                    image, 
-                    nextPendingDeployment.CurrentTag, 
-                    nextPendingDeployment.TargetTag
-                );
-                
-                manifestsChanged = await UpdateDeploymentManifests(gitRepository, 
-                    deploymentUpdate, 
-                    imageToFilenameMap, 
-                    imageToTagInManifest.TryGetAndReturn(image) ?? "n/a", 
-                    applicationSourcePath, 
-                    yamlUtilities, 
-                    relativePath);
-
-                if (manifestsChanged)
-                {
-                    imageToTagInManifest[image] = nextPendingDeployment.TargetTag;
-                }
-                
-                // TODO: rework this so that failures to push get indicated
-                await _deploymentService.FinishDeploymentUpdate(
-                    nextPendingDeployment.Id,
-                    manifestsChanged ? DeploymentStatus.Complete : DeploymentStatus.Failed
-                );
+                // _log.LogTrace("Completing parsing value files defined in application source ...");
+                return new DeploymentManifestSourceSyncContext(imageToFilenameMap, imageToTagInManifest);
             }
             
-            if (!manifestsChanged)
-            {
-                // we don't have a deployment, ensure application manifest is up to date with latest image tags
-                foreach (var keyValuePair in imageToTagInManifest)
-                {
-                    _applicationService.SetCurrentImageTag(application, keyValuePair.Key, keyValuePair.Value);   
-                }
-            }
-            
-            return manifestsChanged;
         }
 
-        private async Task<bool> UpdateDeploymentManifests(
-            Repository gitRepository, 
-            DeploymentUpdate deploymentUpdate,
-            Dictionary<ApplicationImage, string> imageToFilenameMap, 
-            string currentImageTag,
-            string applicationSourcePath,
-            YamlUtilities yamlUtilities, 
-            string relativePath)
-        {
-            if (!imageToFilenameMap.TryGetValue(deploymentUpdate.Image, out string file))
-            {
-                // TODO: warn that we have an image tag update but no corresponding file
-                _log.LogWarning("Update to {Repository} cannot be applied since there isn't matching file.");
-                return false;
-            }
-
-            _log.LogTrace("Upgrading {Repository} to {NewTag} from {Tag}",
-                deploymentUpdate.Image.Repository,
-                deploymentUpdate.TargetTag,
-                currentImageTag
-            );
-
-            var yaml = new YamlStream();
-            var filePath = Path.Combine(applicationSourcePath, file);
-
-            yamlUtilities.ReadYamlStream(yaml, filePath);
-
-            var image = deploymentUpdate.Image;
-
-            var doCommit = false;
-
-            foreach (var doc in yaml.Documents)
-            {
-                var tagInManifest = yamlUtilities.ExtractValueFromDoc(image.TagProperty.Path, doc);
-                if (tagInManifest == null) continue;
-
-                if (tagInManifest == deploymentUpdate.TargetTag)
-                {
-                    _log.LogTrace("Tag for {Repository} matches new tag {NewTag}", image.Repository, deploymentUpdate.TargetTag);
-                    continue;
-                }
-
-                _log.LogTrace("Setting current-tag for {Repository} to {Tag}", image.Repository,
-                    deploymentUpdate.TargetTag);
-                yamlUtilities.SetValueInDoc(image.TagProperty.Path, doc, deploymentUpdate.TargetTag);
-
-                doCommit = true;
-            }
-
-            if (!doCommit)
-                return true;
-
-            yamlUtilities.WriteYamlStream(yaml, filePath);
-
-            _log.LogTrace("Adding {Path} to repository staging", filePath);
-            var gitFilePath = Path.Combine(relativePath, file);
-            Commands.Stage(gitRepository, gitFilePath);
-            
-            gitRepository.Commit(
-                $"[{deploymentUpdate.Application}] Updated deployment for {image.ShortRepository}; {deploymentUpdate.CurrentTag} to {deploymentUpdate.TargetTag}",
-                new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now),
-                new Signature("deploy-bot", "deploy-bot@riverigaming.com", DateTimeOffset.Now)
-            );
-
-            // add delay instruction due to the deployment update notification delivered too fast
-            await Task.Delay(500);
-            return true;
-        }
+        
     }
 }

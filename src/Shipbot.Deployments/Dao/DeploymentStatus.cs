@@ -11,4 +11,10 @@ namespace Shipbot.Deployments.Dao
         Complete,
         Failed
     }
+
+    public enum DeploymentType
+    {
+        ImageUpdate,
+        PreviewRelease
+    }
 }
