@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Shipbot.Controller.Core.Configuration.DeploymentManifests
 {
-    public class HelmDepoymentManifestSettings
+    public class HelmDeploymentManifestSettings
     {
         public List<string> ValueFiles { get; set; }
         
