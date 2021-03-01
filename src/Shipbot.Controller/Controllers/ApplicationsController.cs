@@ -197,24 +197,49 @@ namespace Shipbot.Controller.Controllers
         public async Task<ActionResult<Dictionary<string, string>>> GetCurrentImageTags(string id, string instanceId = "")
         {
             var application = _applicationService.GetApplication(id);
-            var result = new Dictionary<string, string>();
-
-            foreach (var image in application.Images)
+            
+            var instanceIds = instanceId.ToLower() switch
             {
-                var currentTag = await _applicationImageInstanceService.GetCurrentTag(application, image, instanceId);
-                if (!currentTag.available)
+                "prime" => new List<string>() {""},
+                "primary" => new List<string>() {""},
+                "" => _applicationImageInstanceService.GetAllInstanceIdsForApplication(application),
+                _ => new List<string>() {instanceId}
+            };
+            var result = new Dictionary<string, Dictionary<string, string>>();
+            foreach (var x in instanceIds)
+            {
+                var instanceTags = new Dictionary<string, string>();
+                result.Add(string.IsNullOrEmpty(x) ? "primary" : x, instanceTags);
+                
+                foreach (var image in application.Images)
                 {
-                    result[image.TagProperty.Path] = "not-available-yet";
-                }
-                else
-                {
-                    result[image.TagProperty.Path] = image.TagProperty.ValueFormat == TagPropertyValueFormat.TagOnly
-                        ? $"{image.Repository}:{currentTag.tag}"
-                        : $"{currentTag.tag}";
+                    var currentTag = await _applicationImageInstanceService.GetCurrentTag(application, image, x);
+                    if (!currentTag.available)
+                    {
+                        instanceTags[image.TagProperty.Path] = "not-available-yet";
+                    }
+                    else
+                    {
+                        instanceTags[image.TagProperty.Path] = image.TagProperty.ValueFormat == TagPropertyValueFormat.TagOnly
+                            ? $"{image.Repository}:{currentTag.tag}"
+                            : $"{currentTag.tag}";
+                    }
                 }
             }
+
+            if (result.Count == 1)
+            {
+                // single entry mode!
+                return Ok(result.First().Value);
+            }
+
+            if (result.Count > 1)
+            {
+                // multi-entry mode
+                return Ok(result);
+            }
             
-            return Ok(result);
+            return NotFound();
         }
     }
 }
