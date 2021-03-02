@@ -7,6 +7,7 @@ using k8s;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Octokit;
 using Shipbot.Applications;
 using Shipbot.Applications.Models;
@@ -24,6 +25,7 @@ namespace Shipbot.Controller.Controllers
     [ApiController]
     public class DiagnosticsController : ControllerBase
     {
+        private readonly ILogger<DiagnosticsController> _log;
         private readonly IDeploymentService _deploymentService;
         private readonly IDeploymentNotificationService _deploymentNotificationService;
         private readonly ISlackClient _slackClient;
@@ -33,6 +35,7 @@ namespace Shipbot.Controller.Controllers
         // private readonly IKubernetes _kubernetes;
 
         public DiagnosticsController(
+            ILogger<DiagnosticsController> log,
             IDeploymentService deploymentService,
             IDeploymentNotificationService deploymentNotificationService,
             ISlackClient slackClient,
@@ -40,6 +43,7 @@ namespace Shipbot.Controller.Controllers
             IGitHubClient gitHubClient
         )
         {
+            _log = log;
             _deploymentService = deploymentService;
             _deploymentNotificationService = deploymentNotificationService;
             _slackClient = slackClient;
@@ -153,6 +157,56 @@ namespace Shipbot.Controller.Controllers
         {
             var result = await _slackClient.GetAllUserGroupNames();
             return Ok(result.Select(x => x.name));
+        }
+
+        [HttpGet("slack/alert")]
+        public async Task<ActionResult> TestLoggingAndAlerting()
+        {
+            _log.LogInformation("Test information");
+            
+            _log.LogWarning("Test information");
+            
+            _log.LogError("Test Error");
+            
+            _log.LogCritical("Test Critical");
+
+            try
+            {
+                throw new Exception("Test exception as information");
+            }
+            catch (Exception e)
+            {
+                _log.LogInformation(e, "Test information with exception");
+            }
+            
+            try
+            {
+                throw new Exception("Test exception as warning");
+            }
+            catch (Exception e)
+            {
+                _log.LogWarning(e, "Test warning with exception");
+            }            
+            
+            try
+            {
+                throw new Exception("Test exception as error");
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Test error with exception", e);
+            }
+            
+            try
+            {
+                throw new Exception("Test exception as critical");
+            }
+            catch (Exception e)
+            {
+                _log.LogCritical(e, "Test critical with exception", e);
+            }
+
+            return Ok();
         }
     }
 }

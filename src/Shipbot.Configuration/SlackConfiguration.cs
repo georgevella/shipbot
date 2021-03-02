@@ -8,5 +8,7 @@ namespace Shipbot.Controller.Core.Configuration
         public int Timeout { get; set; } = 60000;
         
         public string Token { get; set; }
+        
+        public string AlertingWebHook { get; set; } 
     }
 }

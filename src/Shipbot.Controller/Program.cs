@@ -7,8 +7,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using Serilog.Events;
 using Serilog.Formatting.Json;
 using Shipbot.Controller.Cmd;
+using Shipbot.Controller.Core.Configuration;
+using Shipbot.SlackIntegration.Internal;
+using Shipbot.SlackIntegration.Logging;
 
 namespace Shipbot.Controller
 {
@@ -61,7 +65,17 @@ namespace Shipbot.Controller
                 .UseSerilog(
                     (hostingContext, loggerConfiguration) =>
                     {
+                        var slackConfiguration = new SlackConfiguration();
+                        hostingContext.Configuration.GetSection("Slack").Bind(slackConfiguration);
+                        
                         loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration);
+                        loggerConfiguration.WriteTo
+                            .Conditional(
+                                x => x.Level >= LogEventLevel.Error,
+                                configuration =>
+                                    configuration.Sink(new SlackLogEventSink(slackConfiguration.AlertingWebHook))
+                            );
+                        
                         if (hostingContext.HostingEnvironment.IsDevelopment())
                         {
                             loggerConfiguration
