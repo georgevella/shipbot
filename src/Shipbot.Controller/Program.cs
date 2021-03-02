@@ -71,16 +71,20 @@ namespace Shipbot.Controller
                         hostingContext.Configuration.GetSection("Slack").Bind(slackConfiguration);
                         
                         loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration);
-                        loggerConfiguration.WriteTo
-                            .Conditional(
-                                x =>
-                                    (x.Level >= LogEventLevel.Error) ||
-                                    (x.Level == LogEventLevel.Warning && x.Exception != null) ||
-                                    (x.Properties.GetValueOrDefault("SourceContext")?.ToString()
-                                        ?.Contains(nameof(OperatorStartup)) ?? false),
-                                configuration =>
-                                    configuration.Sink(new SlackLogEventSink(slackConfiguration.AlertingWebHook))
-                            );
+                        
+                        if (!string.IsNullOrWhiteSpace(slackConfiguration.AlertingWebHook))
+                        {
+                            loggerConfiguration.WriteTo
+                                .Conditional(
+                                    x =>
+                                        (x.Level >= LogEventLevel.Error) ||
+                                        (x.Level == LogEventLevel.Warning && x.Exception != null) ||
+                                        (x.Properties.GetValueOrDefault("SourceContext")?.ToString()
+                                            ?.Contains(nameof(OperatorStartup)) ?? false),
+                                    configuration =>
+                                        configuration.Sink(new SlackLogEventSink(slackConfiguration.AlertingWebHook))
+                                );
+                        }
 
                         if (hostingContext.HostingEnvironment.IsDevelopment())
                         {
