@@ -2,6 +2,7 @@ namespace Shipbot.Deployments.Dao
 {
     public enum DeploymentStatus
     {    
+        Unknown,
         Pending,
         Queued,
         Starting,
@@ -14,6 +15,7 @@ namespace Shipbot.Deployments.Dao
 
     public enum DeploymentType
     {
+        Unknown,
         ImageUpdate,
         PreviewRelease
     }

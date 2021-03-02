@@ -11,12 +11,11 @@ namespace Shipbot.Deployments.Internals
 {
     internal class DeploymentsDbContextConfigurator : IDbContextConfigurator
     {
-        // public DbSet<Dao.Deployment> Deployments { get; set; } = null!;
-        //
-        // public DeploymentsDbContext(DbContextOptions<DeploymentsDbContext> options) : base(options)
-        // {
-        //     
-        // }
+        internal static T ParseEnumOrDefault<T>(string s, bool ignoreCase = true, T defaultValue = default)
+            where T: struct, Enum
+        {
+            return Enum.TryParse(s, ignoreCase, out T result) ? result : defaultValue;
+        }
         
         public void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,14 +23,14 @@ namespace Shipbot.Deployments.Internals
                 .Property(e => e.Status)
                 .HasConversion(
                     v => v.ToString(),
-                    v => (Dao.DeploymentStatus) Enum.Parse(typeof(Dao.DeploymentStatus), v)
+                    v => ParseEnumOrDefault(v , true, Dao.DeploymentStatus.Unknown)
                 );
             
             modelBuilder.Entity<Dao.Deployment>()
                 .Property(e => e.Type)
                 .HasConversion(
                     v => v.ToString(),
-                    v => (Dao.DeploymentType) Enum.Parse(typeof(Dao.DeploymentType), v)
+                    v => ParseEnumOrDefault(v, true, Dao.DeploymentType.Unknown)
                 );
 
             modelBuilder.Entity<Dao.Deployment>()

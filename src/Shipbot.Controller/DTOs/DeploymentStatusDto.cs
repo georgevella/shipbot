@@ -2,6 +2,7 @@ namespace Shipbot.Controller.DTOs
 {
     public enum DeploymentStatusDto
     {    
+        Unknown,
         Pending,
         Queued,
         Starting,
