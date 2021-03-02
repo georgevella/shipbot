@@ -16,10 +16,6 @@ using Shipbot.Controller.Core.Configuration;
 using Shipbot.Controller.Core.Configuration.Apps;
 using Shipbot.Controller.Core.Configuration.Registry;
 
-//using ArgoAutoDeploy.Core.K8s;
-//using k8s;
-// using ApplicationSourceRepository = Shipbot.Models.ApplicationSourceRepository;
-
 namespace Shipbot.Controller.Core
 {
     public class OperatorStartup : IHostedService
@@ -41,6 +37,7 @@ namespace Shipbot.Controller.Core
         
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            _log.LogInformation("Shipbot Controller Starting up");
             return Task.CompletedTask;
         }
 
@@ -52,6 +49,8 @@ namespace Shipbot.Controller.Core
             {
                 task.Wait();
             }
+            
+            _log.LogInformation("Shipbot Controller shutting down");
 
 //            _clientPool.Shutdown();
         }

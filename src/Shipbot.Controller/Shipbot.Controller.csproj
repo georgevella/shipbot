@@ -49,10 +49,6 @@
     <ProjectReference Include="..\Shipbot.SlackIntegration\Shipbot.SlackIntegration.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Core\Slack" />
-  </ItemGroup>
-
 <!--  <ItemGroup>-->
 <!--    <ProjectReference Include="..\OperatorSdk\OperatorSdk.csproj" />-->
 <!--  </ItemGroup>-->

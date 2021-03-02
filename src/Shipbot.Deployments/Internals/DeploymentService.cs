@@ -215,7 +215,7 @@ namespace Shipbot.Deployments
             }
             catch (Exception e)
             {
-                _log.LogError("Failed to update deployment information", e);
+                _log.LogError(e, "Failed to update deployment information");
                 throw;
             }
         }

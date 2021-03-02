@@ -194,7 +194,7 @@ namespace Shipbot.Controller.Controllers
             }
             catch (Exception e)
             {
-                _log.LogError(e, "Test error with exception", e);
+                _log.LogError(e, "Test error with exception");
             }
             
             try
@@ -203,7 +203,7 @@ namespace Shipbot.Controller.Controllers
             }
             catch (Exception e)
             {
-                _log.LogCritical(e, "Test critical with exception", e);
+                _log.LogCritical(e, "Test critical with exception");
             }
 
             return Ok();

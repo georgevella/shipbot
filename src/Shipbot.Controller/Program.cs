@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CommandLine;
@@ -10,6 +11,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
 using Shipbot.Controller.Cmd;
+using Shipbot.Controller.Core;
 using Shipbot.Controller.Core.Configuration;
 using Shipbot.SlackIntegration.Internal;
 using Shipbot.SlackIntegration.Logging;
@@ -71,11 +73,15 @@ namespace Shipbot.Controller
                         loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration);
                         loggerConfiguration.WriteTo
                             .Conditional(
-                                x => x.Level >= LogEventLevel.Error,
+                                x =>
+                                    (x.Level >= LogEventLevel.Error) ||
+                                    (x.Level == LogEventLevel.Warning && x.Exception != null) ||
+                                    (x.Properties.GetValueOrDefault("SourceContext")?.ToString()
+                                        ?.Contains(nameof(OperatorStartup)) ?? false),
                                 configuration =>
                                     configuration.Sink(new SlackLogEventSink(slackConfiguration.AlertingWebHook))
                             );
-                        
+
                         if (hostingContext.HostingEnvironment.IsDevelopment())
                         {
                             loggerConfiguration

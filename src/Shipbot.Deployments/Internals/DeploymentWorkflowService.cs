@@ -154,7 +154,7 @@ namespace Shipbot.Deployments.Internals
                 }
                 catch (Exception e)
                 {
-                    _log.LogError("Failed to handle preview releases", e);
+                    _log.LogError(e, "Failed to handle preview releases");
 #if DEBUG
                     throw;
 #endif
@@ -179,7 +179,7 @@ namespace Shipbot.Deployments.Internals
                 }
                 catch (Exception e)
                 {
-                    _log.LogError("Failed to start deployment workflow", e);
+                    _log.LogError(e, "Failed to start deployment workflow");
 #if DEBUG
                     throw;
 #endif

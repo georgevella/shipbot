@@ -76,7 +76,7 @@ namespace Shipbot.JobScheduling
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError($"Unhandled job exception ({e.GetType()}) [{e.Message}]", e);
+                        _logger.LogError(e, $"Unhandled job exception ({e.GetType()}) [{e.Message}]");
                         throw;
                     }
                 }
