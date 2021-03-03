@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -496,6 +497,10 @@ namespace Shipbot.Deployments.Internals
                     Comparer<ContainerImage>.Create(
                         (x, y) => x.Equals(y) ? 0 : x.CreationDateTime.CompareTo(y.CreationDateTime)),
                 RegexImageUpdatePolicy regexImageUpdatePolicy =>
+                    Comparer<ContainerImage>.Create(
+                        (x, y) => x.Equals(y) ? 0 : x.CreationDateTime.CompareTo(y.CreationDateTime)),
+                // TODO: handle semver below as well as creationdatetime
+                SemverImageUpdatePolicy semverImageUpdatePolicy => 
                     Comparer<ContainerImage>.Create(
                         (x, y) => x.Equals(y) ? 0 : x.CreationDateTime.CompareTo(y.CreationDateTime)),
                 _ => throw new ArgumentOutOfRangeException(nameof(updatePolicy))
