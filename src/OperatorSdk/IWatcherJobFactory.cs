@@ -8,4 +8,9 @@ namespace OperatorSdk
     {
         Task Start(Kubernetes client, CancellationToken token);
     }
+    
+    public interface INamespacedKubernetesResourceWatcherFactory
+    {
+        Task Start(string ns, CancellationToken token);
+    }
 }

@@ -3,6 +3,12 @@ version: "3.7"
 volumes:
   gitea:
     driver: local
+    
+  db:
+    driver: local
+    
+  dex:
+    driver: local
 
 services:
   gitea:
@@ -21,6 +27,26 @@ services:
     ports:
       - 6370:6379
 
+  dex:
+    image: dexidp/dex:v2.26.0
+    ports:
+      - 5556:5556
+    user: "0:0"
+    volumes:
+      - dex:/var/dex:rw
+      - ../local/dex/config.yaml:/etc/dex/cfg/config.yaml:ro
+    command:  ["serve", "/etc/dex/cfg/config.yaml"]
+    
+  postgres:
+    image: postgres:12.3
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password123
+    ports:
+      - 5432:5432
+    volumes:
+      - db:/var/lib/postgresql/data/
+      
 #  shipbot:
 #    image: georgevella/shipbot:dev
 #    build:

@@ -4,7 +4,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <LangVersion>8</LangVersion>
-    <Nullable>disable</Nullable>
+    <Nullable>warnings</Nullable>
+    <UseAppHost>false</UseAppHost>
 <!--    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>-->
 <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
 
@@ -14,21 +15,38 @@
     <PackageReference Include="AWSSDK.ECR" Version="3.3.107.4" />
     <PackageReference Include="CommandLineParser" Version="2.8.0" />
     <PackageReference Include="DotNet.Glob" Version="3.0.9" />
+    <PackageReference Include="KubernetesClient" Version="4.0.5" />
     <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
-    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.312" PrivateAssets="All" IncludeAssets="All">
+    <PackageReference Include="LibGit2Sharp.NativeBinaries" Version="2.0.306" PrivateAssets="All" IncludeAssets="All">
       <SendToOutputDir>runtimes/fedora-x64/native/*</SendToOutputDir>
     </PackageReference>
     <PackageReference Include="Mediator.Net.MicrosoftDependencyInjection" Version="3.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="3.1.10" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.7" />
     <PackageReference Include="NetEscapades.Configuration.Yaml" Version="2.0.1" />
-    <PackageReference Include="Octokit" Version="0.48.0" />
-    <PackageReference Include="Quartz" Version="3.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
     <PackageReference Include="Serilog.Exceptions" Version="5.6.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-    <PackageReference Include="SlackAPI" Version="1.1.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="5.6.3" />
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shipbot.Applications\Shipbot.Applications.csproj" />
+    <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
+    <ProjectReference Include="..\Shipbot.ContainerRegistry.Dummy\Shipbot.ContainerRegistry.Dummy.csproj" />
+    <ProjectReference Include="..\Shipbot.ContainerRegistry\Shipbot.ContainerRegistry.csproj" />
+    <ProjectReference Include="..\Shipbot.Contracts\Shipbot.Contracts.csproj" />
+    <ProjectReference Include="..\Shipbot.DbMigrations\Shipbot.DbMigrations.csproj" />
+    <ProjectReference Include="..\Shipbot.DeploymentSources\Shipbot.DeploymentSources.csproj" />
+    <ProjectReference Include="..\Shipbot.Deployments\Shipbot.Deployments.csproj" />
+    <ProjectReference Include="..\Shipbot.JobScheduling\Shipbot.JobScheduling.csproj" />
+    <ProjectReference Include="..\Shipbot.SlackIntegration\Shipbot.SlackIntegration.csproj" />
   </ItemGroup>
 
 <!--  <ItemGroup>-->

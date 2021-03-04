@@ -2,16 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
+    <LangVersion>8</LangVersion>
     <RootNamespace>AutoDeploy.ArgoSupport</RootNamespace>
+    <Nullable>warnings</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="KubernetesClient" Version="4.0.5" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="4.5.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OperatorSdk\OperatorSdk.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.ComponentModel.Annotations" Version="4.5.0" />
+    <Folder Include="Models\K8s" />
   </ItemGroup>
 
 </Project>

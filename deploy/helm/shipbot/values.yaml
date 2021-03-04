@@ -7,8 +7,8 @@ replicaCount: 1
 image:
   repository: georgevella/shipbot
   tag: dev
-  # pullPolicy: IfNotPresent
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
+  # pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""
@@ -32,8 +32,8 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-# slack:
-#   authToken: 
+slack:
+  authToken: setme
 
 shipbot:
   registries: []
@@ -93,3 +93,7 @@ annotations:
   "co.elastic.logs/processors.decode_json_fields.max_depth": "5"
   "co.elastic.logs/processors.decode_json_fields.overwrite_keys": "true"
   "co.elastic.logs/processors.decode_json_fields.target": ""
+
+postgresql:
+  postgresqlDatabase: shipbot
+  postgresqlPassword: password123

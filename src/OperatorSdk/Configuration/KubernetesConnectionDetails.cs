@@ -1,4 +1,4 @@
-namespace ArgoAutoDeploy.Core.Configuration.K8s
+namespace OperatorSdk.Configuration
 {
     public class KubernetesConnectionDetails
     {

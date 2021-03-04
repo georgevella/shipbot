@@ -29,6 +29,18 @@ spec:
         - name: config
           secret:
             secretName: "{{ include "shipbot.fullname" . }}"
+      initContainers:
+        - name: db-migrations
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: "config"
+              mountPath: /app/appsettings.Production.json
+              subPath: "appsettings.Production.json"
+          command:
+            - dotnet
+            - shipbot.dll
+            - migrate
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

@@ -34,7 +34,8 @@ namespace OperatorSdk
                 cancellationToken: token
             );
             
-            using var watcher = result.Watch<T>(async (type, o) =>
+            
+            using var watcher = result.Watch<T, object>(async (type, o) =>
             {
                 foreach (var watcherEventHandler in _handlers)
                 {
@@ -47,6 +48,48 @@ namespace OperatorSdk
             
             _log.LogInformation("Start() <<");
         }
-        
+    }
+
+    public class NamespacedResourceWatcherFactory<T> : INamespacedKubernetesResourceWatcherFactory
+        where T : KubernetesObject
+    {
+        private readonly IEnumerable<IWatcherEventHandler<T>> _handlers;
+        private readonly CustomResourceAttribute _customResourceDetails;
+        private readonly GenericClient _genericClient;
+        private readonly Kubernetes _client;
+
+        public NamespacedResourceWatcherFactory(KubernetesClientConfiguration config, IEnumerable<IWatcherEventHandler<T>> handlers)
+        {
+            _customResourceDetails = typeof(T).GetTypeInfo().GetCustomAttribute<CustomResourceAttribute>();
+            _genericClient = new GenericClient(config, _customResourceDetails.ApiGroup, _customResourceDetails.Version, _customResourceDetails.Plural);
+            _client = new Kubernetes(config);
+            _handlers = handlers;
+
+            
+        }
+        public async Task Start(string ns, CancellationToken token)
+        {
+            
+            var result = await _client.ListNamespacedCustomObjectWithHttpMessagesAsync(
+                _customResourceDetails.ApiGroup,
+                _customResourceDetails.Version,
+                ns,
+                _customResourceDetails.Plural, 
+                watch: true,
+                cancellationToken: token
+            );
+
+            var watcher = result.Watch<T, object>(
+                async (type, o) =>
+                {
+                    foreach (var watcherEventHandler in _handlers)
+                    {
+                        await watcherEventHandler.Handle(type, o);
+                    }
+                }
+            );
+
+            token.Register(o => ((Watcher<T>) o).Dispose(), watcher);
+        }
     }
 }

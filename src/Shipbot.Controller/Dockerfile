@@ -1,15 +1,7 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
 WORKDIR /app
-COPY ./*.sln ./
-COPY ./Shipbot.Controller/Shipbot.Controller.csproj ./Shipbot.Controller/
-COPY ./Shipbot.Tests/Shipbot.Tests.csproj ./Shipbot.Tests/
-COPY ./Shipbot.ArgoSupport/Shipbot.ArgoSupport.csproj ./Shipbot.ArgoSupport/
-COPY ./Shipbot.Deployments/Shipbot.Deployments.csproj ./Shipbot.Deployments/
-COPY ./Shipbot.Applications/Shipbot.Applications.csproj ./Shipbot.Applications/
-COPY ./OperatorSdk/OperatorSdk.csproj ./OperatorSdk/
-COPY ./OperatorSdk.Eks/OperatorSdk.Eks.csproj ./OperatorSdk.Eks/
-RUN dotnet restore
 COPY . ./
+RUN dotnet restore
 RUN dotnet publish -c Release -o output
 
 
@@ -28,7 +20,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	
 WORKDIR /app
 COPY --from=build-env /app/output .
-COPY --from=build-env /root/.nuget/packages/libgit2sharp.nativebinaries/2.0.312/runtimes/linux-x64/native/libgit2-6777db8.so .
+
+# required to find correct version of libgit
+ENV LD_LIBRARY_PATH=/app/runtimes/debian.9-x64/native/
 
 ENTRYPOINT ["dotnet", "Shipbot.Controller.dll"]
 

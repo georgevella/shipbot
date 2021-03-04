@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using ArgoAutoDeploy.Core.Configuration.K8s;
 using k8s;
 using Microsoft.Extensions.Logging;
+using OperatorSdk.Configuration;
 
 namespace OperatorSdk
 {
