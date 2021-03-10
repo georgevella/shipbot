@@ -5,8 +5,11 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Octokit;
+using Scriban;
 using Shipbot.Applications;
+using Shipbot.Controller.Core.Configuration;
 using Shipbot.Data;
 using Shipbot.Deployments.Models;
 using Shipbot.SlackIntegration;
@@ -24,6 +27,7 @@ namespace Shipbot.Deployments
         private readonly IEntityRepository<DeploymentNoficationDao> _deploymentNotificationRepository;
         private readonly ISlackClient _slackClient;
         private readonly IGitHubClient _gitHubClient;
+        private readonly IOptions<ShipbotConfiguration> _shipbotConfiguration;
 
         public DeploymentNotificationService(
             ILogger<DeploymentNotificationService> log,
@@ -31,7 +35,8 @@ namespace Shipbot.Deployments
             IApplicationService applicationService,
             IEntityRepository<DeploymentNoficationDao> deploymentNotificationRepository,
             ISlackClient slackClient,
-            IGitHubClient gitHubClient
+            IGitHubClient gitHubClient,
+            IOptions<ShipbotConfiguration> shipbotConfiguration
         )
         {
             _log = log;
@@ -40,6 +45,7 @@ namespace Shipbot.Deployments
             _deploymentNotificationRepository = deploymentNotificationRepository;
             _slackClient = slackClient;
             _gitHubClient = gitHubClient;
+            _shipbotConfiguration = shipbotConfiguration;
         }
         
         public async Task<bool> CreateNotification(Deployment deployment)
@@ -141,26 +147,30 @@ namespace Shipbot.Deployments
 
                         if (deployment.CurrentTag == string.Empty)
                         {
-                            var message = new StringBuilder(
-                                "We have detected a new container image that matches this pull request.  A new preview release is being created and deployed."
-                            );
+                            // this is a first deployment of a pr
+                            var pullRequestNotificationTemplate = _shipbotConfiguration.Value.NotificationTemplates
+                                .Deployment.PullRequestNotification;
 
-                            if (deployment.Parameters.TryGetValue(DeploymentParameterConstants.Hostname,
-                                out var hostname))
+                            if (!string.IsNullOrWhiteSpace(pullRequestNotificationTemplate))
                             {
-                                message.Append(
-                                    $"It will be available at https://{hostname} shortly."
+                                var template = Template.Parse(pullRequestNotificationTemplate);
+
+                                var message = await template.RenderAsync(deployment.Parameters);
+
+                                _log.LogTrace("Submitting new preview release deployment to github pr");
+                                // we are created a new preview release, let's notify the devs on the PR.
+                                var result = await _gitHubClient.Issue.Comment.Create(
+                                    applicationImage.SourceCode.Github.Owner,
+                                    applicationImage.SourceCode.Github.Repository,
+                                    relevantPullRequest.number,
+                                    message
                                 );
                             }
+                            else
+                            {
+                                _log.LogError("Failed to acquire a template for a message to a GitHub PR");
+                            }
 
-                            _log.LogTrace("Submitting new preview release deployment to github pr");
-                            // we are created a new preview release, let's notify the devs on the PR.
-                            var result = await _gitHubClient.Issue.Comment.Create(
-                                applicationImage.SourceCode.Github.Owner,
-                                applicationImage.SourceCode.Github.Repository,
-                                relevantPullRequest.number,
-                                message.ToString()
-                            );
                         }
                         else
                         {

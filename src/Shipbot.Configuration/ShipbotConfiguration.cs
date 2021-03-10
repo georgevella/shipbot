@@ -22,10 +22,21 @@ namespace Shipbot.Controller.Core.Configuration
             new List<GitRepositorySettings>();
 
         public GithubClientSettings Github { get; set; } = new GithubClientSettings();
+
+        public NotificationTemplates NotificationTemplates { get; set; } = new NotificationTemplates();
     }
 
     public class GithubClientSettings
     {
         public string Token { get; set; }
+    }
+
+    public class NotificationTemplates
+    {
+        public DeploymentNotifications Deployment { get; } = new DeploymentNotifications();
+        public class DeploymentNotifications
+        {
+            public string PullRequestNotification { get; set; }
+        }
     }
 }
