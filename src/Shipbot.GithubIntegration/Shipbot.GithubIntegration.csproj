@@ -6,4 +6,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Dao" />
+    <Folder Include="Jobs" />
+    <Folder Include="Services" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shipbot.Core\Shipbot.Core.csproj" />
+  </ItemGroup>
+
 </Project>
