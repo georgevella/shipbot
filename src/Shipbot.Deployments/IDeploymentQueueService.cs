@@ -15,9 +15,17 @@ namespace Shipbot.Deployments
         /// <returns>Returns the next deployment update in the queue, or <c>null</c> if there are no pending deployment updates.</returns>
         Task<Deployment?> GetNextPendingDeploymentUpdate(Application application);
 
-        Task EnqueueDeployment(
+        /// <summary>
+        ///     Add a deployment to the queue.
+        /// </summary>
+        /// <param name="deployment"></param>
+        /// <param name="delay"></param>
+        /// <param name="force"></param>
+        /// <returns></returns>
+        Task<bool> EnqueueDeployment(
             Deployment deployment,
-            TimeSpan? delay = null 
+            TimeSpan? delay = null,
+            bool force = false
             );
         Task<IEnumerable<Deployment>> GetPendingDeployments();
     }
