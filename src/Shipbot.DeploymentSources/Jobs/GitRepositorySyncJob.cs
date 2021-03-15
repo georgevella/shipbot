@@ -104,7 +104,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                         }
                         catch (NonFastForwardException e)
                         {
-                            HandleGitFastForwardException(gitRepository);
+                            HandleGitFastForwardException(gitRepository, credentials);
                             --attempt;
                         }
                     }
@@ -114,17 +114,24 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                         throw new InvalidOperationException(
                             $"Failed to push latest commits for {repository.Uri}/{repository.Ref}");
                     }
-
                 }
             }
         }
 
-        private void HandleGitFastForwardException(Repository gitRepository)
+        private void HandleGitFastForwardException(Repository gitRepository,
+            UsernamePasswordGitCredentials credentials)
         {
             _log.LogInformation("Remote has newer commits, re-fetching");
             var remote = gitRepository.Network.Remotes["origin"];
             var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
-            Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
+            Commands.Fetch(gitRepository, remote.Name, refSpecs, new FetchOptions()
+            {
+                CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                {
+                    Username = credentials.Username,
+                    Password = credentials.Password
+                }
+            }, "");
 
             var rebaseIdentity = new Identity("deploy-bot", "deploy-bot@riverigaming.com");
             var rebaseOptions = new RebaseOptions()
@@ -228,7 +235,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                     }
                     catch (NonFastForwardException e)
                     {
-                        HandleGitFastForwardException(gitRepository);
+                        HandleGitFastForwardException(gitRepository, credentials);
                         --attempt;
                     }
                 }
