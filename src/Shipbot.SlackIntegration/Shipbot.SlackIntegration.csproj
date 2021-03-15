@@ -7,16 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.7" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.7" />
     <PackageReference Include="Serilog" Version="2.9.0" />
     <PackageReference Include="Slack.NetStandard" Version="2.5.1" />
     <PackageReference Include="SlackAPI" Version="1.1.9" />
-    <PackageReference Include="System.Net.Http.Json" Version="3.2.1" />
+    <PackageReference Include="System.Net.Http.Json" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Shipbot.Configuration\Shipbot.Configuration.csproj" />
+    <ProjectReference Include="..\Shipbot.Core\Shipbot.Core.csproj" />
     <ProjectReference Include="..\Shipbot.Data\Shipbot.Data.csproj" />
     <ProjectReference Include="..\Shipbot.Models\Shipbot.Models.csproj" />
   </ItemGroup>

@@ -7,11 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.9" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.1.9" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="5.0.0" />
     <PackageReference Include="Quartz" Version="3.2.3" />
     <PackageReference Include="Quartz.Serialization.Json" Version="3.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shipbot.Core\Shipbot.Core.csproj" />
   </ItemGroup>
 
 
