@@ -59,6 +59,7 @@ namespace Shipbot.SlackIntegration.Logging
             string GetStackTraceAsMarkDown(Exception e)
             {
                 var buffer = new StringBuilder();
+                buffer.AppendLine($"*Exception Type*: {ex.GetType()}");
                 buffer.Append("```");
                 buffer.Append(e.StackTrace);
                 buffer.Append("```");
