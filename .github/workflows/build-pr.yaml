@@ -2,7 +2,9 @@ name: Build and Push Latest Image
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: 
+    - master
+    - master-*
 
 jobs:
   build:
