@@ -83,7 +83,7 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                     !_configuration.Value.Dryrun)
                 {
                     var attempt = 3;
-
+                    var successful = false;
                     while (attempt > 0)
                     {
                         _log.LogInformation("Pushing repository changes for {Application}", context.ApplicationName);
@@ -99,54 +99,65 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                                 }
                             });
 
+                            successful = true;
                             break;
                         }
                         catch (NonFastForwardException e)
                         {
-                            _log.LogInformation("Remote has newer commits, re-fetching");
-                            var remote = gitRepository.Network.Remotes["origin"];
-                            var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
-                            Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
-
-                            var rebaseIdentity = new Identity("deploy-bot", "deploy-bot@riverigaming.com");
-                            var rebaseOptions = new RebaseOptions()
-                            {
-                                FileConflictStrategy = CheckoutFileConflictStrategy.Theirs
-                            };
-
-                            _log.LogInformation("Rebasing on remote branch prior to trying to re-push changes ...");
-                            var upstream = gitRepository.Head.TrackedBranch;
-                            var rebaseResult = gitRepository.Rebase.Start(
-                                gitRepository.Head,
-                                upstream,
-                                upstream,
-                                rebaseIdentity,
-                                rebaseOptions
-                            );
-
-                            // TODO: handle rebaseResult nulliness
-                            while (rebaseResult.Status != RebaseStatus.Complete)
-                            {
-                                // we should hit here only if we find a conflict, since we don't use interactive mode on rebase
-                                var step = rebaseResult.CurrentStepInfo ?? gitRepository.Rebase.GetCurrentStepInfo();
-
-                                var currentStatus = gitRepository.RetrieveStatus();
-                                foreach (var item in currentStatus)
-                                {
-                                    Commands.Stage(gitRepository, item.FilePath);
-                                }
-
-                                rebaseResult = gitRepository.Rebase.Continue(rebaseIdentity, rebaseOptions);
-                            }
-
+                            HandleGitFastForwardException(gitRepository);
                             --attempt;
                         }
+                    }
+                    
+                    if (!successful)
+                    {
+                        throw new InvalidOperationException(
+                            $"Failed to push latest commits for {repository.Uri}/{repository.Ref}");
                     }
 
                 }
             }
         }
-        
+
+        private void HandleGitFastForwardException(Repository gitRepository)
+        {
+            _log.LogInformation("Remote has newer commits, re-fetching");
+            var remote = gitRepository.Network.Remotes["origin"];
+            var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
+            Commands.Fetch(gitRepository, remote.Name, refSpecs, null, "");
+
+            var rebaseIdentity = new Identity("deploy-bot", "deploy-bot@riverigaming.com");
+            var rebaseOptions = new RebaseOptions()
+            {
+                FileConflictStrategy = CheckoutFileConflictStrategy.Theirs
+            };
+
+            _log.LogInformation("Rebasing on remote branch prior to trying to re-push changes ...");
+            var upstream = gitRepository.Head.TrackedBranch;
+            var rebaseResult = gitRepository.Rebase.Start(
+                gitRepository.Head,
+                upstream,
+                upstream,
+                rebaseIdentity,
+                rebaseOptions
+            );
+
+            // TODO: handle rebaseResult nulliness
+            while (rebaseResult.Status != RebaseStatus.Complete)
+            {
+                // we should hit here only if we find a conflict, since we don't use interactive mode on rebase
+                var step = rebaseResult.CurrentStepInfo ?? gitRepository.Rebase.GetCurrentStepInfo();
+
+                var currentStatus = gitRepository.RetrieveStatus();
+                foreach (var item in currentStatus)
+                {
+                    Commands.Stage(gitRepository, item.FilePath);
+                }
+
+                rebaseResult = gitRepository.Rebase.Continue(rebaseIdentity, rebaseOptions);
+            }
+        }
+
         private Branch CheckoutDeploymentManifest(Repository gitRepository, DeploymentManifestSource repository,
             UsernamePasswordGitCredentials credentials)
         {
@@ -186,24 +197,47 @@ namespace Shipbot.Controller.Core.ApplicationSources.Jobs
                 // an automated way to either:
                 // 1. rebase on the remote
                 // 2. if there are conflicts, ignore all changes, clone again and reapply the changes.
-                Commands.Pull(gitRepository,
-                    new Signature("rig-deploy-bot", "devops@riverigaming.com", DateTimeOffset.Now),
-                    new PullOptions()
+                var attempt = 3;
+                var successful = false;
+
+                while (attempt > 0)
+                {
+                    try
                     {
-                        FetchOptions = new FetchOptions()
-                        {
-                            Prune = true,
-                            CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                        Commands.Pull(gitRepository,
+                            new Signature("rig-deploy-bot", "devops@riverigaming.com", DateTimeOffset.Now),
+                            new PullOptions()
                             {
-                                Username = credentials.Username,
-                                Password = credentials.Password
-                            },
-                        },
-                        MergeOptions = new MergeOptions()
-                        {
-                            FastForwardStrategy = FastForwardStrategy.FastForwardOnly,
-                        },
-                    });
+                                FetchOptions = new FetchOptions()
+                                {
+                                    Prune = true,
+                                    CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials()
+                                    {
+                                        Username = credentials.Username,
+                                        Password = credentials.Password
+                                    },
+                                },
+                                MergeOptions = new MergeOptions()
+                                {
+                                    FastForwardStrategy = FastForwardStrategy.FastForwardOnly,
+                                },
+                            });
+
+                        successful = true;
+                        break;
+                    }
+                    catch (NonFastForwardException e)
+                    {
+                        HandleGitFastForwardException(gitRepository);
+                        --attempt;
+                    }
+                }
+
+                if (!successful)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to retrieve latest commits for {repository.Uri}/{repository.Ref}");
+                }
 
                 if (gitRepository.Head.Tip.Sha != currentHash)
                 {
