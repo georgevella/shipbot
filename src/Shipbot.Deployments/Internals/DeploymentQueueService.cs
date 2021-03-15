@@ -35,24 +35,13 @@ namespace Shipbot.Deployments
             _deploymentQueueRepository = deploymentQueueRepository;
         }
 
-        // private Deployment ConvertFromDao(DeploymentQueue dao)
-        // {
-        //     var application = _applicationService.GetApplication(dao.ApplicationId);
-        //     var imageMap = application.Images.ToDictionary(
-        //         x => $"{x.Repository}-{x.TagProperty.Path}"
-        //     );
-        //         
-        //     var image = imageMap[$"{dao.Deployment.ImageRepository}-{dao.Deployment.UpdatePath}"];
-        //
-        //     var deployment = dao.Deployment.ConvertToDeploymentModel();
-        //
-        //     return deployment;
-        // }
-        
-        public async Task EnqueueDeployment(Deployment deployment, TimeSpan? delay = null)
+        public async Task<bool> EnqueueDeployment(Deployment deployment, TimeSpan? delay = null, bool force = false)
         {
-            if (deployment.Status != DeploymentStatus.Pending)
-                return;
+            if (!force)
+            {
+                if (deployment.Status != DeploymentStatus.Pending) 
+                    return false;
+            }
 
             // add entry in store
             var dao = await _deploymentQueueRepository.Add(new DeploymentQueue()
@@ -68,6 +57,8 @@ namespace Shipbot.Deployments
             await _deploymentQueueRepository.Save();
             
             await _deploymentService.ChangeDeploymentUpdateStatus(deployment.Id, DeploymentStatus.Queued);
+
+            return true;
         }
 
         public async Task<Deployment?> GetNextPendingDeploymentUpdate(Application application)

@@ -48,7 +48,8 @@ namespace Shipbot.Controller.Controllers
 
             await _deploymentQueueService.EnqueueDeployment(
                 deployment,
-                TimeSpan.FromSeconds(entry.Delay ?? 0)
+                TimeSpan.FromSeconds(entry.Delay ?? 0),
+                entry.Force
             );
 
             return StatusCode(StatusCodes.Status201Created);
