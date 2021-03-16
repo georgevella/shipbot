@@ -70,7 +70,7 @@ namespace Shipbot.Deployments
                     newTag
                 );
 
-                throw new Exception($"Deployment for {image} with {newTag} already exists.");
+                throw new Exception($"Deployment for {image} with {newTag} on application '{application.Name}' already exists.");
             }
 
             var entity = await CreateAndStoreDeploymentDao(
