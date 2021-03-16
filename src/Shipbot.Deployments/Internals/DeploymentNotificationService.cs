@@ -109,8 +109,8 @@ namespace Shipbot.Deployments
                 if (applicationImage.SourceCode.IsAvailable)
                 {
                     var pullRequests = await _gitHubClient.PullRequest.GetAllForRepository(
-                        "River-iGaming",
-                        "mangata.betti",
+                        applicationImage.SourceCode.Github.Owner,
+                        applicationImage.SourceCode.Github.Repository,
                         new PullRequestRequest()
                         {
                             State = ItemStateFilter.Open
